@@ -1,5 +1,7 @@
 from uuid import uuid4
 
+import pytest
+
 
 def interview_payload():
     return {
@@ -9,6 +11,7 @@ def interview_payload():
         "difficulty": "medium",
         "personality": "professional",
         "duration": 30,
+        "question_count": 2,
     }
 
 
@@ -28,6 +31,7 @@ def test_interview_lifecycle_and_answer(client):
     assert created.status_code == 201
     interview = created.json()
     assert interview["status"] == "created"
+    assert interview["question_count"] == 2
     session_id = interview["id"]
     question_id = interview["questions"][0]["id"]
 
@@ -85,6 +89,42 @@ def test_retry_answer(client):
     second_ans = client.post(f"/api/v1/interviews/questions/{question_id}/answer", json={"transcript": "Second improved attempt answer text.", "duration": 10})
     assert second_ans.status_code == 201
     assert second_ans.json()["attempt_number"] == 2
+
+
+def test_question_count_progresses_and_completes(client):
+    payload = interview_payload()
+    payload["question_count"] = 2
+    created = client.post("/api/v1/interviews", json=payload).json()
+    session_id = created["id"]
+    first_question_id = created["questions"][0]["id"]
+
+    assert client.post(f"/api/v1/interviews/{session_id}/start").status_code == 200
+    first_answer = client.post(
+        f"/api/v1/interviews/questions/{first_question_id}/answer",
+        json={"transcript": "This is a detailed first answer with useful context.", "duration": 8},
+    )
+    assert first_answer.status_code == 201
+
+    questions = client.get(f"/api/v1/interviews/{session_id}/questions").json()["items"]
+    assert len(questions) == 2
+    second_question_id = questions[1]["id"]
+
+    second_answer = client.post(
+        f"/api/v1/interviews/questions/{second_question_id}/answer",
+        json={"transcript": "This is a detailed second answer with useful context.", "duration": 8},
+    )
+    assert second_answer.status_code == 201
+    interview = client.get(f"/api/v1/interviews/{session_id}").json()
+    assert interview["status"] == "completed"
+    assert interview["current_question_number"] == 2
+
+
+@pytest.mark.parametrize("question_count", [0, -1, 21])
+def test_question_count_validation(client, question_count):
+    payload = interview_payload()
+    payload["question_count"] = question_count
+    response = client.post("/api/v1/interviews", json=payload)
+    assert response.status_code == 422
 
 
 def test_list_interviews_pagination_and_filter(client):
