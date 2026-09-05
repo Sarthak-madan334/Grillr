@@ -26,10 +26,10 @@ export default function HomePage() {
     <main className="min-h-screen text-[#241d1a]">
       <TopNav />
 
-      <section className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-        <div className="transform-gpu grid items-center gap-8 rounded-[38px] border border-[#e7d8c5]/80 bg-[rgba(255,255,255,0.16)] px-4 py-4 shadow-[0_28px_90px_rgba(120,92,68,0.1)] backdrop-blur-xl transition-[transform,box-shadow] duration-300 [transform:perspective(1200px)_translateZ(0)] hover:[transform:perspective(1200px)_translateY(-3px)_rotateX(0.5deg)_rotateY(-0.5deg)] hover:shadow-[0_34px_100px_rgba(120,92,68,0.14)] sm:px-5 lg:grid-cols-[1.2fr_0.8fr] lg:px-6 lg:py-6">
-          <div className="px-2 py-6 sm:px-3 sm:py-8 lg:px-4 lg:py-10">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-[#7a5f48]">
+      <section className="mx-auto max-w-6xl px-4 pb-12 pt-7 sm:px-6 sm:pb-16 sm:pt-10 lg:px-8">
+        <div className="transform-gpu grid items-center gap-8 transition-[transform,box-shadow] duration-300 sm:rounded-[38px] sm:border sm:border-[#e7d8c5]/80 sm:bg-[rgba(255,255,255,0.16)] sm:px-5 sm:py-4 sm:shadow-[0_28px_90px_rgba(120,92,68,0.1)] sm:backdrop-blur-xl sm:[transform:perspective(1200px)_translateZ(0)] sm:hover:[transform:perspective(1200px)_translateY(-3px)_rotateX(0.5deg)_rotateY(-0.5deg)] sm:hover:shadow-[0_34px_100px_rgba(120,92,68,0.14)] lg:grid-cols-[1.2fr_0.8fr] lg:px-6 lg:py-6">
+          <div className="rounded-[28px] border border-[#e7d8c5]/70 bg-[rgba(255,255,255,0.28)] px-5 py-9 shadow-[0_18px_50px_rgba(120,92,68,0.06)] backdrop-blur-md sm:rounded-none sm:border-0 sm:bg-transparent sm:px-3 sm:py-8 sm:shadow-none sm:backdrop-blur-none lg:px-4 lg:py-10">
+            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-[#7a5f48] sm:mb-4">
               Speak. Practice. Grow.
             </p>
             <h1 className="group/headline max-w-xl text-3xl font-semibold tracking-tight text-[#201a17] sm:text-4xl lg:text-[3rem]">
@@ -37,23 +37,23 @@ export default function HomePage() {
                 Turn every answer into momentum.
               </span>
             </h1>
-            <p className="mt-5 max-w-lg text-lg leading-8 text-[#5e4d40]">
+            <p className="mt-6 max-w-lg text-base leading-7 text-[#5e4d40] sm:mt-5 sm:text-lg sm:leading-8">
               Grillr helps candidates sharpen answers, improve delivery, and build confidence with focused mock interviews and structured feedback.
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link href="/signup">
-                <Button size="lg">Create account</Button>
+            <div className="mt-9 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center">
+              <Link href="/signup" className="w-full sm:w-auto">
+                <Button className="w-full" size="lg">Create account</Button>
               </Link>
-              <Link href="/dashboard">
-                <Button variant="secondary" size="lg">
+              <Link href="/dashboard" className="w-full sm:w-auto">
+                <Button className="w-full" variant="secondary" size="lg">
                   Explore dashboard
                 </Button>
               </Link>
             </div>
           </div>
 
-          <div className="rounded-[30px] border border-[#e7d8c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.36),rgba(243,233,224,0.9))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_18px_40px_rgba(121,94,72,0.06)] backdrop-blur-xl">
+          <div className="rounded-[30px] border border-[#e7d8c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.36),rgba(243,233,224,0.9))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_18px_40px_rgba(121,94,72,0.06)] backdrop-blur-xl sm:p-5">
             <div className="rounded-[24px] border border-[#e8dac5] bg-[rgba(255,255,255,0.48)] p-5 shadow-[0_14px_30px_rgba(121,94,72,0.08)] backdrop-blur-lg">
               <div className="mb-5 flex items-center justify-between">
                 <div>
