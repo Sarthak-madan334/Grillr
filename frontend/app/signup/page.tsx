@@ -1,52 +1,62 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-const features = [
-  "Real-time AI-generated follow-up questions",
-  "Live speech analysis for pace and clarity",
-  "Honest, structured feedback after each session",
-  "Retry-based coaching that tracks improvement",
-];
-
-function GoogleIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4"><path fill="#4285F4" d="M21.35 12.22c0-.71-.06-1.4-.18-2.05H12v3.88h5.24a4.48 4.48 0 0 1-1.94 2.94v2.44h3.14c1.84-1.69 2.91-4.18 2.91-7.21Z" /><path fill="#34A853" d="M12 21.7c2.63 0 4.84-.87 6.45-2.36l-3.14-2.44c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.52A9.74 9.74 0 0 0 12 21.7Z" /><path fill="#FBBC05" d="M6.54 13.79A5.85 5.85 0 0 1 6.24 12c0-.62.11-1.23.3-1.79V7.69H3.3A9.73 9.73 0 0 0 2.27 12c0 1.57.38 3.06 1.03 4.31l3.24-2.52Z" /><path fill="#EA4335" d="M12 6.18c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.84 3.27 14.63 2.3 12 2.3a9.74 9.74 0 0 0-8.7 5.39l3.24 2.52c.77-2.31 2.92-4.03 5.46-4.03Z" /></svg>;
-}
-
-function GithubIcon() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current"><path d="M12 .7a11.3 11.3 0 0 0-3.58 22.02c.57.1.78-.25.78-.55v-2.13c-3.17.69-3.84-1.34-3.84-1.34-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.67 1.25 3.32.96.1-.74.4-1.25.73-1.54-2.53-.29-5.2-1.27-5.2-5.65 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.03 0 0 .96-.31 3.12 1.17a10.82 10.82 0 0 1 5.68 0c2.16-1.48 3.12-1.17 3.12-1.17.62 1.58.23 2.74.11 3.03.73.8 1.18 1.82 1.18 3.07 0 4.39-2.67 5.35-5.21 5.64.41.36.78 1.06.78 2.14v3.11c0 .3.21.66.79.55A11.3 11.3 0 0 0 12 .7Z" /></svg>;
-}
 
 export default function SignupPage() {
   return (
-    <main className="min-h-screen bg-[#fbf9f5] p-3 text-[#241d1a] sm:p-6 lg:p-8">
-      <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-7xl overflow-hidden rounded-[32px] border border-[#e7d8c5] bg-white shadow-[0_28px_100px_rgba(80,59,43,0.14)] sm:min-h-[calc(100vh-3rem)] lg:grid-cols-[0.95fr_1.05fr] lg:min-h-[calc(100vh-4rem)]">
-        <section className="relative overflow-hidden bg-[#2d241d] px-6 py-10 text-[#f9f5f1] sm:px-10 sm:py-12 lg:px-14 lg:py-14">
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-[#cda67f]/20" />
-          <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full border border-[#cda67f]/15" />
-          <div className="relative flex h-full flex-col">
-            <Link href="/" className="flex items-center gap-3 text-sm font-semibold tracking-[0.18em] text-[#e9c8a6]"><span className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#cda67f]/40 bg-[#4a392d] text-sm text-[#f9f5f1]">G</span>GRILLR</Link>
-            <div className="my-auto max-w-md py-16">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d5a77d]">Interview practice, with a pulse</p>
-              <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Practice interviews that talk back.</h1>
-              <p className="mt-5 max-w-sm text-base leading-7 text-[#d9c9bb]">Build the clarity, confidence, and composure to make your next answer count.</p>
-              <ul className="mt-9 space-y-4">{features.map((feature) => <li key={feature} className="flex items-start gap-3 text-sm leading-6 text-[#eee3d9]"><span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#cda67f] text-xs font-bold text-[#2d241d]">✓</span>{feature}</li>)}</ul>
-            </div>
-            <p className="text-xs text-[#aa9582]">A calmer way to get interview-ready.</p>
+    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.05),_transparent_45%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] px-4 py-12">
+      <div className="w-full max-w-lg rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+        <div className="mb-8 flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-base font-semibold text-white">
+            G
           </div>
-        </section>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">Grillr</p>
+            <h1 className="text-xl font-semibold text-slate-900">Create account</h1>
+          </div>
+        </div>
 
-        <section className="relative px-6 py-8 sm:px-12 sm:py-10 lg:px-16 lg:py-12">
-          <div className="flex justify-end text-sm text-[#755d4a]">Already a member?<Link href="/login" className="ml-1 font-semibold text-[#2d241d] hover:underline">Sign in</Link></div>
-          <div className="mx-auto mt-10 max-w-md lg:mt-16">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7a5f48]">Get started</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#201a17]">Create your account</h2>
-            <p className="mt-3 text-sm leading-6 text-[#755d4a]">Your next stronger answer starts here.</p>
-            <div className="mt-7 grid gap-3"><button type="button" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#e7d8c5] bg-white text-sm font-medium text-[#2d241d] shadow-[0_8px_20px_rgba(156,125,93,0.08)] transition hover:-translate-y-0.5 hover:bg-[#fffaf4]"><GoogleIcon />Continue with Google</button><button type="button" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#e7d8c5] bg-white text-sm font-medium text-[#2d241d] shadow-[0_8px_20px_rgba(156,125,93,0.08)] transition hover:-translate-y-0.5 hover:bg-[#fffaf4]"><GithubIcon />Continue with GitHub</button></div>
-            <div className="my-7 flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-[#aa9582]"><span className="h-px flex-1 bg-[#eadcc8]" />or<span className="h-px flex-1 bg-[#eadcc8]" /></div>
-            <form className="space-y-5"><div className="grid gap-5 sm:grid-cols-2"><div className="space-y-2"><label htmlFor="firstName" className="text-sm font-medium text-[#5e4d40]">First name</label><Input id="firstName" name="firstName" placeholder="Ari" /></div><div className="space-y-2"><label htmlFor="lastName" className="text-sm font-medium text-[#5e4d40]">Last name</label><Input id="lastName" name="lastName" placeholder="Miller" /></div></div><div className="space-y-2"><label htmlFor="email" className="text-sm font-medium text-[#5e4d40]">Email</label><Input id="email" name="email" type="email" placeholder="you@example.com" /></div><div className="space-y-2"><label htmlFor="password" className="text-sm font-medium text-[#5e4d40]">Password</label><Input id="password" name="password" type="password" placeholder="Create a strong password" /></div><button type="submit" className="h-12 w-full rounded-full border border-[#2d241d] bg-[#2d241d] px-5 text-base font-medium text-[#f9f5f1] shadow-[0_10px_24px_rgba(45,36,29,0.2)] transition hover:-translate-y-0.5 hover:bg-[#1f1915]">Create account</button></form>
-            <p className="mt-6 text-center text-xs leading-5 text-[#8a7564]">By creating an account, you agree to practice with purpose.</p>
+        <form className="space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="firstName" className="text-sm font-medium text-slate-700">
+                First name
+              </label>
+              <Input id="firstName" placeholder="Ari" />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="lastName" className="text-sm font-medium text-slate-700">
+                Last name
+              </label>
+              <Input id="lastName" placeholder="Miller" />
+            </div>
           </div>
-        </section>
+
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-sm font-medium text-slate-700">
+              Email
+            </label>
+            <Input id="email" type="email" placeholder="you@example.com" />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="password" className="text-sm font-medium text-slate-700">
+              Password
+            </label>
+            <Input id="password" type="password" placeholder="Create a strong password" />
+          </div>
+
+          <Button className="w-full" size="lg">
+            Create account
+          </Button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-slate-600">
+          Already have an account?{" "}
+          <Link href="/login" className="font-semibold text-slate-900">
+            Sign in
+          </Link>
+        </p>
       </div>
     </main>
   );
