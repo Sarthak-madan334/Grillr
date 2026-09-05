@@ -2,11 +2,11 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #241d1a;
+  --foreground: #1d1d1f;
   --card: rgba(255, 255, 255, 0.7);
   --card-strong: #fffdf9;
-  --accent: #cab29a;
-  --accent-strong: #9c7d5d;
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
 }
 
 @theme inline {
@@ -21,12 +21,9 @@ html {
 }
 
 body {
-  background:
-    radial-gradient(circle at top left, rgba(202, 178, 154, 0.3), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(156, 125, 93, 0.16), transparent 25%),
-    linear-gradient(180deg, #ffffff 0%, #fffdfb 100%);
+  background: #ffffff;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
 * {
@@ -41,5 +38,5 @@ textarea {
 }
 
 ::selection {
-  background: rgba(156, 125, 93, 0.22);
+  background: rgba(37, 99, 235, 0.18);
 }
