@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from uuid import UUID, uuid5, NAMESPACE_URL
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -48,10 +48,15 @@ def authenticate_token(token: str, db: Session) -> CurrentUser:
     return identity
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer), db: Session = Depends(get_db)) -> CurrentUser:
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    access_token: str | None = Cookie(default=None),
+    db: Session = Depends(get_db),
+) -> CurrentUser:
     settings = get_settings()
-    if credentials is None:
+    token = credentials.credentials if credentials is not None else access_token
+    if token is None:
         if settings.auth_required:
             raise _unauthorized()
         return authenticate_token(f"dev:{DEV_USER_ID}:developer@localhost:Development User", db)
-    return authenticate_token(credentials.credentials, db)
+    return authenticate_token(token, db)
