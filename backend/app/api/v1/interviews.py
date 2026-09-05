@@ -1,0 +1,80 @@
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from app.core.auth import CurrentUser, get_current_user
+from app.db.session import get_db
+from app.models import SessionStatus
+from app.schemas.answer import AnswerCreate, AnswerResponse
+from app.schemas.common import RetryRequest
+from app.models import Answer, Question
+from app.schemas.interview import InterviewCreate, InterviewListResponse, InterviewResponse, QuestionsResponse, RetryResponse, SummaryResponse
+from app.services.interview_service import InterviewService
+
+router = APIRouter()
+
+
+def service(db: Session = Depends(get_db)) -> InterviewService:
+    return InterviewService(db)
+
+
+@router.post("", response_model=InterviewResponse, status_code=status.HTTP_201_CREATED)
+def create_interview(data: InterviewCreate, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
+    return interviews.create(identity.id, data)
+
+
+@router.get("", response_model=InterviewListResponse)
+def list_interviews(status_filter: SessionStatus | None = Query(default=None, alias="status"), limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0), identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
+    items, total = interviews.list(identity.id, status_filter, limit, offset)
+    return {"items": items, "total": total, "limit": limit, "offset": offset}
+
+
+@router.get("/{session_id}", response_model=InterviewResponse)
+def get_interview(session_id: UUID, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
+    return interviews.get(session_id, identity.id)
+
+
+@router.post("/{session_id}/start", response_model=InterviewResponse)
+def start_interview(session_id: UUID, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
+    return interviews.transition(session_id, identity.id, SessionStatus.ACTIVE)
+
+
+@router.post("/{session_id}/cancel", response_model=InterviewResponse)
+def cancel_interview(session_id: UUID, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
+    return interviews.transition(session_id, identity.id, SessionStatus.CANCELLED)
+
+
+@router.post("/{session_id}/complete", response_model=InterviewResponse)
+def complete_interview(session_id: UUID, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
+    return interviews.complete(session_id, identity.id)
+
+
+@router.get("/{session_id}/questions", response_model=QuestionsResponse)
+def get_questions(session_id: UUID, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
+    return {"items": interviews.questions(session_id, identity.id)}
+
+
+@router.get("/{session_id}/feedback", response_model=SummaryResponse)
+def get_feedback(session_id: UUID, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
+    interview = interviews.get(session_id, identity.id)
+    if interview.summary is None:
+        from app.core.errors import NotFoundError
+        raise NotFoundError("Interview feedback")
+    return interview.summary
+
+
+@router.post("/questions/{question_id}/answer", response_model=AnswerResponse, status_code=status.HTTP_201_CREATED)
+def submit_answer(question_id: UUID, data: AnswerCreate, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
+    return interviews.answer(question_id, identity.id, data)
+
+
+@router.post("/questions/{question_id}/retry", response_model=RetryResponse)
+def retry_answer(question_id: UUID, request: RetryRequest, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
+    question = interviews.db.scalar(select(Question).where(Question.id == question_id, Question.session.has(user_id=identity.id)))
+    if question is None:
+        from app.core.errors import NotFoundError
+        raise NotFoundError("Question")
+    attempt = interviews.db.scalar(select(func.max(Answer.attempt_number)).where(Answer.question_id == question_id)) or 0
+    return {"question_id": question_id, "attempt_number": attempt + 1, "status": "ready"}
