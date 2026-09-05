@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TopNav } from "@/components/layout/top-nav";
+import LiveInterviewCard from "@/components/LiveInterviewCard";
 import { evaluateAnswer, generateQuestions, type InterviewConfig, type Question } from "@/lib/interview";
 
 type InterviewState = "ai_speaking" | "listening" | "user_speaking" | "processing" | "paused";
@@ -130,28 +131,20 @@ export default function InterviewPage() {
 
         {!isComplete ? (
           <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="flex justify-center lg:justify-start">
+              <LiveInterviewCard
+                role={interviewConfig.jobRole}
+                interviewMode="Technical"
+                question={currentQuestion.text}
+                questionNumber={questionIndex + 1}
+                totalQuestions={questions.length}
+                timeRemainingSeconds={Math.max(0, interviewConfig.duration * 60 - elapsedSeconds)}
+                isListening={interviewState === "listening" || interviewState === "user_speaking"}
+                onRetry={retryAnswer}
+              />
+            </div>
+
             <Card className="p-6 sm:p-8">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <Badge className="border-[#eadcc8] bg-[#f9f1e8] text-[#6a5648]">Question {questionIndex + 1} of {questions.length}</Badge>
-                  <h2 className="mt-6 max-w-2xl text-2xl font-semibold leading-tight text-[#201a17] sm:text-3xl">{currentQuestion.text}</h2>
-                </div>
-                <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#eadcc8] bg-[rgba(255,255,255,0.55)] text-sm font-semibold text-[#7a5f48] sm:flex">
-                  {questionIndex + 1}
-                </span>
-              </div>
-
-              <div className="mt-8 flex items-center gap-3 rounded-[22px] border border-[#eadcc8] bg-[rgba(255,255,255,0.42)] p-4 backdrop-blur-sm">
-                <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[#2d241d] text-xs font-semibold text-white">
-                  AI
-                  {interviewState === "ai_speaking" && <span className="absolute inset-0 animate-ping rounded-full bg-[#b8916d]/30" />}
-                </span>
-                <div>
-                  <p className="text-sm font-medium text-[#201a17]">Grillr interviewer</p>
-                  <p className="text-sm text-[#7a5f48]">{interviewState === "ai_speaking" ? "Speaking now" : "Ready when you are"}</p>
-                </div>
-              </div>
-
               <div className="mt-6">
                 <label htmlFor="transcript" className="mb-2 block text-sm font-medium text-[#5e4d40]">Live transcript</label>
                 <textarea

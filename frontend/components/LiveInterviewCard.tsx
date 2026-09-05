@@ -87,21 +87,8 @@ export default function LiveInterviewCard({
   isListening,
   onRetry,
 }: LiveInterviewCardProps) {
-  const [remainingSeconds, setRemainingSeconds] = useState(timeRemainingSeconds);
   const [metrics, setMetrics] = useState({ pace: 74, clarity: 81, confidence: 78 });
   const [waveSeed, setWaveSeed] = useState(0);
-
-  useEffect(() => {
-    setRemainingSeconds(timeRemainingSeconds);
-  }, [timeRemainingSeconds]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setRemainingSeconds((prev) => Math.max(0, prev - 1));
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const metricsTimer = window.setInterval(() => {
@@ -224,7 +211,7 @@ export default function LiveInterviewCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
               <span>Question {questionNumber} of {totalQuestions}</span>
-              <span>{formatTime(remainingSeconds)}</span>
+              <span>{formatTime(timeRemainingSeconds)}</span>
             </div>
             <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
               <div
