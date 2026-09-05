@@ -3,7 +3,7 @@ import Link from "next/link";
 export function TopNav() {
   return (
     <header className="sticky top-0 z-30 border-b border-[#eadcc8]/80 bg-[rgba(255,250,244,0.58)] backdrop-blur-2xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="group flex items-center gap-3">
           <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-[#e7d8c5] bg-[linear-gradient(135deg,rgba(255,255,255,0.7),rgba(236,220,204,0.82))] shadow-[0_10px_22px_rgba(80,59,43,0.12)] transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_14px_26px_rgba(80,59,43,0.16)]">
             <span className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_transparent_55%)]" />
@@ -54,18 +54,19 @@ export function TopNav() {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <Link
             href="/login"
-            className="rounded-full px-4 py-2 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7]"
+            className="hidden rounded-full px-2 py-2 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] sm:inline-flex sm:px-4"
           >
             Sign in
           </Link>
           <Link
             href="/signup"
-            className="rounded-full border border-[#e7d8c5] bg-[linear-gradient(135deg,rgba(48,38,31,0.96),rgba(76,62,54,0.9))] px-4 py-2 text-sm font-medium text-[#f9f5f1] shadow-[0_12px_24px_rgba(47,36,30,0.16)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_28px_rgba(47,36,30,0.2)]"
+            className="rounded-full border border-[#e7d8c5] bg-[linear-gradient(135deg,rgba(48,38,31,0.96),rgba(76,62,54,0.9))] px-3 py-2 text-xs font-medium text-[#f9f5f1] shadow-[0_12px_24px_rgba(47,36,30,0.16)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_28px_rgba(47,36,30,0.2)] sm:px-4 sm:text-sm"
           >
-            Create account
+            <span className="sm:hidden">Join</span>
+            <span className="hidden sm:inline">Create account</span>
           </Link>
         </div>
       </div>
