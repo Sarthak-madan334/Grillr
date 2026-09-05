@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,7 +34,10 @@ const initialFormState: SetupFormState = {
 };
 
 export default function InterviewSetupPage() {
+  const router = useRouter();
   const [formState, setFormState] = useState<SetupFormState>(initialFormState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
@@ -42,6 +47,44 @@ export default function InterviewSetupPage() {
 
   function updateField<Key extends keyof SetupFormState>(field: Key, value: SetupFormState[Key]) {
     setFormState((currentState) => ({ ...currentState, [field]: value }));
+    setSubmitError("");
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitError("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000"}/api/v1/interviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          interview_type: formState.interviewType,
+          job_role: formState.jobTitle,
+          experience_level: formState.experienceLevel,
+          difficulty: formState.difficulty,
+          personality: formState.personality,
+          duration: Number(formState.duration),
+          question_count: formState.questionCount,
+          resume_url: null,
+          job_description: formState.jobDescription || null,
+        }),
+      });
+
+      const payload = (await response.json()) as { id?: string; detail?: string };
+      if (!response.ok) {
+        throw new Error(typeof payload.detail === "string" ? payload.detail : "Unable to create the interview.");
+      }
+      if (!payload.id) {
+        throw new Error("The interview was created without an ID.");
+      }
+      router.push(`/interview/${payload.id}`);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Unable to create the interview. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -60,7 +103,8 @@ export default function InterviewSetupPage() {
         </div>
 
         <Card className="p-6 sm:p-8">
-          <form className="grid gap-6 md:grid-cols-2" onSubmit={(event) => event.preventDefault()}>
+          <form className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit}>
+            {submitError ? <p role="alert" className="md:col-span-2 rounded-2xl border border-[#e7b8a9] bg-[#fff1ed] px-4 py-3 text-sm text-[#9a4635]">{submitError}</p> : null}
             <div className="space-y-2">
               <label htmlFor="interviewType" className="text-sm font-medium text-[#5e4d40]">Interview type</label>
               <select id="interviewType" name="interviewType" value={formState.interviewType} onChange={(event) => updateField("interviewType", event.target.value as SetupFormState["interviewType"])} className="w-full rounded-2xl border border-[#e7d8c5] bg-[rgba(255,255,255,0.62)] px-3.5 py-3 text-sm text-[#201a17] outline-none backdrop-blur-sm focus:border-[#b8916d]">
@@ -139,9 +183,9 @@ export default function InterviewSetupPage() {
             </div>
 
             <div className="md:col-span-2 flex justify-end">
-              <Link href="/interview">
-                <Button size="lg">Begin interview</Button>
-              </Link>
+              <Button type="submit" size="lg" disabled={isSubmitting}>
+                {isSubmitting ? "Creating interview..." : "Begin interview"}
+              </Button>
             </div>
           </form>
         </Card>
