@@ -1,0 +1,16 @@
+{
+    "configurations": [
+        {
+            "name": "Windows",
+            "includePath": [
+                "${workspaceFolder}/backend/.venv/Include/site/python3.14",
+                "C:/Users/sarth/AppData/Local/Python/pythoncore-3.14-64/Include"
+            ],
+            "defines": [],
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc"
+        }
+    ],
+    "version": 4
+}
