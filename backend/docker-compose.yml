@@ -1,0 +1,38 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+psycopg://grillr:grillr@db:5432/grillr
+      AUTH_REQUIRED: "true"
+      AUTO_CREATE_SCHEMA: "false"
+      CORS_ORIGINS: http://localhost:3000
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:?Set SUPABASE_JWT_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: grillr
+      POSTGRES_USER: grillr
+      POSTGRES_PASSWORD: grillr
+    ports:
+      - "5432:5432"
+    volumes:
+      - grillr-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grillr -d grillr"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  grillr-db:
