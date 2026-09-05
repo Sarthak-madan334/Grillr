@@ -4,10 +4,22 @@ import { Card } from "@/components/ui/card";
 import { TopNav } from "@/components/layout/top-nav";
 
 const promoCards = [
-  { title: "Behavioral mock interviews", value: "12" },
-  { title: "AI follow-ups", value: "Adaptive" },
-  { title: "Feedback loops", value: "Real-time" },
+  { title: "Behavioral mock interviews", value: "12", kind: "count", icon: "waveform" },
+  { title: "AI follow-ups", value: "Adaptive", kind: "state", icon: "branch" },
+  { title: "Feedback loops", value: "Real-time", kind: "state", icon: "pulse" },
 ];
+
+function StatIcon({ icon }: { icon: string }) {
+  if (icon === "branch") {
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M6 5v5a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3v3M18 16l2 2-2 2M18 4l2 2-2 2" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
+  }
+
+  if (icon === "pulse") {
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M3 12h4l2.2-6 4.1 12 2.2-6H21" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
+  }
+
+  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M4 13v-2M8 16V8M12 19V5M16 16V8M20 13v-2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" /></svg>;
+}
 
 export default function HomePage() {
   return (
@@ -69,14 +81,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="grid gap-5 md:grid-cols-3">
+      <section className="mx-auto max-w-6xl px-4 pb-8 sm:px-6 lg:px-8">
+        <div className="grid gap-5 border-b border-[#e7d8c5]/80 pb-8 md:grid-cols-3">
           {promoCards.map((card) => (
-            <Card key={card.title} className="group p-5">
-              <p className="text-sm text-[#7a5f48]">{card.title}</p>
-              <p className="mt-3 inline-block text-2xl font-semibold text-[#201a17] transition duration-300 group-hover:translate-x-1 group-hover:text-[#755d4a]">
-                {card.value}
-              </p>
+            <Card key={card.title} className={`group p-5 ${card.kind === "count" ? "md:scale-[1.03] md:shadow-[0_24px_60px_rgba(120,92,68,0.14)]" : ""}`}>
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#e7d8c5] bg-[#f8eee4] text-[#7a5f48] transition duration-300 group-hover:rotate-[-4deg] group-hover:bg-[#efe0d1]"><StatIcon icon={card.icon} /></span>
+                <p className="text-sm text-[#7a5f48]">{card.title}</p>
+              </div>
+              {card.kind === "count" ? (
+                <p className="mt-5 text-4xl font-semibold tracking-tight text-[#201a17] transition duration-300 group-hover:translate-x-1 group-hover:text-[#755d4a]">{card.value}</p>
+              ) : (
+                <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#d4eadb] bg-[#e7f6ec] px-3 py-1.5 text-sm font-semibold text-[#26724d] transition duration-300 group-hover:translate-x-1"><span className="h-1.5 w-1.5 rounded-full bg-[#3b9a68]" />{card.value}</span>
+              )}
             </Card>
           ))}
         </div>

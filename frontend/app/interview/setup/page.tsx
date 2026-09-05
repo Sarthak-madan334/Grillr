@@ -122,9 +122,7 @@ export default function InterviewSetupPage() {
 
             <div className="space-y-2 md:col-span-2">
               <label htmlFor="resume" className="text-sm font-medium text-[#5e4d40]">Resume</label>
-              <div className="rounded-2xl border border-dashed border-[#d9c5b1] bg-[rgba(255,255,255,0.42)] p-4 text-sm text-[#7a5f48]">
-                Upload your resume or drag and drop here.
-              </div>
+              <input id="resume" name="resume" type="file" accept=".pdf,.doc,.docx" onChange={(event) => updateField("resume", event.target.files?.[0] ?? null)} className="w-full rounded-2xl border border-dashed border-[#d9c5b1] bg-[rgba(255,255,255,0.42)] p-4 text-sm text-[#7a5f48] file:mr-3 file:rounded-full file:border-0 file:bg-[#2d241d] file:px-3 file:py-2 file:text-xs file:font-medium file:text-white" />
             </div>
 
             <div className="space-y-2 md:col-span-2">
