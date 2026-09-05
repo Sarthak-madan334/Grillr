@@ -14,6 +14,7 @@ type SetupFormState = {
   difficulty: "medium" | "easy" | "hard";
   personality: "professional" | "friendly" | "tough";
   duration: "30" | "15" | "45";
+  questionCount: number;
   resume: File | null;
   jobDescription: string;
 };
@@ -25,6 +26,7 @@ const initialFormState: SetupFormState = {
   difficulty: "medium",
   personality: "professional",
   duration: "30",
+  questionCount: 5,
   resume: null,
   jobDescription: "",
 };
@@ -106,6 +108,15 @@ export default function InterviewSetupPage() {
                 <option value="30">30 minutes</option>
                 <option value="15">15 minutes</option>
                 <option value="45">45 minutes</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="questionCount" className="text-sm font-medium text-[#5e4d40]">Number of questions</label>
+              <select id="questionCount" name="questionCount" value={formState.questionCount} onChange={(event) => updateField("questionCount", Number(event.target.value))} className="w-full rounded-2xl border border-[#e7d8c5] bg-[rgba(255,255,255,0.62)] px-3.5 py-3 text-sm text-[#201a17] outline-none backdrop-blur-sm focus:border-[#b8916d]">
+                {Array.from({ length: 20 }, (_, index) => index + 1).map((count) => (
+                  <option key={count} value={count}>{count} {count === 1 ? "question" : "questions"}</option>
+                ))}
               </select>
             </div>
 
