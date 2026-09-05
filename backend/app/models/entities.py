@@ -40,6 +40,7 @@ class InterviewSession(Base):
     difficulty: Mapped[str] = mapped_column(String(40))
     personality: Mapped[str] = mapped_column(String(40))
     duration: Mapped[int] = mapped_column(Integer)
+    question_count: Mapped[int] = mapped_column(Integer, default=5, server_default="5")
     resume_url: Mapped[str | None] = mapped_column(String(500))
     job_description: Mapped[str | None] = mapped_column(Text)
     status: Mapped[SessionStatus] = mapped_column(Enum(SessionStatus), default=SessionStatus.CREATED, index=True)

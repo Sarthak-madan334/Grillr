@@ -23,7 +23,7 @@ class InterviewService:
         self.evaluator = MockAnswerEvaluator()
 
     def create(self, user_id: UUID, data: InterviewCreate) -> InterviewSession:
-        session = InterviewSession(user_id=user_id, interview_type=data.interview_type.value, job_role=data.job_role, experience_level=data.experience_level, difficulty=data.difficulty, personality=data.personality, duration=data.duration, resume_url=str(data.resume_url) if data.resume_url else None, job_description=data.job_description)
+        session = InterviewSession(user_id=user_id, interview_type=data.interview_type.value, job_role=data.job_role, experience_level=data.experience_level, difficulty=data.difficulty, personality=data.personality, duration=data.duration, question_count=data.question_count, resume_url=str(data.resume_url) if data.resume_url else None, job_description=data.job_description)
         self.db.add(session)
         self.db.flush()
         self.db.add(Question(session_id=session.id, question_number=1, question_text=self.ai.first_question(data.job_role, data.interview_type.value), question_type=data.interview_type.value))
@@ -71,8 +71,15 @@ class InterviewService:
         self.db.add(AnswerEvaluation(answer_id=answer.id, **self.evaluator.evaluate(data.transcript, question.question_text)))
         question.answered_at = datetime.now(timezone.utc)
         question.session.current_question_number = question.question_number
+        if question.question_number < question.session.question_count:
+            next_question_number = question.question_number + 1
+            existing_next = self.db.scalar(select(Question).where(Question.session_id == question.session_id, Question.question_number == next_question_number))
+            if existing_next is None:
+                self.db.add(Question(session_id=question.session_id, question_number=next_question_number, question_text=self.ai.next_question(question.session.job_role, next_question_number), question_type=question.session.interview_type))
         self.db.commit()
         self.db.refresh(answer)
+        if question.question_number == question.session.question_count:
+            self.complete(question.session_id, user_id)
         return answer
 
     def complete(self, session_id: UUID, user_id: UUID) -> InterviewSession:

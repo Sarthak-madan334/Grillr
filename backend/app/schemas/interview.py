@@ -22,6 +22,7 @@ class InterviewCreate(BaseModel):
     difficulty: str = Field(min_length=2, max_length=40)
     personality: str = Field(min_length=2, max_length=40)
     duration: int = Field(gt=0, le=180)
+    question_count: int = Field(default=5, ge=1, le=20)
     resume_url: HttpUrl | None = None
     job_description: str | None = Field(default=None, max_length=10000)
 
@@ -46,6 +47,7 @@ class InterviewResponse(BaseModel):
     difficulty: str
     personality: str
     duration: int
+    question_count: int
     current_question_number: int
     created_at: datetime
     started_at: datetime | None
