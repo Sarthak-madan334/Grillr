@@ -34,6 +34,9 @@ export function Footer() {
             <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#e7d8c5] bg-[#f8eee4] text-xs font-semibold text-[#5f4939]">G</span>
             <p>© 2026 Grillr. Practice with purpose.</p>
           </div>
+          <Link href="/privacy" className="text-[#2563eb] transition hover:text-[#1d4ed8] hover:underline">
+            Privacy Policy
+          </Link>
         </div>
       </div>
     </footer>
