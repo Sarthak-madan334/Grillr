@@ -3,6 +3,8 @@ from uuid import uuid4
 
 os.environ["DATABASE_URL"] = "sqlite://"
 os.environ["AUTH_REQUIRED"] = "false"
+os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
+os.environ.setdefault("SUPABASE_ANON_KEY", "anon-test-key")
 
 import pytest
 from fastapi.testclient import TestClient
