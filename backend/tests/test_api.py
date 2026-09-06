@@ -205,3 +205,20 @@ def test_final_answer_persists_completion_summary_and_latest_feedback(client):
     summary = client.get(f"/api/v1/interviews/{session_id}/feedback")
     assert summary.status_code == 200
     assert summary.json()["total_questions"] == 1
+
+
+def test_get_question_audio(client):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    question_id = created["questions"][0]["id"]
+
+    # Request the audio for the question
+    res = client.get(f"/api/v1/questions/{question_id}/audio")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "audio/mpeg"
+    assert len(res.content) > 0  # ensure we got some bytes
+
+
+def test_get_question_audio_not_found(client):
+    invalid_id = str(uuid4())
+    res = client.get(f"/api/v1/questions/{invalid_id}/audio")
+    assert res.status_code == 404
