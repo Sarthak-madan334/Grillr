@@ -5,6 +5,7 @@ import httpx
 import pytest
 
 import app.services.providers as providers
+from app.services.interview_service import InterviewService
 from app.services.providers import LLMAnswerEvaluator, MockSpeechAnalyzer, MockAnswerEvaluator, MockAIInterviewer, MockTextToSpeech, RimeTextToSpeech, create_text_to_speech
 
 
@@ -53,6 +54,20 @@ def test_answer_evaluator_scoring():
 
     long_eval = evaluator.evaluate("This is a detailed answer that contains more than ten words to score high", "What is OOP?")
     assert long_eval["overall_score"] == 80
+
+
+def test_answer_evaluator_factory_uses_mock_without_key():
+    evaluator = providers.create_answer_evaluator(SimpleNamespace(groq_api_key=None, groq_model="test-model"))
+
+    assert isinstance(evaluator, MockAnswerEvaluator)
+
+
+def test_interview_service_uses_llm_evaluator_with_injected_key():
+    service = InterviewService(object(), tts=MockTextToSpeech(), settings=SimpleNamespace(groq_api_key="test-key", groq_model="test-model"))
+
+    assert isinstance(service.evaluator, LLMAnswerEvaluator)
+    assert service.evaluator.api_key == "test-key"
+    assert service.evaluator.model == "test-model"
 
 
 def test_llm_answer_evaluator_parses_and_clamps_scores(monkeypatch):
