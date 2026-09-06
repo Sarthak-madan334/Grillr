@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     supabase_anon_key: str | None = None
     supabase_jwks_url: str | None = None
     rime_api_key: str | None = None
+    groq_api_key: str | None = None
+    groq_model: str = "llama-3.1-8b-instant"
     auth_required: bool = False
     sql_echo: bool = False
     auto_create_schema: bool = True

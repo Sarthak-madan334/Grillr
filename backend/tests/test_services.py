@@ -5,7 +5,7 @@ import httpx
 import pytest
 
 import app.services.providers as providers
-from app.services.providers import MockSpeechAnalyzer, MockAnswerEvaluator, MockAIInterviewer, MockTextToSpeech, RimeTextToSpeech, create_text_to_speech
+from app.services.providers import LLMAnswerEvaluator, MockSpeechAnalyzer, MockAnswerEvaluator, MockAIInterviewer, MockTextToSpeech, RimeTextToSpeech, create_text_to_speech
 
 
 class FakeHttpClient:
@@ -53,6 +53,49 @@ def test_answer_evaluator_scoring():
 
     long_eval = evaluator.evaluate("This is a detailed answer that contains more than ten words to score high", "What is OOP?")
     assert long_eval["overall_score"] == 80
+
+
+def test_llm_answer_evaluator_parses_and_clamps_scores(monkeypatch):
+    payload = {"choices": [{"message": {"content": '{"relevance_score": 120, "clarity_score": 80, "structure_score": 70, "specificity_score": 60, "technical_accuracy_score": 50, "conciseness_score": 40, "communication_score": 30, "overall_score": 75, "strengths": ["Clear"], "weaknesses": [], "suggestions": ["Add metrics"], "improved_answer": "A stronger answer."}'}}]}
+    client = FakeHttpClient(response=httpx.Response(200, json=payload, request=httpx.Request("POST", "https://api.groq.com")))
+    monkeypatch.setattr(providers.httpx, "Client", lambda timeout: client)
+
+    result = LLMAnswerEvaluator(api_key="test-key").evaluate("I led a migration and reduced deploy time by 40 percent.", "Tell me about a project you led.")
+
+    assert result["relevance_score"] == 100
+    assert result["overall_score"] == 75
+    assert result["strengths"] == ["Clear"]
+
+
+def test_llm_answer_evaluator_malformed_response_uses_fallback(monkeypatch):
+    client = FakeHttpClient(response=httpx.Response(200, json={"choices": [{"message": {"content": "not json"}}]}, request=httpx.Request("POST", "https://api.groq.com")))
+    monkeypatch.setattr(providers.httpx, "Client", lambda timeout: client)
+
+    result = LLMAnswerEvaluator(api_key="test-key").evaluate("I improved the process by documenting the workflow and measuring cycle time.", "How did you improve a process?")
+
+    assert result["overall_score"] == 0
+    assert "Evaluation unavailable" in result["weaknesses"][0]
+
+
+def test_llm_answer_evaluator_provider_failure_uses_fallback(monkeypatch):
+    client = FakeHttpClient(error=httpx.ConnectError("connection refused"))
+    monkeypatch.setattr(providers.httpx, "Client", lambda timeout: client)
+
+    result = LLMAnswerEvaluator(api_key="test-key").evaluate("I improved the process by documenting the workflow and measuring cycle time.", "How did you improve a process?")
+
+    assert result["overall_score"] == 0
+    assert "Evaluation unavailable" in result["weaknesses"][0]
+
+
+def test_llm_answer_evaluator_trivial_answer_scores_low_without_call(monkeypatch):
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("trivial answers should not call the LLM")
+
+    monkeypatch.setattr(providers.httpx, "Client", fail_if_called)
+    result = LLMAnswerEvaluator(api_key="test-key").evaluate("I don't know", "What is your greatest strength?")
+
+    assert result["overall_score"] == 0
+    assert "too brief" in result["weaknesses"][0]
 
 
 def test_mock_ai_interviewer():
