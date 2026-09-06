@@ -6,12 +6,14 @@ import { useVoiceActivityDetection } from "../lib/audio/use-voice-activity-detec
 
 type VoiceStatus = "checking" | "ready" | "recording" | "denied" | "no-device" | "unsupported" | "revoked";
 type TranscriptionState = "idle" | "processing" | "error";
+export type TurnState = "asking" | "listening" | "processing" | "completed";
 
 type VoiceAnswerPanelProps = {
   sessionId?: string;
   disabled?: boolean;
   onRecordingChange?: (recording: boolean) => void;
   onTranscript?: (transcript: string) => void;
+  onTurnStateChange?: (state: TurnState) => void;
 };
 
 function MicrophoneIcon() {
@@ -41,7 +43,7 @@ function statusCopy(status: VoiceStatus) {
   }
 }
 
-export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChange, onTranscript }: VoiceAnswerPanelProps) {
+export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChange, onTranscript, onTurnStateChange }: VoiceAnswerPanelProps) {
   const [status, setStatus] = useState<VoiceStatus>(() =>
     typeof navigator !== "undefined" &&
     typeof navigator.mediaDevices?.getUserMedia === "function"
@@ -144,7 +146,11 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
         }, { once: true });
         socket.addEventListener("message", (event) => {
           try {
-            const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; message?: string; code?: string } };
+            const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; message?: string; code?: string; state?: TurnState } };
+            if (message.type === "turn.state_changed" && message.data?.state) {
+              onTurnStateChange?.(message.data.state);
+              return;
+            }
             if ((message.type === "transcript.partial" || message.type === "transcript.final") && message.data?.text) {
               setLiveTranscript(message.data.text);
               if (message.type === "transcript.final") {
@@ -202,8 +208,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
     } else {
       stopStream();
     }
-                setStatus("ready");
-                setTranscriptionState("idle");
+    if (!sessionId) setStatus("ready");
   }
 
   const message = statusCopy(status);

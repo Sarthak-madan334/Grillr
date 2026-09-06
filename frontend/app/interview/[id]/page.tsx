@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/layout/top-nav";
 import { QuestionAudioPlayer } from "@/components/QuestionAudioPlayer";
 import { VoiceAnswerPanel } from "@/components/VoiceAnswerPanel";
+import { ConversationTurnBanner } from "@/components/ConversationTurnBanner";
+import type { TurnState } from "@/components/VoiceAnswerPanel";
 import {
   getInterview,
   getLatestAnswer,
@@ -216,6 +218,7 @@ export default function InterviewSessionPage() {
     "loading" | "ready" | "submitting" | "feedback" | "completed" | "error"
   >("loading");
   const [error, setError] = useState("");
+  const [turnState, setTurnState] = useState<TurnState>("listening");
   const questionStartedAt = useRef<number | null>(null);
 
   const loadSession = useCallback(
@@ -421,12 +424,14 @@ export default function InterviewSessionPage() {
                 >
                   {question.question_text}
                 </h2>
+                <ConversationTurnBanner state={turnState} />
                 <QuestionAudioPlayer key={question.id} sessionId={session.id} questionId={question.id} shouldStop={state === "submitting"} />
                 <div className="mt-10">
                   <VoiceAnswerPanel
                     sessionId={session.id}
-                    disabled={state === "submitting"}
+                    disabled={state === "submitting" || turnState === "asking" || turnState === "processing"}
                     onTranscript={setDraft}
+                    onTurnStateChange={setTurnState}
                   />
                   <label
                     htmlFor="answer"
@@ -438,7 +443,7 @@ export default function InterviewSessionPage() {
                     id="answer"
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
-                    disabled={state === "submitting"}
+                    disabled={state === "submitting" || turnState === "asking" || turnState === "processing"}
                     placeholder="Start with the situation, explain what you did, and finish with the outcome."
                     rows={10}
                     className="mt-3 w-full resize-y rounded-[24px] border border-[#e7d8c5] bg-[rgba(255,255,255,0.56)] px-5 py-4 text-base leading-7 text-[#201a17] outline-none transition placeholder:text-[#aa9582] focus:border-[#b8916d] focus:ring-2 focus:ring-[#b8916d]/20 disabled:opacity-70 motion-reduce:transition-none"
@@ -455,7 +460,7 @@ export default function InterviewSessionPage() {
                   <Button
                     className="mt-6"
                     onClick={() => void handleSubmit()}
-                    disabled={!draft.trim() || state === "submitting"}
+                    disabled={!draft.trim() || state === "submitting" || turnState !== "listening"}
                   >
                     {state === "submitting" ? (
                       <span className="inline-flex items-center gap-2">
