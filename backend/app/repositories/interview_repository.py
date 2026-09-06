@@ -19,5 +19,5 @@ class InterviewRepository:
         if status:
             query = query.where(InterviewSession.status == status)
             count_query = count_query.where(InterviewSession.status == status)
-        items = list(self.db.scalars(query.options(selectinload(InterviewSession.questions)).order_by(InterviewSession.created_at.desc()).limit(limit).offset(offset)).all())
+        items = list(self.db.scalars(query.options(selectinload(InterviewSession.questions), selectinload(InterviewSession.summary)).order_by(InterviewSession.created_at.desc()).limit(limit).offset(offset)).all())
         return items, self.db.scalar(count_query) or 0

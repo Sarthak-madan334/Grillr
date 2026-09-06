@@ -1,4 +1,9 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
+
+from sqlalchemy import select
+
+from app.db.session import SessionLocal
+from app.models import InterviewSummary
 
 import pytest
 
@@ -143,6 +148,58 @@ def test_list_interviews_pagination_and_filter(client):
     assert res_active.status_code == 200
     assert res_active.json()["total"] == 1
     assert res_active.json()["items"][0]["id"] == i2["id"]
+
+
+def test_list_interviews_includes_nullable_summary_scores_and_preserves_pagination(client):
+    first = client.post("/api/v1/interviews", json=interview_payload()).json()
+    second = client.post("/api/v1/interviews", json=interview_payload()).json()
+    third = client.post("/api/v1/interviews", json=interview_payload()).json()
+    fourth = client.post("/api/v1/interviews", json=interview_payload()).json()
+    client.post(f"/api/v1/interviews/{first['id']}/start")
+    client.post(f"/api/v1/interviews/{first['id']}/complete")
+    client.post(f"/api/v1/interviews/{second['id']}/start")
+    client.post(f"/api/v1/interviews/{second['id']}/complete")
+    client.post(f"/api/v1/interviews/{third['id']}/cancel")
+    client.post(f"/api/v1/interviews/{fourth['id']}/start")
+
+    with SessionLocal() as db:
+        summaries = db.scalars(select(InterviewSummary).where(InterviewSummary.session_id.in_([UUID(first["id"]), UUID(second["id"])]))).all()
+        summaries_by_session = {str(summary.session_id): summary for summary in summaries}
+        summaries_by_session[first["id"]].overall_score = 82
+        summaries_by_session[second["id"]].overall_score = 74
+        db.commit()
+
+    response = client.get("/api/v1/interviews?limit=10&offset=0")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 4
+    assert len(payload["items"]) == 4
+    scores = {item["id"]: item["overall_score"] for item in payload["items"]}
+    assert scores[first["id"]] == 82
+    assert scores[second["id"]] == 74
+    assert scores[third["id"]] is None
+    assert scores[fourth["id"]] is None
+
+    next_page = client.get("/api/v1/interviews?limit=2&offset=2")
+    assert next_page.status_code == 200
+    assert next_page.json()["total"] == 4
+    assert len(next_page.json()["items"]) == 2
+
+
+def test_feedback_endpoint_remains_available_for_completed_interview(client):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    session_id = created["id"]
+    client.post(f"/api/v1/interviews/{session_id}/start")
+    client.post(
+        f"/api/v1/interviews/questions/{created['questions'][0]['id']}/answer",
+        json={"transcript": "I led a distributed systems migration which reduced database query latency for millions of users.", "duration": 8},
+    )
+    completed = client.post(f"/api/v1/interviews/{session_id}/complete")
+    assert completed.status_code == 200
+
+    feedback = client.get(f"/api/v1/interviews/{session_id}/feedback")
+    assert feedback.status_code == 200
+    assert feedback.json()["overall_score"] == 80
 
 
 def test_multi_tenant_isolation(client):
