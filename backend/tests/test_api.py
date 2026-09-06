@@ -216,3 +216,31 @@ def test_invalid_transition_is_rejected(client):
     interview = client.post("/api/v1/interviews", json=interview_payload()).json()
     session_id = interview["id"]
     assert client.post(f"/api/v1/interviews/{session_id}/complete").status_code == 409
+
+
+def test_final_answer_persists_completion_summary_and_latest_feedback(client):
+    payload = interview_payload()
+    payload["question_count"] = 1
+    created = client.post("/api/v1/interviews", json=payload).json()
+    session_id = created["id"]
+    question_id = created["questions"][0]["id"]
+
+    assert client.post(f"/api/v1/interviews/{session_id}/start").status_code == 200
+    answer = client.post(
+        f"/api/v1/interviews/questions/{question_id}/answer",
+        json={"transcript": "This is a detailed answer with a concrete outcome for the team.", "duration": 8},
+    )
+    assert answer.status_code == 201
+    assert answer.json()["evaluation"]["overall_score"] == 80
+
+    interview = client.get(f"/api/v1/interviews/{session_id}")
+    assert interview.json()["status"] == "completed"
+
+    latest = client.get(f"/api/v1/interviews/{session_id}/latest-answer")
+    assert latest.status_code == 200
+    assert latest.json()["id"] == answer.json()["id"]
+    assert latest.json()["evaluation"]["overall_score"] == 80
+
+    summary = client.get(f"/api/v1/interviews/{session_id}/feedback")
+    assert summary.status_code == 200
+    assert summary.json()["total_questions"] == 1
