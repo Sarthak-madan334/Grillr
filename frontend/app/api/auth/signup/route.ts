@@ -16,7 +16,16 @@ export async function POST(request: Request) {
     };
 
     if (!response.ok) {
-      return NextResponse.json(data, { status: response.status });
+      const message =
+        typeof data.detail === "string"
+          ? data.detail
+          : typeof data.error === "string"
+            ? data.error
+            : "Unable to create your account.";
+      return NextResponse.json(
+        { error: { code: "signup_failed", message } },
+        { status: response.status },
+      );
     }
 
     const result = { ...data };
@@ -47,7 +56,12 @@ export async function POST(request: Request) {
     return nextResponse;
   } catch {
     return NextResponse.json(
-      { detail: { code: "provider_unavailable", message: "Authentication provider is unavailable." } },
+      {
+        detail: {
+          code: "provider_unavailable",
+          message: "Authentication provider is unavailable.",
+        },
+      },
       { status: 503 },
     );
   }

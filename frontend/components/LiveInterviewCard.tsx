@@ -87,15 +87,28 @@ export default function LiveInterviewCard({
   isListening,
   onRetry,
 }: LiveInterviewCardProps) {
-  const [metrics, setMetrics] = useState({ pace: 74, clarity: 81, confidence: 78 });
+  const [metrics, setMetrics] = useState({
+    pace: 74,
+    clarity: 81,
+    confidence: 78,
+  });
   const [waveSeed, setWaveSeed] = useState(0);
 
   useEffect(() => {
     const metricsTimer = window.setInterval(() => {
       setMetrics((prev) => ({
-        pace: Math.min(98, Math.max(42, prev.pace + (Math.random() > 0.5 ? 1 : -1) * 8)),
-        clarity: Math.min(98, Math.max(46, prev.clarity + (Math.random() > 0.5 ? 1 : -1) * 7)),
-        confidence: Math.min(99, Math.max(50, prev.confidence + (Math.random() > 0.5 ? 1 : -1) * 9)),
+        pace: Math.min(
+          98,
+          Math.max(42, prev.pace + (Math.random() > 0.5 ? 1 : -1) * 8),
+        ),
+        clarity: Math.min(
+          98,
+          Math.max(46, prev.clarity + (Math.random() > 0.5 ? 1 : -1) * 7),
+        ),
+        confidence: Math.min(
+          99,
+          Math.max(50, prev.confidence + (Math.random() > 0.5 ? 1 : -1) * 9),
+        ),
       }));
       setWaveSeed((prev) => prev + 1);
     }, 1600);
@@ -103,7 +116,8 @@ export default function LiveInterviewCard({
     return () => window.clearInterval(metricsTimer);
   }, []);
 
-  const progressPercent = ((questionNumber - 1) / Math.max(totalQuestions, 1)) * 100;
+  const progressPercent =
+    ((questionNumber - 1) / Math.max(totalQuestions, 1)) * 100;
   const safeProgress = Math.min(100, Math.max(8, progressPercent));
 
   return (
@@ -154,7 +168,9 @@ export default function LiveInterviewCard({
 
       <div className="mt-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-lg font-semibold text-slate-900 dark:text-slate-100">{role}</p>
+          <p className="truncate text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {role}
+          </p>
         </div>
         <span className="inline-flex items-center rounded-full border border-indigo-500/15 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-indigo-600 dark:border-indigo-400/20 dark:bg-indigo-500/10 dark:text-indigo-300">
           {interviewMode}
@@ -184,7 +200,10 @@ export default function LiveInterviewCard({
           { label: "Clarity", value: metrics.clarity },
           { label: "Confidence", value: metrics.confidence },
         ].map((metric) => (
-          <div key={metric.label} className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5 dark:border-slate-700 dark:bg-slate-800/70">
+          <div
+            key={metric.label}
+            className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5 dark:border-slate-700 dark:bg-slate-800/70"
+          >
             <div className="flex items-center justify-between gap-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
               <span>{metric.label}</span>
               <span>{metric.value}%</span>
@@ -210,7 +229,9 @@ export default function LiveInterviewCard({
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-              <span>Question {questionNumber} of {totalQuestions}</span>
+              <span>
+                Question {questionNumber} of {totalQuestions}
+              </span>
               <span>{formatTime(timeRemainingSeconds)}</span>
             </div>
             <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">

@@ -95,8 +95,10 @@ export class InterviewApiError extends Error {
   }
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
 async function request<T>(path: string, init?: RequestInit, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     signal,
     headers: {
@@ -115,36 +117,36 @@ async function request<T>(path: string, init?: RequestInit, signal?: AbortSignal
 }
 
 export function listInterviews(limit = 20, offset = 0, signal?: AbortSignal) {
-  return request<{ items: InterviewListItem[]; total: number }>(`/api/interviews?status=completed&limit=${limit}&offset=${offset}`, undefined, signal);
+  return request<{ items: InterviewListItem[]; total: number }>(`/api/v1/interviews?status=completed&limit=${limit}&offset=${offset}`, undefined, signal);
 }
 
 export function createInterview(input: InterviewCreateInput, signal?: AbortSignal) {
-  return request<InterviewSession>("/api/interviews", { method: "POST", body: JSON.stringify(input) }, signal);
+  return request<InterviewSession>("/api/v1/interviews", { method: "POST", body: JSON.stringify(input) }, signal);
 }
 
 export function getInterview(sessionId: string, signal?: AbortSignal) {
-  return request<InterviewSession>(`/api/interviews/${sessionId}`, undefined, signal);
+  return request<InterviewSession>(`/api/v1/interviews/${sessionId}`, undefined, signal);
 }
 
 export function startInterview(sessionId: string, signal?: AbortSignal) {
-  return request<InterviewSession>(`/api/interviews/${sessionId}/start`, { method: "POST" }, signal);
+  return request<InterviewSession>(`/api/v1/interviews/${sessionId}/start`, { method: "POST" }, signal);
 }
 
 export function getQuestions(sessionId: string, signal?: AbortSignal) {
-  return request<{ items: InterviewQuestion[] }>(`/api/interviews/${sessionId}/questions`, undefined, signal);
+  return request<{ items: InterviewQuestion[] }>(`/api/v1/interviews/${sessionId}/questions`, undefined, signal);
 }
 
 export function getLatestAnswer(sessionId: string, signal?: AbortSignal) {
-  return request<Answer>(`/api/interviews/${sessionId}/latest-answer`, undefined, signal);
+  return request<Answer>(`/api/v1/interviews/${sessionId}/latest-answer`, undefined, signal);
 }
 
 export function submitAnswer(questionId: string, transcript: string, duration: number, signal?: AbortSignal) {
-  return request<Answer>(`/api/interviews/questions/${questionId}/answer`, {
+  return request<Answer>(`/api/v1/interviews/questions/${questionId}/answer`, {
     method: "POST",
     body: JSON.stringify({ transcript, duration }),
   }, signal);
 }
 
 export function getSummary(sessionId: string, signal?: AbortSignal) {
-  return request<Summary>(`/api/interviews/${sessionId}/feedback`, undefined, signal);
+  return request<Summary>(`/api/v1/interviews/${sessionId}/feedback`, undefined, signal);
 }
