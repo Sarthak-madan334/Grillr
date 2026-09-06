@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { VoiceAnswerPanel } from "../../components/VoiceAnswerPanel";
 
@@ -72,5 +72,58 @@ describe("VoiceAnswerPanel", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Microphone access ended");
     expect(screen.getByRole("button", { name: "Retry voice" })).toBeInTheDocument();
+  });
+
+  it("streams binary chunks and renders partial and final transcripts", async () => {
+    class FakeSocket {
+      static OPEN = 1;
+      static latest: FakeSocket | undefined;
+      readyState = 0;
+      sent: unknown[] = [];
+      listeners = new Map<string, (event: MessageEvent) => void>();
+      constructor() { FakeSocket.latest = this; }
+      addEventListener(event: string, callback: (event: MessageEvent) => void) {
+        this.listeners.set(event, callback);
+        if (event === "open") {
+          this.readyState = FakeSocket.OPEN;
+          callback(new MessageEvent("open"));
+        }
+      }
+      send(value: unknown) { this.sent.push(value); }
+      close() { this.readyState = 3; }
+      emit(event: string, data: string) { this.listeners.get(event)?.(new MessageEvent(event, { data })); }
+    }
+    class FakeRecorder {
+      static latest: FakeRecorder | undefined;
+      state = "recording";
+      listeners = new Map<string, (event: { data: Blob }) => void>();
+      constructor(stream: MediaStream) { void stream; FakeRecorder.latest = this; }
+      start(timeslice: number) { void timeslice; }
+      stop() { this.state = "inactive"; }
+      addEventListener(event: string, callback: (event: { data: Blob }) => void) { this.listeners.set(event, callback); }
+      emitChunk() { this.listeners.get("dataavailable")?.({ data: new Blob(["audio"]) }); }
+    }
+    const onTranscript = vi.fn();
+    vi.stubGlobal("WebSocket", FakeSocket);
+    vi.stubGlobal("MediaRecorder", FakeRecorder);
+    const track = { addEventListener: vi.fn(), stop: vi.fn() };
+    mockMediaDevices({ getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [track] }), enumerateDevices: vi.fn().mockResolvedValue([]) });
+    render(<VoiceAnswerPanel sessionId="session-1" onTranscript={onTranscript} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Stop recording" })).toBeInTheDocument());
+    const socket = FakeSocket.latest;
+    const recorder = FakeRecorder.latest;
+    expect(socket).toBeDefined();
+    expect(recorder).toBeDefined();
+    if (!socket || !recorder) throw new Error("Realtime fakes were not initialized");
+    act(() => recorder?.emitChunk());
+    expect(socket.sent).toEqual([JSON.stringify({ type: "speech.start" }), expect.any(Blob)]);
+
+    act(() => socket?.emit("message", JSON.stringify({ type: "transcript.partial", data: { text: "I improved" } })));
+    expect(screen.getByText("I improved")).toBeInTheDocument();
+    act(() => socket?.emit("message", JSON.stringify({ type: "transcript.final", data: { text: "I improved the deployment pipeline." } })));
+    expect(onTranscript).toHaveBeenCalledWith("I improved the deployment pipeline.");
+    expect(track.stop).toHaveBeenCalled();
   });
 });
