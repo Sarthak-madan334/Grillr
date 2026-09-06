@@ -1,3 +1,4 @@
+import base64
 import enum
 import uuid
 from datetime import datetime
@@ -72,6 +73,11 @@ class Question(Base):
     answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     session: Mapped[InterviewSession] = relationship(back_populates="questions")
     answers: Mapped[list["Answer"]] = relationship(back_populates="question", cascade="all, delete-orphan")
+
+    @property
+    def audio_base64(self) -> str | None:
+        audio = getattr(self, "_audio_bytes", None)
+        return base64.b64encode(audio).decode("ascii") if audio else None
 
 
 class Answer(Base):

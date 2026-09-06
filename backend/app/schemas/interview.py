@@ -34,6 +34,7 @@ class QuestionResponse(BaseModel):
     question_type: str
     is_follow_up: bool
     answered_at: datetime | None
+    audio_base64: str | None = None
 
     model_config = {"from_attributes": True}
 
