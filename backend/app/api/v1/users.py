@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import CurrentUser, get_current_user
+from app.core.rate_limit import auth_rate_limit
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.models import User
@@ -98,7 +99,7 @@ def current_user(identity: CurrentUser = Depends(get_current_user), db: Session 
     return db.get(User, identity.id)
 
 
-@router.post("/signup", response_model=UserSignupResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/signup", response_model=UserSignupResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(auth_rate_limit)])
 async def signup_user(payload: UserSignupRequest, db: Session = Depends(get_db)) -> UserSignupResponse:
     first_name = _normalize_name(payload.first_name, "First name")
     last_name = _normalize_name(payload.last_name, "Last name")
@@ -139,7 +140,7 @@ async def signup_user(payload: UserSignupRequest, db: Session = Depends(get_db))
     )
 
 
-@router.post("/login", response_model=UserLoginResponse)
+@router.post("/login", response_model=UserLoginResponse, dependencies=[Depends(auth_rate_limit)])
 async def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)) -> UserLoginResponse:
     email = payload.email.strip().lower()
 

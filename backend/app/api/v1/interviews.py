@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.auth import CurrentUser, get_current_user
+from app.core.rate_limit import answer_rate_limit, interview_creation_rate_limit
 from app.db.session import get_db
 from app.models import Answer, AnswerEvaluation, InterviewSession, Question, SessionStatus
 from app.schemas.answer import AnswerCreate, AnswerResponse
@@ -19,7 +20,7 @@ def service(db: Session = Depends(get_db)) -> InterviewService:
     return InterviewService(db)
 
 
-@router.post("", response_model=InterviewResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=InterviewResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(interview_creation_rate_limit)])
 def create_interview(data: InterviewCreate, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
     return interviews.create(identity.id, data)
 
@@ -118,12 +119,12 @@ def get_feedback(session_id: UUID, identity: CurrentUser = Depends(get_current_u
     return interview.summary
 
 
-@router.post("/questions/{question_id}/answer", response_model=AnswerResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/questions/{question_id}/answer", response_model=AnswerResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(answer_rate_limit)])
 def submit_answer(question_id: UUID, data: AnswerCreate, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
     return interviews.answer(question_id, identity.id, data)
 
 
-@router.post("/questions/{question_id}/retry", response_model=RetryResponse)
+@router.post("/questions/{question_id}/retry", response_model=RetryResponse, dependencies=[Depends(answer_rate_limit)])
 def retry_answer(question_id: UUID, request: RetryRequest, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
     question = interviews.db.scalar(select(Question).where(Question.id == question_id, Question.session.has(user_id=identity.id)))
     if question is None:
