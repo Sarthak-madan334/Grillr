@@ -22,6 +22,7 @@ def test_websocket_lifecycle_and_events(client):
         conn_msg = ws.receive_json()
         assert conn_msg["type"] == "session.connected"
         assert conn_msg["data"]["session_id"] == session_id
+        assert conn_msg["data"]["turn_state"] == "listening"
 
         # Send session.start
         ws.send_json({"type": "session.start"})
@@ -32,6 +33,7 @@ def test_websocket_lifecycle_and_events(client):
         ws.send_json({"type": "speech.start"})
         speech_msg = ws.receive_json()
         assert speech_msg["type"] == "speech.start.ack"
+        assert ws.receive_json()["data"]["state"] == "listening"
 
         # Send invalid event
         ws.send_json({"type": "unknown.event"})
