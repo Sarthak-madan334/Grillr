@@ -3,8 +3,11 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+import logging
+
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.auth import CurrentUser, get_current_user
@@ -15,6 +18,7 @@ from app.schemas.common import UserResponse
 from app.schemas.user import UserAuthResponse, UserLoginRequest, UserPublic, UserSignupRequest, UserSignupResponse
 
 router = APIRouter()
+bearer = HTTPBearer(auto_error=False)
 
 
 async def _read_json_response(response: httpx.Response) -> dict[str, Any]:
@@ -161,5 +165,24 @@ async def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)) -
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
-def logout_user() -> Response:
+async def logout_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    access_token: str | None = Cookie(default=None, alias="grillr_access_token")
+) -> Response:
+    token = credentials.credentials if credentials is not None else access_token
+    if token and not token.startswith("dev:"):
+        settings = get_settings()
+        if settings.supabase_url and settings.supabase_anon_key:
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    await client.post(
+                        f"{settings.supabase_url.rstrip('/')}/auth/v1/logout",
+                        headers={
+                            "apikey": settings.supabase_anon_key,
+                            "Authorization": f"Bearer {token}"
+                        }
+                    )
+            except Exception:
+                logging.getLogger(__name__).warning("Failed to sign out from Supabase", exc_info=True)
+                
     return Response(status_code=status.HTTP_204_NO_CONTENT)
