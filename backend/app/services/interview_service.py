@@ -15,10 +15,21 @@ from app.services.providers import MockAIInterviewer, MockAnswerEvaluator, MockS
 
 
 class InterviewService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, ai_interviewer=None):
         self.db = db
         self.repository = InterviewRepository(db)
-        self.ai = MockAIInterviewer()
+        
+        if ai_interviewer is not None:
+            self.ai = ai_interviewer
+        else:
+            from app.core.config import get_settings
+            settings = get_settings()
+            if settings.openai_api_key:
+                from app.ai.interviewer import LLMAIInterviewer
+                self.ai = LLMAIInterviewer(api_key=settings.openai_api_key)
+            else:
+                self.ai = MockAIInterviewer()
+                
         self.analyzer = MockSpeechAnalyzer()
         self.evaluator = MockAnswerEvaluator()
 
@@ -75,7 +86,25 @@ class InterviewService:
             next_question_number = question.question_number + 1
             existing_next = self.db.scalar(select(Question).where(Question.session_id == question.session_id, Question.question_number == next_question_number))
             if existing_next is None:
-                self.db.add(Question(session_id=question.session_id, question_number=next_question_number, question_text=self.ai.next_question(question.session.job_role, next_question_number), question_type=question.session.interview_type))
+                # Build history
+                history = []
+                # ensure questions are sorted by number
+                sorted_qs = sorted(question.session.questions, key=lambda q: q.question_number)
+                for q in sorted_qs:
+                    history.append({"role": "assistant", "content": q.question_text})
+                    latest_ans = None
+                    for a in q.answers:
+                        if latest_ans is None or a.attempt_number > latest_ans.attempt_number:
+                            latest_ans = a
+                    if latest_ans:
+                        history.append({"role": "user", "content": latest_ans.transcript})
+                
+                next_q_text = self.ai.next_question(
+                    question.session.job_role, 
+                    next_question_number,
+                    history
+                )
+                self.db.add(Question(session_id=question.session_id, question_number=next_question_number, question_text=next_q_text, question_type=question.session.interview_type))
         self.db.commit()
         self.db.refresh(answer)
         if question.question_number == question.session.question_count:
