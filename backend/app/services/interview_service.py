@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.errors import InvalidStateError, NotFoundError
+from app.core.config import Settings, get_settings
 from app.models import Answer, AnswerEvaluation, InterviewSession, InterviewSummary, Question, SessionStatus, SpeechMetrics
 from app.repositories.interview_repository import InterviewRepository
 from app.schemas.answer import AnswerCreate
@@ -15,12 +16,13 @@ from app.services.providers import MockAIInterviewer, MockSpeechAnalyzer, TextTo
 
 
 class InterviewService:
-    def __init__(self, db: Session, tts: TextToSpeech | None = None):
+    def __init__(self, db: Session, tts: TextToSpeech | None = None, settings: Settings | None = None):
         self.db = db
+        self.settings = settings if settings is not None else get_settings()
         self.repository = InterviewRepository(db)
         self.ai = MockAIInterviewer()
         self.analyzer = MockSpeechAnalyzer()
-        self.evaluator = create_answer_evaluator()
+        self.evaluator = create_answer_evaluator(self.settings)
         self.tts = tts if tts is not None else create_text_to_speech()
 
     def _create_question(self, session_id: UUID, question_number: int, question_text: str, question_type: str) -> Question:

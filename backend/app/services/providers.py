@@ -112,10 +112,10 @@ class LLMAnswerEvaluator:
     endpoint = "https://api.groq.com/openai/v1/chat/completions"
     score_fields = ("relevance_score", "clarity_score", "structure_score", "specificity_score", "technical_accuracy_score", "conciseness_score", "communication_score", "overall_score")
 
-    def __init__(self, api_key: str | None = None, model: str | None = None):
-        settings = get_settings()
-        self.api_key = api_key if api_key is not None else settings.groq_api_key
-        self.model = model or settings.groq_model
+    def __init__(self, api_key: str | None = None, model: str | None = None, settings=None):
+        selected_settings = settings if settings is not None else get_settings()
+        self.api_key = api_key if api_key is not None else selected_settings.groq_api_key
+        self.model = model or selected_settings.groq_model
 
     @classmethod
     def _fallback(cls, note: str) -> dict:
@@ -168,5 +168,6 @@ class LLMAnswerEvaluator:
             return self._fallback("Evaluation unavailable. Please try again later.")
 
 
-def create_answer_evaluator() -> AnswerEvaluator:
-    return LLMAnswerEvaluator() if get_settings().groq_api_key else MockAnswerEvaluator()
+def create_answer_evaluator(settings=None) -> AnswerEvaluator:
+    selected_settings = settings if settings is not None else get_settings()
+    return LLMAnswerEvaluator(settings=selected_settings) if selected_settings.groq_api_key else MockAnswerEvaluator()
