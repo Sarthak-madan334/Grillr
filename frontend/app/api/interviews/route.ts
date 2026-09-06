@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-export async function GET(request: Request) {
-  return forwardRequest(request, "");
-}
+export const GET = (request: Request) => forwardRequest(request, "");
+export const POST = (request: Request) => forwardRequest(request, "");
 
 async function forwardRequest(request: Request, path: string) {
   try {
@@ -17,6 +16,7 @@ async function forwardRequest(request: Request, path: string) {
         "Content-Type": "application/json",
         ...(accessToken ? { Authorization: `Bearer ${decodeURIComponent(accessToken)}` } : {}),
       },
+      body: request.method === "GET" || request.method === "HEAD" ? undefined : await request.text(),
       cache: "no-store",
     });
     return NextResponse.json(await response.json(), { status: response.status });

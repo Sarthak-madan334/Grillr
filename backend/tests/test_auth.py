@@ -1,6 +1,9 @@
 from unittest.mock import patch
 
+import pytest
+
 from app.core.auth import authenticate_token, CurrentUser
+from app.core.config import Settings
 
 
 def test_dev_token_authentication(client):
@@ -18,6 +21,13 @@ def test_invalid_dev_token_format_returns_401(client):
     response = client.get("/api/v1/users/me", headers=headers)
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "unauthorized"
+
+
+def test_frontend_access_cookie_is_used_for_authentication(client):
+    client.cookies.set("grillr_access_token", "dev:00000000-0000-0000-0000-000000000003:cookie@example.com:Cookie User")
+    response = client.get("/api/v1/users/me")
+    assert response.status_code == 200
+    assert response.json()["email"] == "cookie@example.com"
 
 
 def test_invalid_jwt_token_returns_401(client):
@@ -44,3 +54,8 @@ def test_signing_key_token_uses_supabase_jwks(mock_header, mock_decode, mock_get
     assert response.status_code == 200
     assert response.json()["email"] == "signed@example.com"
     mock_get.assert_called_once()
+
+
+def test_production_settings_require_authentication():
+    with pytest.raises(ValueError, match="AUTH_REQUIRED must be true outside development"):
+        Settings(environment="production", auth_required=False, supabase_jwt_secret="test-secret", auto_create_schema=False)

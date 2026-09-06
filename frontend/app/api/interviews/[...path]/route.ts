@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 
-export async function GET(request: Request, context: RouteContext) {
+async function forwardRequest(request: Request, context: RouteContext) {
   const { path } = await context.params;
   const suffix = `/${path.join("/")}`;
   try {
@@ -15,6 +15,7 @@ export async function GET(request: Request, context: RouteContext) {
         "Content-Type": "application/json",
         ...(accessToken ? { Authorization: `Bearer ${decodeURIComponent(accessToken)}` } : {}),
       },
+      body: request.method === "GET" || request.method === "HEAD" ? undefined : await request.text(),
       cache: "no-store",
     });
     return NextResponse.json(await response.json(), { status: response.status });
@@ -25,3 +26,6 @@ export async function GET(request: Request, context: RouteContext) {
     );
   }
 }
+
+export const GET = forwardRequest;
+export const POST = forwardRequest;
