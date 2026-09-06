@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/layout/top-nav";
+import { QuestionAudioPlayer } from "@/components/QuestionAudioPlayer";
 import { VoiceAnswerPanel } from "@/components/VoiceAnswerPanel";
 import {
   getInterview,
@@ -420,6 +421,7 @@ export default function InterviewSessionPage() {
                 >
                   {question.question_text}
                 </h2>
+                <QuestionAudioPlayer key={question.id} sessionId={session.id} questionId={question.id} />
                 <div className="mt-10">
                   <VoiceAnswerPanel
                     sessionId={session.id}
