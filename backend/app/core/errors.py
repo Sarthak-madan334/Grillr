@@ -32,6 +32,12 @@ class InvalidStateError(AppError):
         super().__init__("invalid_state", message, status.HTTP_409_CONFLICT)
 
 
+class RateLimitError(AppError):
+    def __init__(self, retry_after: int):
+        super().__init__("rate_limit_exceeded", "Too many requests. Please try again later", status.HTTP_429_TOO_MANY_REQUESTS, {"retry_after": retry_after})
+        self.retry_after = retry_after
+
+
 def error_body(code: str, message: str, details: Any = None) -> dict[str, Any]:
     body: dict[str, Any] = {"error": {"code": code, "message": message}}
     if details is not None:
@@ -40,7 +46,8 @@ def error_body(code: str, message: str, details: Any = None) -> dict[str, Any]:
 
 
 async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
-    return JSONResponse(status_code=exc.status_code, content=error_body(exc.code, exc.message, exc.details))
+    headers = {"Retry-After": str(exc.retry_after)} if isinstance(exc, RateLimitError) else None
+    return JSONResponse(status_code=exc.status_code, content=error_body(exc.code, exc.message, exc.details), headers=headers)
 
 
 async def validation_error_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
