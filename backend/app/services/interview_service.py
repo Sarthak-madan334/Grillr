@@ -7,28 +7,41 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.errors import InvalidStateError, NotFoundError
+from app.core.config import Settings, get_settings
 from app.models import Answer, AnswerEvaluation, InterviewSession, InterviewSummary, Question, SessionStatus, SpeechMetrics
 from app.repositories.interview_repository import InterviewRepository
 from app.schemas.answer import AnswerCreate
 from app.schemas.interview import InterviewCreate
-from app.services.providers import MockAIInterviewer, MockAnswerEvaluator, MockSpeechAnalyzer
+from app.services.providers import MockAIInterviewer, MockSpeechAnalyzer, TextToSpeech, create_answer_evaluator, create_text_to_speech
 
 
 class InterviewService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, tts: TextToSpeech | None = None, settings: Settings | None = None):
         self.db = db
+        self.settings = settings if settings is not None else get_settings()
         self.repository = InterviewRepository(db)
         self.ai = MockAIInterviewer()
         self.analyzer = MockSpeechAnalyzer()
-        self.evaluator = MockAnswerEvaluator()
+        self.evaluator = create_answer_evaluator(self.settings)
+        self.tts = tts if tts is not None else create_text_to_speech()
+
+    def _create_question(self, session_id: UUID, question_number: int, question_text: str, question_type: str) -> Question:
+        question = Question(session_id=session_id, question_number=question_number, question_text=question_text, question_type=question_type)
+        question._audio_bytes = self.tts.synthesize(question_text)
+        return question
 
     def create(self, user_id: UUID, data: InterviewCreate) -> InterviewSession:
         session = InterviewSession(user_id=user_id, interview_type=data.interview_type.value, job_role=data.job_role, experience_level=data.experience_level, difficulty=data.difficulty, personality=data.personality, duration=data.duration, question_count=data.question_count, resume_url=str(data.resume_url) if data.resume_url else None, job_description=data.job_description)
         self.db.add(session)
         self.db.flush()
-        self.db.add(Question(session_id=session.id, question_number=1, question_text=self.ai.first_question(data.job_role, data.interview_type.value), question_type=data.interview_type.value))
+        question_text = self.ai.first_question(data.job_role, data.interview_type.value)
+        question = self._create_question(session.id, 1, question_text, data.interview_type.value)
+        self.db.add(question)
         self.db.commit()
-        return self.repository.get_owned(session.id, user_id)
+        created = self.repository.get_owned(session.id, user_id)
+        created_question = next(item for item in created.questions if item.id == question.id)
+        created_question._audio_bytes = question._audio_bytes
+        return created
 
     def get(self, session_id: UUID, user_id: UUID) -> InterviewSession:
         session = self.repository.get_owned(session_id, user_id)
@@ -55,13 +68,17 @@ class InterviewService:
     def questions(self, session_id: UUID, user_id: UUID) -> list[Question]:
         return self.get(session_id, user_id).questions
 
-    def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate) -> Answer:
+    def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate, is_retry: bool = False) -> Answer:
         question = self.db.scalar(select(Question).join(InterviewSession).where(Question.id == question_id, InterviewSession.user_id == user_id).options(selectinload(Question.session)))
         if question is None:
             raise NotFoundError("Question")
-        if question.session.status != SessionStatus.ACTIVE:
+        if question.session.status not in {SessionStatus.ACTIVE, SessionStatus.COMPLETED} or (question.session.status == SessionStatus.COMPLETED and not is_retry):
             raise InvalidStateError("Answers can only be submitted for active interviews")
         attempt = self.db.scalar(select(Answer).where(Answer.question_id == question_id).order_by(Answer.attempt_number.desc()))
+        if attempt is not None and not is_retry:
+            raise InvalidStateError("Question has already been answered; submit a retry instead")
+        if is_retry and attempt is None:
+            raise InvalidStateError("Retries require an existing answer")
         attempt_number = (attempt.attempt_number + 1) if attempt else 1
         answer = Answer(question_id=question.id, session_id=question.session_id, attempt_number=attempt_number, transcript=data.transcript, duration=data.duration, completed_at=datetime.now(timezone.utc))
         self.db.add(answer)
@@ -69,18 +86,28 @@ class InterviewService:
         metrics = self.analyzer.analyze(data.transcript, data.duration)
         self.db.add(SpeechMetrics(answer_id=answer.id, **metrics))
         self.db.add(AnswerEvaluation(answer_id=answer.id, **self.evaluator.evaluate(data.transcript, question.question_text)))
-        question.answered_at = datetime.now(timezone.utc)
-        question.session.current_question_number = question.question_number
-        if question.question_number < question.session.question_count:
+        if not is_retry:
+            question.answered_at = datetime.now(timezone.utc)
+            question.session.current_question_number = question.question_number
+        if not is_retry and question.question_number < question.session.question_count:
             next_question_number = question.question_number + 1
             existing_next = self.db.scalar(select(Question).where(Question.session_id == question.session_id, Question.question_number == next_question_number))
             if existing_next is None:
-                self.db.add(Question(session_id=question.session_id, question_number=next_question_number, question_text=self.ai.next_question(question.session.job_role, next_question_number), question_type=question.session.interview_type))
+                next_question_text = self.ai.next_question(question.session.job_role, next_question_number)
+                self.db.add(self._create_question(question.session_id, next_question_number, next_question_text, question.session.interview_type))
         self.db.commit()
         self.db.refresh(answer)
-        if question.question_number == question.session.question_count:
+        if not is_retry and question.question_number == question.session.question_count:
             self.complete(question.session_id, user_id)
         return answer
+
+    def attempts(self, question_id: UUID, user_id: UUID) -> tuple[list[Answer], int | None]:
+        question = self.db.scalar(select(Question).join(InterviewSession).where(Question.id == question_id, InterviewSession.user_id == user_id))
+        if question is None:
+            raise NotFoundError("Question")
+        answers = list(self.db.scalars(select(Answer).where(Answer.question_id == question_id).options(selectinload(Answer.speech_metrics), selectinload(Answer.evaluation)).order_by(Answer.attempt_number.asc())).all())
+        scores = [answer.evaluation.overall_score for answer in answers if answer.evaluation]
+        return answers, (scores[-1] - scores[-2] if len(scores) >= 2 else None)
 
     def complete(self, session_id: UUID, user_id: UUID) -> InterviewSession:
         session = self.transition(session_id, user_id, SessionStatus.COMPLETED)

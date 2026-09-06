@@ -5,38 +5,45 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/lib/auth-client";
+import { normalizeLoginValues, validateLoginForm, type LoginFormErrors, type LoginFormValues } from "@/lib/auth";
+
+const initialValues: LoginFormValues = { email: "", password: "" };
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [values, setValues] = useState(initialValues);
+  const [errors, setErrors] = useState<LoginFormErrors>({});
+  const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
-    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) {
-      setError("Enter a valid email address.");
-      return;
-    }
-    if (!password) {
-      setError("Enter your password.");
-      return;
-    }
+    const normalized = normalizeLoginValues(values);
+    const nextErrors = validateLoginForm(normalized);
+    setErrors(nextErrors);
+    setMessage("");
+
+    if (Object.values(nextErrors).some(Boolean)) return;
+
     setIsSubmitting(true);
     try {
-      await signIn(email.trim().toLowerCase(), password);
-      const next = new URLSearchParams(window.location.search).get("next");
-      router.push(next?.startsWith("/") ? next : "/dashboard");
-    } catch (caught: unknown) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "We could not sign you in. Please try again.",
-      );
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalized.email, password: normalized.password }),
+      });
+      const data = (await response.json()) as { error?: { message?: string }; detail?: { message?: string } };
+
+      if (!response.ok) {
+        setMessage(data.error?.message ?? data.detail?.message ?? "Invalid email or password.");
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setMessage("We could not reach the authentication service. Please try again.");
+    } finally {
       setIsSubmitting(false);
     }
   }
@@ -49,78 +56,49 @@ export default function LoginPage() {
             G
           </div>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-              Grillr
-            </p>
-            <h1 className="text-xl font-semibold text-slate-900">
-              Welcome back
-            </h1>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">Grillr</p>
+            <h1 className="text-xl font-semibold text-slate-900">Welcome back</h1>
           </div>
         </div>
-        {error ? (
-          <p
-            role="alert"
-            className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700"
-          >
-            {error}
-          </p>
+
+        {message ? (
+          <div role="alert" className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {message}
+          </div>
         ) : null}
-        <form
-          className="space-y-5"
-          onSubmit={handleSubmit}
-          noValidate
-          aria-busy={isSubmitting}
-        >
+
+        <form className="space-y-5" onSubmit={handleSubmit} noValidate aria-busy={isSubmitting}>
           <div className="space-y-2">
-            <label
-              htmlFor="email"
-              className="text-sm font-medium text-slate-700"
-            >
+            <label htmlFor="email" className="text-sm font-medium text-slate-700">
               Email
             </label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              disabled={isSubmitting}
-              autoComplete="email"
-            />
+            <Input id="email" type="email" placeholder="you@example.com" value={values.email} onChange={(event) => setValues({ ...values, email: event.target.value })} disabled={isSubmitting} aria-invalid={Boolean(errors.email)} />
+            {errors.email ? <p className="text-sm text-rose-600">{errors.email}</p> : null}
           </div>
+
           <div className="space-y-2">
-            <label
-              htmlFor="password"
-              className="text-sm font-medium text-slate-700"
-            >
+            <label htmlFor="password" className="text-sm font-medium text-slate-700">
               Password
             </label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              disabled={isSubmitting}
-              autoComplete="current-password"
-            />
+            <Input id="password" type="password" placeholder="••••••••" value={values.password} onChange={(event) => setValues({ ...values, password: event.target.value })} disabled={isSubmitting} aria-invalid={Boolean(errors.password)} />
+            {errors.password ? <p className="text-sm text-rose-600">{errors.password}</p> : null}
           </div>
+
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center gap-2 text-slate-600">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-slate-300 text-slate-900"
-              />
+              <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-slate-900" />
               Remember me
             </label>
             <Link href="/" className="text-slate-700 hover:text-slate-950">
               Forgot password?
             </Link>
           </div>
-          <Button className="w-full" size="lg" disabled={isSubmitting}>
+
+          <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
             {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>
         </form>
+
         <p className="mt-6 text-center text-sm text-slate-600">
           Don&apos;t have an account?{" "}
           <Link href="/signup" className="font-semibold text-slate-900">

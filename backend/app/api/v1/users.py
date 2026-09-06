@@ -4,7 +4,7 @@ from typing import Any
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import CurrentUser, get_current_user
@@ -12,7 +12,7 @@ from app.core.config import get_settings
 from app.db.session import get_db
 from app.models import User
 from app.schemas.common import UserResponse
-from app.schemas.user import UserAuthResponse, UserLoginRequest, UserPublic, UserSignupRequest, UserSignupResponse
+from app.schemas.user import UserLoginRequest, UserLoginResponse, UserPublic, UserSignupRequest, UserSignupResponse
 
 router = APIRouter()
 
@@ -64,25 +64,29 @@ async def _create_supabase_user(payload: dict[str, Any]) -> dict[str, Any]:
         if response.status_code == 409 or "already" in message and "registered" in message:
             raise HTTPException(status_code=409, detail="An account with this email already exists.")
         raise HTTPException(status_code=400, detail="Invalid sign up information.")
+    if response.status_code == 429:
+        raise HTTPException(status_code=429, detail="Too many sign up attempts. Please wait a few minutes and try again.")
     if response.status_code >= 400:
         raise HTTPException(status_code=503, detail="Authentication provider is unavailable.")
     return await _read_json_response(response)
 
 
-async def _sign_in_with_supabase(email: str, password: str) -> dict[str, Any]:
+async def _sign_in_supabase_user(payload: dict[str, Any]) -> dict[str, Any]:
     settings = get_settings()
     if not settings.supabase_url or not settings.supabase_anon_key:
         raise HTTPException(status_code=503, detail="Authentication provider is unavailable.")
+
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             response = await client.post(
-                f"{settings.supabase_url.rstrip('/')}/auth/v1/token?grant_type=password",
+                f"{settings.supabase_url.rstrip('/')}/auth/v1/token",
                 headers={"apikey": settings.supabase_anon_key, "Content-Type": "application/json"},
-                json={"email": email, "password": password},
+                json=payload,
             )
     except httpx.HTTPError:
         raise HTTPException(status_code=503, detail="Authentication provider is unavailable.") from None
-    if response.status_code in {400, 401}:
+
+    if response.status_code == 400:
         raise HTTPException(status_code=401, detail={"code": "invalid_credentials", "message": "Invalid email or password."})
     if response.status_code >= 400:
         raise HTTPException(status_code=503, detail="Authentication provider is unavailable.")
@@ -135,31 +139,44 @@ async def signup_user(payload: UserSignupRequest, db: Session = Depends(get_db))
     )
 
 
-@router.post("/login", response_model=UserAuthResponse)
-async def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)) -> UserAuthResponse:
+@router.post("/login", response_model=UserLoginResponse)
+async def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)) -> UserLoginResponse:
     email = payload.email.strip().lower()
-    auth_result = await _sign_in_with_supabase(email, payload.password)
-    token = auth_result.get("access_token")
-    if not isinstance(token, str) or not token:
-        raise HTTPException(status_code=401, detail={"code": "invalid_credentials", "message": "Invalid email or password."})
+
+    auth_result = await _sign_in_supabase_user({
+        "email": email,
+        "password": payload.password,
+        "grant_type": "password",
+    })
+
     auth_user = auth_result.get("user") or {}
     try:
         user_id = UUID(str(auth_user["id"]))
     except (KeyError, ValueError, TypeError):
         raise HTTPException(status_code=503, detail="Authentication provider returned an invalid user.") from None
-    metadata = auth_user.get("user_metadata") or {}
-    name = metadata.get("name") or email.split("@", 1)[0]
+
     user = db.get(User, user_id)
     if user is None:
-        user = User(id=user_id, email=email, name=name)
+        user = User(id=user_id, email=email, name=auth_user.get("user_metadata", {}).get("name") or email)
         db.add(user)
     else:
         user.email = email
-        user.name = name
+        user.name = user.name or auth_user.get("user_metadata", {}).get("name") or email
+
     db.commit()
-    return UserAuthResponse(user=UserPublic(id=str(user.id), email=user.email, first_name=name.split(" ", 1)[0], last_name=name.split(" ", 1)[-1], name=name), access_token=token, refresh_token=auth_result.get("refresh_token"))
 
+    user_name = user.name or auth_user.get("user_metadata", {}).get("name") or email
+    first_name = "" if not user_name else user_name.split(" ", 1)[0]
+    last_name = "" if not user_name else user_name.rsplit(" ", 1)[-1] if user_name.count(" ") > 0 else ""
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
-def logout_user() -> Response:
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return UserLoginResponse(
+        user=UserPublic(
+            id=str(user.id),
+            email=user.email,
+            first_name=first_name,
+            last_name=last_name,
+            name=user_name,
+        ),
+        access_token=auth_result.get("access_token"),
+        refresh_token=auth_result.get("refresh_token"),
+    )

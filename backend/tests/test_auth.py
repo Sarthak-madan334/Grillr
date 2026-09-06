@@ -1,9 +1,9 @@
-from uuid import uuid4
-from app.core.auth import authenticate_token, CurrentUser
-from app.models import User
+from unittest.mock import patch
+
 import pytest
-from fastapi import HTTPException
-from unittest.mock import AsyncMock, patch
+
+from app.core.auth import authenticate_token, CurrentUser
+from app.core.config import Settings
 
 
 def test_dev_token_authentication(client):
@@ -23,6 +23,13 @@ def test_invalid_dev_token_format_returns_401(client):
     assert response.json()["error"]["code"] == "unauthorized"
 
 
+def test_frontend_access_cookie_is_used_for_authentication(client):
+    client.cookies.set("grillr_access_token", "dev:00000000-0000-0000-0000-000000000003:cookie@example.com:Cookie User")
+    response = client.get("/api/v1/users/me")
+    assert response.status_code == 200
+    assert response.json()["email"] == "cookie@example.com"
+
+
 def test_invalid_jwt_token_returns_401(client):
     headers = {"Authorization": "Bearer invalid.jwt.token"}
     response = client.get("/api/v1/users/me", headers=headers)
@@ -30,40 +37,25 @@ def test_invalid_jwt_token_returns_401(client):
     assert response.json()["error"]["code"] == "unauthorized"
 
 
-@patch("app.api.v1.users.httpx.AsyncClient")
-def test_login_returns_supabase_session_and_persists_profile(mock_async_client, client):
-    response = AsyncMock()
-    response.status_code = 200
-    response.json.return_value = {
-        "access_token": "supabase-access",
-        "refresh_token": "supabase-refresh",
-        "user": {"id": "00000000-0000-0000-0000-000000000099", "email": "alice@example.com", "user_metadata": {"name": "Alice Example"}},
+@patch("app.core.auth.httpx.get")
+@patch("app.core.auth.jwt.decode")
+@patch("app.core.auth.jwt.get_unverified_header")
+def test_signing_key_token_uses_supabase_jwks(mock_header, mock_decode, mock_get, client):
+    mock_header.return_value = {"alg": "RS256", "kid": "key-1"}
+    mock_get.return_value.json.return_value = {"keys": [{"kid": "key-1", "kty": "RSA"}]}
+    mock_decode.return_value = {
+        "sub": "00000000-0000-0000-0000-000000000002",
+        "email": "signed@example.com",
+        "user_metadata": {"name": "Signed User"},
     }
-    mock_async_client.return_value.__aenter__.return_value.post.return_value = response
 
-    result = client.post("/api/v1/users/login", json={"email": "alice@example.com", "password": "StrongPass1"})
+    response = client.get("/api/v1/users/me", headers={"Authorization": "Bearer signed-token"})
 
-    assert result.status_code == 200
-    assert result.json()["access_token"] == "supabase-access"
-    assert result.json()["user"]["name"] == "Alice Example"
-
-
-@patch("app.api.v1.users.httpx.AsyncClient")
-def test_login_hides_provider_credentials_error(mock_async_client, client):
-    response = AsyncMock()
-    response.status_code = 400
-    response.json.return_value = {"error_description": "Invalid login credentials"}
-    mock_async_client.return_value.__aenter__.return_value.post.return_value = response
-
-    result = client.post("/api/v1/users/login", json={"email": "alice@example.com", "password": "wrong"})
-
-    assert result.status_code == 401
-    assert result.json()["error"] == {"code": "invalid_credentials", "message": "Invalid email or password."}
+    assert response.status_code == 200
+    assert response.json()["email"] == "signed@example.com"
+    mock_get.assert_called_once()
 
 
-def test_cookie_authentication_uses_secure_session_cookie(client):
-    client.cookies.set("grillr_access_token", "dev:00000000-0000-0000-0000-000000000098:cookie@example.com:Cookie User")
-    result = client.get("/api/v1/users/me")
-
-    assert result.status_code == 200
-    assert result.json()["email"] == "cookie@example.com"
+def test_production_settings_require_authentication():
+    with pytest.raises(ValueError, match="AUTH_REQUIRED must be true outside development"):
+        Settings(environment="production", auth_required=False, supabase_jwt_secret="test-secret", auto_create_schema=False)

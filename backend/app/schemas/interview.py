@@ -34,6 +34,7 @@ class QuestionResponse(BaseModel):
     question_type: str
     is_follow_up: bool
     answered_at: datetime | None
+    audio_base64: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -52,6 +53,7 @@ class InterviewResponse(BaseModel):
     created_at: datetime
     started_at: datetime | None
     completed_at: datetime | None
+    overall_score: int | None = None
     questions: list[QuestionResponse] = []
 
     model_config = {"from_attributes": True}
@@ -70,8 +72,10 @@ class QuestionsResponse(BaseModel):
 
 class RetryResponse(BaseModel):
     question_id: UUID
+    answer_id: UUID
     attempt_number: int
     status: str
+    score_delta: int | None = None
 
 
 class FeedbackResponse(BaseModel):
@@ -95,3 +99,10 @@ class SummaryResponse(BaseModel):
     recommendations: list[str]
 
     model_config = {"from_attributes": True}
+
+
+class DashboardStatsResponse(BaseModel):
+    average_score: float | None
+    interview_count: int
+    role_count: int
+    dimensions: dict[str, float | None]

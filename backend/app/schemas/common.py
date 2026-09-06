@@ -26,4 +26,5 @@ class ErrorResponse(BaseModel):
 
 
 class RetryRequest(BaseModel):
-    answer_id: UUID | None = None
+    transcript: str = Field(min_length=1, max_length=50000)
+    duration: float = Field(gt=0, le=3600)
