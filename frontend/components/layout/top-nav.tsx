@@ -10,7 +10,16 @@ export function TopNav() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    setIsAuthenticated(document.cookie.includes("grillr_access_token="));
+    let active = true;
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((response) => response.json() as Promise<{ authenticated?: boolean }>)
+      .then((data) => {
+        if (active) setIsAuthenticated(Boolean(data.authenticated));
+      })
+      .catch(() => {
+        if (active) setIsAuthenticated(false);
+      });
+    return () => { active = false; };
   }, [pathname]);
 
   async function handleSignOut() {
