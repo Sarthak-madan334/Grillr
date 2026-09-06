@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+import httpx
+
+from app.core.config import get_settings
+
 
 class AIInterviewer(Protocol):
     def first_question(self, job_role: str, interview_type: str) -> str: ...
@@ -39,6 +43,44 @@ class MockSpeechToText:
 class MockTextToSpeech:
     def synthesize(self, text: str) -> bytes:
         return text.encode("utf-8")
+
+
+class RimeTextToSpeech:
+    """Synchronous adapter for Rime's audio-byte TTS endpoint."""
+
+    endpoint = "https://users.rime.ai/v1/rime-tts"
+
+    def __init__(self, api_key: str | None = None, speaker: str = "astra", model_id: str = "coda"):
+        self.api_key = api_key if api_key is not None else get_settings().rime_api_key
+        self.speaker = speaker
+        self.model_id = model_id
+
+    def synthesize(self, text: str) -> bytes:
+        if not self.api_key:
+            raise RuntimeError("Rime TTS is not configured: RIME_API_KEY is missing")
+        if not text.strip():
+            raise ValueError("Rime TTS cannot synthesize empty text")
+
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                response = client.post(
+                    self.endpoint,
+                    headers={"Accept": "audio/mpeg", "Authorization": f"Bearer {self.api_key}"},
+                    json={"text": text, "speaker": self.speaker, "modelId": self.model_id},
+                )
+        except httpx.HTTPError as exc:
+            raise RuntimeError(f"Rime TTS network request failed: {exc}") from exc
+
+        if response.status_code >= 400:
+            detail = response.text.strip().replace("\n", " ")[:200]
+            raise RuntimeError(f"Rime TTS request failed with HTTP {response.status_code}: {detail}")
+
+        content_type = response.headers.get("content-type", "").lower()
+        if "json" in content_type:
+            raise RuntimeError("Rime TTS returned an API response instead of audio")
+        if not response.content:
+            raise RuntimeError("Rime TTS returned an empty audio response")
+        return response.content
 
 
 class MockSpeechAnalyzer:

@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     supabase_url: str | None = None
     supabase_anon_key: str | None = None
     supabase_jwks_url: str | None = None
+    rime_api_key: str | None = None
     auth_required: bool = False
     sql_echo: bool = False
     auto_create_schema: bool = True
