@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/layout/top-nav";
+import { VoiceAnswerPanel } from "@/components/VoiceAnswerPanel";
 import {
   getInterview,
   getLatestAnswer,
@@ -420,6 +421,11 @@ export default function InterviewSessionPage() {
                   {question.question_text}
                 </h2>
                 <div className="mt-10">
+                  <VoiceAnswerPanel
+                    sessionId={session.id}
+                    disabled={state === "submitting"}
+                    onTranscript={setDraft}
+                  />
                   <label
                     htmlFor="answer"
                     className="text-sm font-semibold text-[#3d3028]"
