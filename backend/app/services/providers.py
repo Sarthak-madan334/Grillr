@@ -95,11 +95,47 @@ class RimeTextToSpeech:
 
 
 class MockSpeechAnalyzer:
+    filler_phrases = {
+        ("um",), ("uh",), ("erm",), ("like",), ("basically",), ("actually",),
+        ("literally",), ("well",), ("so",), ("right",), ("you", "know"),
+        ("sort", "of"), ("kind", "of"), ("i", "mean"), ("you", "see"),
+    }
+
+    @classmethod
+    def _filler_count(cls, words: list[str]) -> int:
+        matches: list[tuple[int, int]] = []
+        for index in range(len(words)):
+            for phrase in cls.filler_phrases:
+                if tuple(words[index:index + len(phrase)]) == phrase:
+                    matches.append((index, index + len(phrase)))
+        count = 0
+        consumed: set[int] = set()
+        for start, end in sorted(matches, key=lambda item: (item[0], -(item[1] - item[0]))):
+            if not any(position in consumed for position in range(start, end)):
+                consumed.update(range(start, end))
+                count += 1
+        return count
+
+    @staticmethod
+    def _repetition_count(words: list[str]) -> int:
+        repeated: set[tuple[str, ...]] = set()
+        for size in (2, 3):
+            seen: dict[tuple[str, ...], list[int]] = {}
+            for index in range(len(words) - size + 1):
+                phrase = tuple(words[index:index + size])
+                if any(index - previous <= 8 for previous in seen.get(phrase, [])):
+                    repeated.add(phrase)
+                seen.setdefault(phrase, []).append(index)
+        repeated.update(word_pair for word_pair in zip(words, words[1:]) if word_pair[0] == word_pair[1])
+        return len(repeated)
+
     def analyze(self, transcript: str, duration: float) -> dict:
-        words = transcript.split()
-        fillers = sum(word.lower() in {"um", "uh", "like"} for word in words)
-        repetitions = sum(a.lower() == b.lower() for a, b in zip(words, words[1:]))
-        return {"words_per_minute": round(len(words) / max(duration, 1 / 60) * 60, 2), "filler_count": fillers, "pause_count": max(0, int(duration // 5) - 1), "repetition_count": repetitions, "duration_seconds": duration, "word_count": len(words)}
+        words = [word.strip(".,!?;:'\"()[]{}").lower() for word in transcript.split()]
+        words = [word for word in words if word]
+        safe_duration = max(duration, 1.0)
+        # This is a duration-based estimate, not real pause detection from audio timestamps.
+        pause_count = max(0, int(duration // 5) - 1)
+        return {"words_per_minute": round(len(words) / safe_duration * 60, 2), "filler_count": self._filler_count(words), "pause_count": pause_count, "repetition_count": self._repetition_count(words), "duration_seconds": duration, "word_count": len(words)}
 
 
 class MockAnswerEvaluator:
