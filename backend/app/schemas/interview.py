@@ -72,8 +72,10 @@ class QuestionsResponse(BaseModel):
 
 class RetryResponse(BaseModel):
     question_id: UUID
+    answer_id: UUID
     attempt_number: int
     status: str
+    score_delta: int | None = None
 
 
 class FeedbackResponse(BaseModel):

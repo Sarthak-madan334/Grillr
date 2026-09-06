@@ -68,13 +68,17 @@ class InterviewService:
     def questions(self, session_id: UUID, user_id: UUID) -> list[Question]:
         return self.get(session_id, user_id).questions
 
-    def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate) -> Answer:
+    def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate, is_retry: bool = False) -> Answer:
         question = self.db.scalar(select(Question).join(InterviewSession).where(Question.id == question_id, InterviewSession.user_id == user_id).options(selectinload(Question.session)))
         if question is None:
             raise NotFoundError("Question")
-        if question.session.status != SessionStatus.ACTIVE:
+        if question.session.status not in {SessionStatus.ACTIVE, SessionStatus.COMPLETED} or (question.session.status == SessionStatus.COMPLETED and not is_retry):
             raise InvalidStateError("Answers can only be submitted for active interviews")
         attempt = self.db.scalar(select(Answer).where(Answer.question_id == question_id).order_by(Answer.attempt_number.desc()))
+        if attempt is not None and not is_retry:
+            raise InvalidStateError("Question has already been answered; submit a retry instead")
+        if is_retry and attempt is None:
+            raise InvalidStateError("Retries require an existing answer")
         attempt_number = (attempt.attempt_number + 1) if attempt else 1
         answer = Answer(question_id=question.id, session_id=question.session_id, attempt_number=attempt_number, transcript=data.transcript, duration=data.duration, completed_at=datetime.now(timezone.utc))
         self.db.add(answer)
@@ -82,9 +86,10 @@ class InterviewService:
         metrics = self.analyzer.analyze(data.transcript, data.duration)
         self.db.add(SpeechMetrics(answer_id=answer.id, **metrics))
         self.db.add(AnswerEvaluation(answer_id=answer.id, **self.evaluator.evaluate(data.transcript, question.question_text)))
-        question.answered_at = datetime.now(timezone.utc)
-        question.session.current_question_number = question.question_number
-        if question.question_number < question.session.question_count:
+        if not is_retry:
+            question.answered_at = datetime.now(timezone.utc)
+            question.session.current_question_number = question.question_number
+        if not is_retry and question.question_number < question.session.question_count:
             next_question_number = question.question_number + 1
             existing_next = self.db.scalar(select(Question).where(Question.session_id == question.session_id, Question.question_number == next_question_number))
             if existing_next is None:
@@ -92,9 +97,17 @@ class InterviewService:
                 self.db.add(self._create_question(question.session_id, next_question_number, next_question_text, question.session.interview_type))
         self.db.commit()
         self.db.refresh(answer)
-        if question.question_number == question.session.question_count:
+        if not is_retry and question.question_number == question.session.question_count:
             self.complete(question.session_id, user_id)
         return answer
+
+    def attempts(self, question_id: UUID, user_id: UUID) -> tuple[list[Answer], int | None]:
+        question = self.db.scalar(select(Question).join(InterviewSession).where(Question.id == question_id, InterviewSession.user_id == user_id))
+        if question is None:
+            raise NotFoundError("Question")
+        answers = list(self.db.scalars(select(Answer).where(Answer.question_id == question_id).options(selectinload(Answer.speech_metrics), selectinload(Answer.evaluation)).order_by(Answer.attempt_number.asc())).all())
+        scores = [answer.evaluation.overall_score for answer in answers if answer.evaluation]
+        return answers, (scores[-1] - scores[-2] if len(scores) >= 2 else None)
 
     def complete(self, session_id: UUID, user_id: UUID) -> InterviewSession:
         session = self.transition(session_id, user_id, SessionStatus.COMPLETED)
