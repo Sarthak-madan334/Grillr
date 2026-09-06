@@ -10,7 +10,7 @@ describe("QuestionAudioPlayer", () => {
     render(<QuestionAudioPlayer sessionId="session 1" questionId="question/1" />);
 
     const audio = screen.getByLabelText("Question audio");
-    expect(audio).toHaveAttribute("src", expect.stringContaining("/api/v1/interviews/session%201/questions/question%2F1/audio"));
+    expect(audio).toHaveAttribute("src", expect.stringContaining("/api/interviews/session%201/questions/question%2F1/audio"));
     expect(screen.getByLabelText("Loading question audio")).toBeInTheDocument();
 
     fireEvent.canPlay(audio);

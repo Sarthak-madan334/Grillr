@@ -10,7 +10,7 @@ type QuestionAudioPlayerProps = {
   shouldStop?: boolean;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_BASE = "/api";
 
 function SpeakerIcon() {
   return <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10v4h4l5 4V6l-5 4H4Z" /><path d="M17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11" /></svg>;
@@ -21,7 +21,7 @@ export function QuestionAudioPlayer({ sessionId, questionId, shouldStop = false 
   const [attempt, setAttempt] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrl = `${API_BASE}/api/v1/interviews/${encodeURIComponent(sessionId)}/questions/${encodeURIComponent(questionId)}/audio`;
+  const audioUrl = `${API_BASE}/interviews/${encodeURIComponent(sessionId)}/questions/${encodeURIComponent(questionId)}/audio`;
 
   useEffect(() => {
     if (!shouldStop || !audioRef.current) return;
