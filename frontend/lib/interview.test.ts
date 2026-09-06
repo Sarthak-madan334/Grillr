@@ -13,7 +13,9 @@ describe("interview engine", () => {
     });
 
     expect(questions.length).toBeGreaterThanOrEqual(3);
-    expect(questions[0].text).toMatch(/Software Engineer|technical|experience/i);
+    expect(questions[0].text).toMatch(
+      /Software Engineer|technical|experience/i,
+    );
   });
 
   it("scores an answer with actionable feedback", () => {

@@ -10,6 +10,13 @@ class UserSignupRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
 
+class UserLoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=1)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+
 class UserPublic(BaseModel):
     id: str
     email: EmailStr
@@ -23,3 +30,9 @@ class UserSignupResponse(BaseModel):
     access_token: str | None = None
     refresh_token: str | None = None
     requires_email_confirmation: bool = False
+
+
+class UserAuthResponse(BaseModel):
+    user: UserPublic
+    access_token: str
+    refresh_token: str | None = None

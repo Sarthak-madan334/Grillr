@@ -1,8 +1,46 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/auth-client";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    if (!password) {
+      setError("Enter your password.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await signIn(email.trim().toLowerCase(), password);
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.push(next?.startsWith("/") ? next : "/dashboard");
+    } catch (caught: unknown) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "We could not sign you in. Please try again.",
+      );
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.05),_transparent_45%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] px-4 py-12">
       <div className="w-full max-w-md rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
@@ -11,41 +49,78 @@ export default function LoginPage() {
             G
           </div>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">Grillr</p>
-            <h1 className="text-xl font-semibold text-slate-900">Welcome back</h1>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+              Grillr
+            </p>
+            <h1 className="text-xl font-semibold text-slate-900">
+              Welcome back
+            </h1>
           </div>
         </div>
-
-        <form className="space-y-5">
+        {error ? (
+          <p
+            role="alert"
+            className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700"
+          >
+            {error}
+          </p>
+        ) : null}
+        <form
+          className="space-y-5"
+          onSubmit={handleSubmit}
+          noValidate
+          aria-busy={isSubmitting}
+        >
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-slate-700">
+            <label
+              htmlFor="email"
+              className="text-sm font-medium text-slate-700"
+            >
               Email
             </label>
-            <Input id="email" type="email" placeholder="you@example.com" />
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              disabled={isSubmitting}
+              autoComplete="email"
+            />
           </div>
-
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-slate-700">
+            <label
+              htmlFor="password"
+              className="text-sm font-medium text-slate-700"
+            >
               Password
             </label>
-            <Input id="password" type="password" placeholder="••••••••" />
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              disabled={isSubmitting}
+              autoComplete="current-password"
+            />
           </div>
-
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center gap-2 text-slate-600">
-              <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-slate-900" />
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300 text-slate-900"
+              />
               Remember me
             </label>
             <Link href="/" className="text-slate-700 hover:text-slate-950">
               Forgot password?
             </Link>
           </div>
-
-          <Button className="w-full" size="lg">
-            Sign in
+          <Button className="w-full" size="lg" disabled={isSubmitting}>
+            {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>
         </form>
-
         <p className="mt-6 text-center text-sm text-slate-600">
           Don&apos;t have an account?{" "}
           <Link href="/signup" className="font-semibold text-slate-900">

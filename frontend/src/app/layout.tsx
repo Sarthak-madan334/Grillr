@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Interview Coach",
-  description: "Voice-first AI interview practice with realtime interaction and mock mock live transcript flow.",
+  description:
+    "Voice-first AI interview practice with realtime interaction and mock mock live transcript flow.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

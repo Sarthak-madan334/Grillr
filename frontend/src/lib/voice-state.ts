@@ -29,7 +29,10 @@ export const initialVoiceState: VoiceState = {
   lastEvent: null,
 };
 
-const nextStageByEvent: Record<VoiceStage, Partial<Record<VoiceStateMachineEvent["type"], VoiceStage>>> = {
+const nextStageByEvent: Record<
+  VoiceStage,
+  Partial<Record<VoiceStateMachineEvent["type"], VoiceStage>>
+> = {
   idle: {
     AI_STARTED_SPEAKING: "ai_speaking",
     USER_STARTED_SPEAKING: "user_speaking",
@@ -69,7 +72,8 @@ export function applyVoiceEvent(
   state: VoiceState,
   event: VoiceStateMachineEvent,
 ): VoiceState {
-  const targetStage = nextStageByEvent[state.stage]?.[event.type] ?? state.stage;
+  const targetStage =
+    nextStageByEvent[state.stage]?.[event.type] ?? state.stage;
 
   return {
     stage: targetStage,

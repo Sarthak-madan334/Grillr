@@ -5,7 +5,12 @@ import { Card } from "@/components/ui/card";
 import { TopNav } from "@/components/layout/top-nav";
 
 const history = [
-  { role: "Senior Product Designer", type: "Behavioral", score: 88, date: "Aug 30" },
+  {
+    role: "Senior Product Designer",
+    type: "Behavioral",
+    score: 88,
+    date: "Aug 30",
+  },
   { role: "Software Engineer", type: "Technical", score: 91, date: "Aug 21" },
   { role: "Data Analyst", type: "HR", score: 79, date: "Aug 12" },
 ];
@@ -18,8 +23,12 @@ export default function HistoryPage() {
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Interview history</p>
-            <h1 className="mt-2 text-3xl font-semibold text-slate-900">Your recent sessions</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Interview history
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold text-slate-900">
+              Your recent sessions
+            </h1>
           </div>
           <Link href="/interview/setup">
             <Button>New interview</Button>
@@ -32,16 +41,22 @@ export default function HistoryPage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="mb-2 flex items-center gap-3">
-                    <Badge className="bg-slate-100 text-slate-700">{item.type}</Badge>
+                    <Badge className="bg-slate-100 text-slate-700">
+                      {item.type}
+                    </Badge>
                     <span className="text-sm text-slate-500">{item.date}</span>
                   </div>
-                  <p className="text-xl font-semibold text-slate-900">{item.role}</p>
+                  <p className="text-xl font-semibold text-slate-900">
+                    {item.role}
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="text-sm text-slate-500">Score</p>
-                    <p className="text-2xl font-semibold text-slate-900">{item.score}</p>
+                    <p className="text-2xl font-semibold text-slate-900">
+                      {item.score}
+                    </p>
                   </div>
                   <Link href="/dashboard">
                     <Button variant="secondary">View results</Button>

@@ -81,19 +81,39 @@ export function evaluateAnswer({
 }): AnswerEvaluation {
   const words = transcript.trim().split(/\s+/).filter(Boolean).length;
   const metrics = {
-    relevance: Math.min(95, Math.max(60, 78 + (transcript.toLowerCase().includes(jobRole?.toLowerCase() ?? "") ? 8 : 0) + (interviewType === "technical" ? 6 : 0))),
+    relevance: Math.min(
+      95,
+      Math.max(
+        60,
+        78 +
+          (transcript.toLowerCase().includes(jobRole?.toLowerCase() ?? "")
+            ? 8
+            : 0) +
+          (interviewType === "technical" ? 6 : 0),
+      ),
+    ),
     clarity: Math.min(95, 65 + Math.min(words / 10, 18)),
     structure: Math.min(96, 58 + Math.min(words / 12, 24)),
     specificity: Math.min(96, 52 + Math.min(words / 14, 30)),
-    technicalAccuracy: interviewType === "technical" ? Math.min(97, 60 + Math.min(words / 9, 26)) : 74,
-    conciseness: Math.min(94, 78 + (words < 120 ? 8 : 0) - (words > 200 ? 10 : 0)),
+    technicalAccuracy:
+      interviewType === "technical"
+        ? Math.min(97, 60 + Math.min(words / 9, 26))
+        : 74,
+    conciseness: Math.min(
+      94,
+      78 + (words < 120 ? 8 : 0) - (words > 200 ? 10 : 0),
+    ),
     communication: Math.min(95, 60 + Math.min(words / 8, 28)),
   };
 
   const strengths = [
     "Clear, goal-oriented explanation.",
-    transcript.length > 140 ? "Included measurable outcomes and concrete examples." : "Provided a focused answer with context.",
-    interviewType === "technical" ? "Demonstrated technical reasoning and trade-off awareness." : "Communicated motivation and self-awareness clearly.",
+    transcript.length > 140
+      ? "Included measurable outcomes and concrete examples."
+      : "Provided a focused answer with context.",
+    interviewType === "technical"
+      ? "Demonstrated technical reasoning and trade-off awareness."
+      : "Communicated motivation and self-awareness clearly.",
   ];
 
   const weaknesses = [
@@ -104,7 +124,9 @@ export function evaluateAnswer({
   const suggestions = [
     "Open with a concise summary of the problem and your contribution.",
     "Add measurable outcomes, stakeholder impact, and one key lesson learned.",
-    difficulty === "hard" ? "Explain your decision-making process and trade-offs in more detail." : "Use a simple structure: situation, action, result.",
+    difficulty === "hard"
+      ? "Explain your decision-making process and trade-offs in more detail."
+      : "Use a simple structure: situation, action, result.",
   ];
 
   const overallScore = Math.round(
