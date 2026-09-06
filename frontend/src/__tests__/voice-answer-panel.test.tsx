@@ -1,11 +1,24 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VoiceAnswerPanel } from "../../components/VoiceAnswerPanel";
 
 type MediaMocks = {
   getUserMedia: ReturnType<typeof vi.fn>;
   enumerateDevices: ReturnType<typeof vi.fn>;
 };
+
+class TestRecorder {
+  state = "recording";
+  private listeners = new Map<string, (event: { data: Blob }) => void>();
+  constructor(stream: MediaStream) { void stream; }
+  addEventListener(event: string, callback: (event: { data: Blob }) => void) { this.listeners.set(event, callback); }
+  start() { this.state = "recording"; }
+  stop() { this.state = "inactive"; this.listeners.get("dataavailable")?.({ data: new Blob(["audio"]) }); this.listeners.get("stop")?.({ data: new Blob() }); }
+}
+
+beforeEach(() => {
+  vi.stubGlobal("MediaRecorder", TestRecorder);
+});
 
 function mockMediaDevices(mocks: MediaMocks) {
   Object.defineProperty(navigator, "mediaDevices", {
@@ -16,6 +29,7 @@ function mockMediaDevices(mocks: MediaMocks) {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   Object.defineProperty(navigator, "mediaDevices", {
     configurable: true,
     value: undefined,

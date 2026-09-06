@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { microphoneService } from "../lib/audio/microphone-service";
 
 type VoiceStatus = "checking" | "ready" | "recording" | "denied" | "no-device" | "unsupported" | "revoked";
 
@@ -48,9 +49,10 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
   const [isRetrying, setIsRetrying] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState("");
   const [socketError, setSocketError] = useState("");
+  const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
+  const pendingChunksRef = useRef<Blob[]>([]);
 
   function getSocketUrl() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? window.location.origin;
@@ -59,18 +61,29 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
   }
 
   const stopStream = useCallback(() => {
-    recorderRef.current?.stop();
-    recorderRef.current = null;
+    microphoneService.releaseMicrophone();
     socketRef.current?.close();
     socketRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    pendingChunksRef.current = [];
     onRecordingChange?.(false);
   }, [onRecordingChange]);
 
   useEffect(() => {
     return stopStream;
   }, [stopStream]);
+
+  const recordingUrl = useMemo(() => {
+    if (!recordingBlob || typeof URL.createObjectURL !== "function") return "";
+    return URL.createObjectURL(recordingBlob);
+  }, [recordingBlob]);
+
+  useEffect(() => {
+    return () => {
+      if (recordingUrl) URL.revokeObjectURL(recordingUrl);
+    };
+  }, [recordingUrl]);
 
   const handleTrackEnded = useCallback(() => {
     stopStream();
@@ -94,19 +107,32 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
         setStatus("no-device");
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!await microphoneService.requestPermission()) {
+        setStatus("denied");
+        return;
+      }
+      const stream = microphoneService.getStream();
+      if (!stream) {
+        setStatus("denied");
+        return;
+      }
       stream.getTracks().forEach((track) => {
         track.addEventListener("ended", handleTrackEnded, { once: true });
       });
       streamRef.current = stream;
+      pendingChunksRef.current = [];
+      setRecordingBlob(null);
+      const handleAudioChunk = (chunk: Blob) => {
+        pendingChunksRef.current.push(chunk);
+        setRecordingBlob(new Blob([...pendingChunksRef.current], { type: chunk.type || "audio/webm" }));
+        if (socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(chunk);
+      };
       if (sessionId && typeof WebSocket !== "undefined" && typeof MediaRecorder !== "undefined") {
         const socket = new WebSocket(getSocketUrl());
-        const recorder = new MediaRecorder(stream);
         socketRef.current = socket;
-        recorderRef.current = recorder;
         socket.addEventListener("open", () => {
           socket.send(JSON.stringify({ type: "speech.start" }));
-          recorder.start(250);
+          pendingChunksRef.current.forEach((chunk) => socket.send(chunk));
         }, { once: true });
         socket.addEventListener("message", (event) => {
           try {
@@ -125,13 +151,18 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
           }
         });
         socket.addEventListener("error", () => setSocketError("Live transcription is unavailable. You can continue by typing."), { once: true });
-        recorder.addEventListener("dataavailable", (event) => {
-          if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) socket.send(event.data);
-        });
+      }
+      if (!microphoneService.startRecording(handleAudioChunk)) {
+        microphoneService.releaseMicrophone();
+        streamRef.current = null;
+        setStatus("denied");
+        return;
       }
       setStatus("recording");
       onRecordingChange?.(true);
     } catch (error) {
+      microphoneService.releaseMicrophone();
+      streamRef.current = null;
       const errorName = getErrorName(error);
       setStatus(errorName === "NotFoundError" ? "no-device" : "denied");
     } finally {
@@ -140,8 +171,8 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
   }
 
   function stopRecording() {
-    if (recorderRef.current?.state === "recording") {
-      recorderRef.current.stop();
+    if (microphoneService.isRecording()) {
+      microphoneService.stopRecording();
       if (socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(JSON.stringify({ type: "speech.stop" }));
     } else {
       stopStream();
@@ -166,6 +197,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
       {status === "checking" ? <p className="mt-4 animate-pulse text-xs text-[#7a5f48] motion-reduce:animate-none" aria-live="polite">Checking microphone support...</p> : null}
       {status === "recording" ? <p className="mt-4 flex items-center gap-2 text-xs font-medium text-[#26724d]" aria-live="polite"><span className="h-2 w-2 animate-pulse rounded-full bg-[#26724d] motion-reduce:animate-none" /> Recording in progress. Stop when you finish.</p> : null}
       {liveTranscript ? <div className="mt-4 rounded-xl border border-[#d4eadb] bg-[#f2fbf5] p-3" aria-live="polite"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#26724d]">Live transcript</p><p className="mt-1 text-sm leading-6 text-[#315743]">{liveTranscript}</p></div> : null}
+      {recordingUrl ? <div className="mt-4 rounded-xl border border-[#e7d8c5] bg-white/60 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7a5f48]">Captured locally</p><audio className="mt-2 h-9 w-full" controls src={recordingUrl} aria-label="Recorded answer preview" /></div> : null}
       {socketError ? <p role="status" className="mt-3 text-xs leading-5 text-[#805542]">{socketError}</p> : null}
       {message ? <div role="alert" className="mt-4 flex flex-col gap-3 rounded-xl border border-[#d8b9a7] bg-[#fff7f1] p-3 text-sm text-[#713f2c] sm:flex-row sm:items-center sm:justify-between"><div><strong className="block font-semibold">{message.title}</strong><span className="mt-1 block text-xs leading-5 text-[#805542]">{message.body}</span></div>{status !== "unsupported" ? <button type="button" onClick={() => void startRecording()} disabled={isRetrying} className="shrink-0 self-start rounded-full border border-[#b8916d] px-3 py-2 text-xs font-semibold text-[#5e402e] transition hover:bg-[#f3e3d5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8916d] focus-visible:ring-offset-2 sm:self-center">Retry voice</button> : null}</div> : null}
     </section>
