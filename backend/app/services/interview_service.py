@@ -11,7 +11,7 @@ from app.models import Answer, AnswerEvaluation, InterviewSession, InterviewSumm
 from app.repositories.interview_repository import InterviewRepository
 from app.schemas.answer import AnswerCreate
 from app.schemas.interview import InterviewCreate
-from app.services.providers import MockAIInterviewer, MockAnswerEvaluator, MockSpeechAnalyzer, TextToSpeech, create_text_to_speech
+from app.services.providers import MockAIInterviewer, MockSpeechAnalyzer, TextToSpeech, create_answer_evaluator, create_text_to_speech
 
 
 class InterviewService:
@@ -20,7 +20,7 @@ class InterviewService:
         self.repository = InterviewRepository(db)
         self.ai = MockAIInterviewer()
         self.analyzer = MockSpeechAnalyzer()
-        self.evaluator = MockAnswerEvaluator()
+        self.evaluator = create_answer_evaluator()
         self.tts = tts if tts is not None else create_text_to_speech()
 
     def _create_question(self, session_id: UUID, question_number: int, question_text: str, question_type: str) -> Question:
