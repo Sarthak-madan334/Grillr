@@ -26,39 +26,37 @@ export default function HistoryPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function loadHistory() {
-      try {
-        const response = await listInterviews({ limit: pageSize, status: "completed" });
+    const controller = new AbortController();
+    listInterviews(pageSize, 0, controller.signal)
+      .then((response) => {
         setInterviews(response.items);
         setTotal(response.total);
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "Unable to load interview history.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    void loadHistory();
+      })
+      .catch((caught: unknown) => {
+        if (!(caught instanceof DOMException && caught.name === "AbortError")) {
+          setError(caught instanceof Error ? caught.message : "Unable to load interview history.");
+        }
+      })
+      .finally(() => setIsLoading(false));
+    return () => controller.abort();
   }, []);
 
   async function loadMore() {
     setIsLoadingMore(true);
     setError("");
     try {
-      const response = await listInterviews({ limit: pageSize, offset: interviews.length, status: "completed" });
+      const response = await listInterviews(pageSize, interviews.length);
       setInterviews((current) => [...current, ...response.items]);
       setTotal(response.total);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load more interview history.");
+    } catch (caught: unknown) {
+      setError(caught instanceof Error ? caught.message : "Unable to load more interview history.");
     } finally {
       setIsLoadingMore(false);
     }
   }
-
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-900">
       <TopNav />
-
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
@@ -91,7 +89,7 @@ export default function HistoryPage() {
                 <div>
                   <div className="mb-2 flex items-center gap-3">
                     <Badge className="bg-slate-100 text-slate-700">{formatLabel(item.interview_type)}</Badge>
-                    <span className="text-sm text-slate-500">{formatDate(item.created_at)}</span>
+                    <span className="text-sm text-slate-500">{formatDate(item.completed_at ?? item.created_at)}</span>
                   </div>
                   <p className="text-xl font-semibold text-slate-900">{item.job_role}</p>
                   <p className="mt-1 text-sm capitalize text-slate-500">{formatLabel(item.status)}</p>

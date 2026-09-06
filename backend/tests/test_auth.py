@@ -1,8 +1,6 @@
-from uuid import uuid4
+from unittest.mock import patch
+
 from app.core.auth import authenticate_token, CurrentUser
-from app.models import User
-import pytest
-from fastapi import HTTPException
 
 
 def test_dev_token_authentication(client):
@@ -27,3 +25,22 @@ def test_invalid_jwt_token_returns_401(client):
     response = client.get("/api/v1/users/me", headers=headers)
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "unauthorized"
+
+
+@patch("app.core.auth.httpx.get")
+@patch("app.core.auth.jwt.decode")
+@patch("app.core.auth.jwt.get_unverified_header")
+def test_signing_key_token_uses_supabase_jwks(mock_header, mock_decode, mock_get, client):
+    mock_header.return_value = {"alg": "RS256", "kid": "key-1"}
+    mock_get.return_value.json.return_value = {"keys": [{"kid": "key-1", "kty": "RSA"}]}
+    mock_decode.return_value = {
+        "sub": "00000000-0000-0000-0000-000000000002",
+        "email": "signed@example.com",
+        "user_metadata": {"name": "Signed User"},
+    }
+
+    response = client.get("/api/v1/users/me", headers={"Authorization": "Bearer signed-token"})
+
+    assert response.status_code == 200
+    assert response.json()["email"] == "signed@example.com"
+    mock_get.assert_called_once()

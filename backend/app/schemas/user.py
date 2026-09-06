@@ -18,8 +18,21 @@ class UserPublic(BaseModel):
     name: str
 
 
+class UserLoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+
 class UserSignupResponse(BaseModel):
     user: UserPublic
     access_token: str | None = None
     refresh_token: str | None = None
     requires_email_confirmation: bool = False
+
+
+class UserLoginResponse(BaseModel):
+    user: UserPublic
+    access_token: str | None = None
+    refresh_token: str | None = None
