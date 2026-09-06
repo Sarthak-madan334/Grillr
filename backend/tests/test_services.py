@@ -1,11 +1,11 @@
-from uuid import uuid4
 from types import SimpleNamespace
+from uuid import uuid4
 
 import httpx
 import pytest
 
 import app.services.providers as providers
-from app.services.providers import MockSpeechAnalyzer, MockAnswerEvaluator, MockAIInterviewer, RimeTextToSpeech
+from app.services.providers import MockSpeechAnalyzer, MockAnswerEvaluator, MockAIInterviewer, MockTextToSpeech, RimeTextToSpeech, create_text_to_speech
 
 
 class FakeHttpClient:
@@ -108,6 +108,21 @@ def test_rime_tts_requires_api_key(monkeypatch):
 
     with pytest.raises(RuntimeError, match="RIME_API_KEY is missing"):
         RimeTextToSpeech().synthesize("Hello there")
+
+
+def test_text_to_speech_factory_uses_mock_without_rime_key(monkeypatch):
+    monkeypatch.setattr(providers, "get_settings", lambda: SimpleNamespace(rime_api_key=None))
+
+    assert isinstance(create_text_to_speech(), MockTextToSpeech)
+
+
+def test_text_to_speech_factory_uses_rime_with_api_key(monkeypatch):
+    monkeypatch.setattr(providers, "get_settings", lambda: SimpleNamespace(rime_api_key="test-rime-key"))
+
+    provider = create_text_to_speech()
+
+    assert isinstance(provider, RimeTextToSpeech)
+    assert provider.api_key == "test-rime-key"
 
 
 def test_unknown_interview_is_not_accessible(client):

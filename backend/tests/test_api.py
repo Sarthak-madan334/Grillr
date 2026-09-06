@@ -1,11 +1,12 @@
+import base64
 from uuid import UUID, uuid4
 
+import pytest
 from sqlalchemy import select
 
+import app.services.interview_service as interview_service
 from app.db.session import SessionLocal
 from app.models import InterviewSummary
-
-import pytest
 
 
 def interview_payload():
@@ -29,6 +30,35 @@ def test_health_and_current_user(client):
     response = client.get("/api/v1/users/me")
     assert response.status_code == 200
     assert response.json()["email"] == "developer@localhost"
+
+
+def test_interview_creation_synthesizes_and_returns_question_audio(client, monkeypatch):
+    class RecordingTTS:
+        def __init__(self):
+            self.calls = []
+
+        def synthesize(self, text):
+            self.calls.append(text)
+            return b"question-audio"
+
+    tts = RecordingTTS()
+    monkeypatch.setattr(interview_service, "create_text_to_speech", lambda: tts)
+
+    response = client.post("/api/v1/interviews", json=interview_payload())
+
+    assert response.status_code == 201
+    question = response.json()["questions"][0]
+    assert tts.calls == [question["question_text"]]
+    assert question["audio_base64"] == base64.b64encode(b"question-audio").decode("ascii")
+
+    session_id = response.json()["id"]
+    assert client.post(f"/api/v1/interviews/{session_id}/start").status_code == 200
+    answer = client.post(
+        f"/api/v1/interviews/questions/{question['id']}/answer",
+        json={"transcript": "A detailed answer with enough context for the next question.", "duration": 8},
+    )
+    assert answer.status_code == 201
+    assert len(tts.calls) == 2
 
 
 def test_interview_lifecycle_and_answer(client):

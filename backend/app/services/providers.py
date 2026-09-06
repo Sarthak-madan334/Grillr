@@ -45,6 +45,13 @@ class MockTextToSpeech:
         return text.encode("utf-8")
 
 
+def create_text_to_speech() -> TextToSpeech:
+    settings = get_settings()
+    if settings.rime_api_key:
+        return RimeTextToSpeech(api_key=settings.rime_api_key)
+    return MockTextToSpeech()
+
+
 class RimeTextToSpeech:
     """Synchronous adapter for Rime's audio-byte TTS endpoint."""
 

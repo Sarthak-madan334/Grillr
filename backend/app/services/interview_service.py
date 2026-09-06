@@ -11,24 +11,35 @@ from app.models import Answer, AnswerEvaluation, InterviewSession, InterviewSumm
 from app.repositories.interview_repository import InterviewRepository
 from app.schemas.answer import AnswerCreate
 from app.schemas.interview import InterviewCreate
-from app.services.providers import MockAIInterviewer, MockAnswerEvaluator, MockSpeechAnalyzer
+from app.services.providers import MockAIInterviewer, MockAnswerEvaluator, MockSpeechAnalyzer, TextToSpeech, create_text_to_speech
 
 
 class InterviewService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, tts: TextToSpeech | None = None):
         self.db = db
         self.repository = InterviewRepository(db)
         self.ai = MockAIInterviewer()
         self.analyzer = MockSpeechAnalyzer()
         self.evaluator = MockAnswerEvaluator()
+        self.tts = tts if tts is not None else create_text_to_speech()
+
+    def _create_question(self, session_id: UUID, question_number: int, question_text: str, question_type: str) -> Question:
+        question = Question(session_id=session_id, question_number=question_number, question_text=question_text, question_type=question_type)
+        question._audio_bytes = self.tts.synthesize(question_text)
+        return question
 
     def create(self, user_id: UUID, data: InterviewCreate) -> InterviewSession:
         session = InterviewSession(user_id=user_id, interview_type=data.interview_type.value, job_role=data.job_role, experience_level=data.experience_level, difficulty=data.difficulty, personality=data.personality, duration=data.duration, question_count=data.question_count, resume_url=str(data.resume_url) if data.resume_url else None, job_description=data.job_description)
         self.db.add(session)
         self.db.flush()
-        self.db.add(Question(session_id=session.id, question_number=1, question_text=self.ai.first_question(data.job_role, data.interview_type.value), question_type=data.interview_type.value))
+        question_text = self.ai.first_question(data.job_role, data.interview_type.value)
+        question = self._create_question(session.id, 1, question_text, data.interview_type.value)
+        self.db.add(question)
         self.db.commit()
-        return self.repository.get_owned(session.id, user_id)
+        created = self.repository.get_owned(session.id, user_id)
+        created_question = next(item for item in created.questions if item.id == question.id)
+        created_question._audio_bytes = question._audio_bytes
+        return created
 
     def get(self, session_id: UUID, user_id: UUID) -> InterviewSession:
         session = self.repository.get_owned(session_id, user_id)
@@ -75,7 +86,8 @@ class InterviewService:
             next_question_number = question.question_number + 1
             existing_next = self.db.scalar(select(Question).where(Question.session_id == question.session_id, Question.question_number == next_question_number))
             if existing_next is None:
-                self.db.add(Question(session_id=question.session_id, question_number=next_question_number, question_text=self.ai.next_question(question.session.job_role, next_question_number), question_type=question.session.interview_type))
+                next_question_text = self.ai.next_question(question.session.job_role, next_question_number)
+                self.db.add(self._create_question(question.session_id, next_question_number, next_question_text, question.session.interview_type))
         self.db.commit()
         self.db.refresh(answer)
         if question.question_number == question.session.question_count:
