@@ -47,6 +47,24 @@ def test_speech_analyzer_zero_duration_safeguard():
     assert metrics["words_per_minute"] > 0  # does not divide by zero
 
 
+def test_speech_analyzer_detects_common_filler_phrases():
+    metrics = MockSpeechAnalyzer().analyze("Um, you know, I mean, basically we can sort of improve it", 10.0)
+
+    assert metrics["filler_count"] == 5
+
+
+def test_speech_analyzer_detects_repeated_phrases():
+    metrics = MockSpeechAnalyzer().analyze("I think the plan is strong and I think the plan should ship", 10.0)
+
+    assert metrics["repetition_count"] >= 2
+
+
+def test_speech_analyzer_clamps_near_zero_duration():
+    metrics = MockSpeechAnalyzer().analyze("one two", 0.001)
+
+    assert metrics["words_per_minute"] == 120
+
+
 def test_answer_evaluator_scoring():
     evaluator = MockAnswerEvaluator()
     short_eval = evaluator.evaluate("Short answer", "What is OOP?")
