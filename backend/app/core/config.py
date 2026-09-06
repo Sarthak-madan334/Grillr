@@ -21,6 +21,16 @@ class Settings(BaseSettings):
     sql_echo: bool = False
     auto_create_schema: bool = True
     log_level: str = "INFO"
+    global_rate_limit: int = 100
+    global_rate_window_seconds: int = 60
+    auth_rate_limit: int = 10
+    auth_rate_window_seconds: int = 60
+    interview_creation_rate_limit: int = 5
+    interview_creation_rate_window_seconds: int = 60
+    answer_rate_limit: int = 20
+    answer_rate_window_seconds: int = 60
+    user_rate_limit: int = 100
+    user_rate_window_seconds: int = 60
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
