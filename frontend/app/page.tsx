@@ -1,24 +1,28 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { TopNav } from "@/components/layout/top-nav";
 
-const promoCards = [
-  { title: "Behavioral mock interviews", value: "12", kind: "count", icon: "waveform" },
-  { title: "AI follow-ups", value: "Adaptive", kind: "state", icon: "branch" },
-  { title: "Feedback loops", value: "Real-time", kind: "state", icon: "pulse" },
+const flowSteps = [
+  { title: "Choose your interview", description: "Select your role, experience level, and interview style.", icon: "compass" },
+  { title: "Answer in real time", description: "Respond naturally as the AI adapts with relevant follow-ups.", icon: "waveform" },
+  { title: "Get honest feedback", description: "Review speech metrics, strengths, and the clearest next improvements.", icon: "pulse" },
+  { title: "Retry and track progress", description: "Practice again and see your confidence build over time.", icon: "trend" },
 ];
 
-function StatIcon({ icon }: { icon: string }) {
-  if (icon === "branch") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M6 5v5a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3v3M18 16l2 2-2 2M18 4l2 2-2 2" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
+function FlowIcon({ icon }: { icon: string }) {
+  if (icon === "compass") {
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="m14.8 9.2-1.7 3.9-3.9 1.7 1.7-3.9 3.9-1.7Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5" /></svg>;
   }
 
   if (icon === "pulse") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M3 12h4l2.2-6 4.1 12 2.2-6H21" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M3 12h4l2.2-6 4.1 12 2.2-6H21" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg>;
   }
 
-  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M4 13v-2M8 16V8M12 19V5M16 16V8M20 13v-2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" /></svg>;
+  if (icon === "trend") {
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M4 17 10 11l4 4 6-8M15 7h5v5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg>;
+  }
+
+  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M4 13v-2M8 16V8M12 19V5M16 16V8M20 13v-2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" /></svg>;
 }
 
 export default function HomePage() {
@@ -81,21 +85,24 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-8 sm:px-6 lg:px-8">
-        <div className="grid gap-5 border-b border-[#e7d8c5]/80 pb-8 md:grid-cols-3">
-          {promoCards.map((card) => (
-            <Card key={card.title} className={`group p-5 ${card.kind === "count" ? "md:scale-[1.03] md:shadow-[0_24px_60px_rgba(120,92,68,0.14)]" : ""}`}>
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#e7d8c5] bg-[#f8eee4] text-[#7a5f48] transition duration-300 group-hover:rotate-[-4deg] group-hover:bg-[#efe0d1]"><StatIcon icon={card.icon} /></span>
-                <p className="text-sm text-[#7a5f48]">{card.title}</p>
-              </div>
-              {card.kind === "count" ? (
-                <p className="mt-5 text-4xl font-semibold tracking-tight text-[#201a17] transition duration-300 group-hover:translate-x-1 group-hover:text-[#755d4a]">{card.value}</p>
-              ) : (
-                <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#d4eadb] bg-[#e7f6ec] px-3 py-1.5 text-sm font-semibold text-[#26724d] transition duration-300 group-hover:translate-x-1"><span className="h-1.5 w-1.5 rounded-full bg-[#3b9a68]" />{card.value}</span>
-              )}
-            </Card>
-          ))}
+      <section aria-labelledby="grillr-flow-heading" className="mx-auto max-w-6xl px-4 pb-10 sm:px-6 sm:pb-12 lg:px-8">
+        <div className="border-b border-[#e7d8c5]/80 pb-10 sm:pb-12">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#7a5f48]">The Grillr flow</p>
+          <h2 id="grillr-flow-heading" className="mt-3 text-2xl font-semibold tracking-tight text-[#201a17] sm:text-3xl">Practice with purpose.</h2>
+          <p className="mt-3 max-w-xl text-base leading-7 text-[#5e4d40]">A focused loop designed to make every interview answer stronger.</p>
+
+          <ol className="mt-8 grid gap-7 border-l border-[#dfcdb9] pl-5 sm:mt-10 sm:gap-8 sm:pl-6 md:grid-cols-4 md:gap-6 md:border-l-0 md:pl-0">
+            {flowSteps.map((step, index) => (
+              <li key={step.title} className="relative md:pr-4 last:pr-0 md:after:absolute md:after:left-12 md:after:right-0 md:after:top-4 md:after:border-t md:after:border-[#dfcdb9] md:last:after:hidden">
+                <div className="absolute -left-[2.1rem] top-0 flex h-8 w-8 items-center justify-center bg-[#f7f3ed] text-[#a27c5b] md:static md:h-auto md:w-auto md:justify-start md:bg-transparent">
+                  <FlowIcon icon={step.icon} />
+                </div>
+                <p className="relative z-10 text-xs font-semibold tracking-[0.16em] text-[#a27c5b]">0{index + 1}</p>
+                <h3 className="mt-3 text-base font-semibold text-[#201a17]">{step.title}</h3>
+                <p className="mt-2 max-w-[15rem] text-sm leading-6 text-[#5e4d40]">{step.description}</p>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
     </main>
