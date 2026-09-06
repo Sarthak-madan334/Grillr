@@ -136,6 +136,9 @@ describe("VoiceAnswerPanel", () => {
 
     act(() => socket?.emit("message", JSON.stringify({ type: "transcript.partial", data: { text: "I improved" } })));
     expect(screen.getByText("I improved")).toBeInTheDocument();
+    act(() => socket?.emit("message", JSON.stringify({ type: "error", data: { code: "no_speech_detected" } })));
+    expect(screen.getByRole("alert")).toHaveTextContent("did not catch any speech");
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
     act(() => socket?.emit("message", JSON.stringify({ type: "transcript.final", data: { text: "I improved the deployment pipeline." } })));
     expect(onTranscript).toHaveBeenCalledWith("I improved the deployment pipeline.");
     expect(track.stop).toHaveBeenCalled();
