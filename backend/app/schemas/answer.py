@@ -34,3 +34,8 @@ class AnswerResponse(BaseModel):
     evaluation: FeedbackResponse | None = None
 
     model_config = {"from_attributes": True}
+
+
+class AttemptsResponse(BaseModel):
+    items: list[AnswerResponse]
+    score_delta: int | None = None

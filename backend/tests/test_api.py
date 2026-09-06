@@ -116,14 +116,9 @@ def test_retry_answer(client):
     client.post(f"/api/v1/interviews/{session_id}/start")
     client.post(f"/api/v1/interviews/questions/{question_id}/answer", json={"transcript": "First attempt answer text.", "duration": 8})
 
-    retry_res = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json={})
+    retry_res = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json={"transcript": "Second improved attempt answer text.", "duration": 10})
     assert retry_res.status_code == 200
     assert retry_res.json()["attempt_number"] == 2
-
-    # Submit second attempt
-    second_ans = client.post(f"/api/v1/interviews/questions/{question_id}/answer", json={"transcript": "Second improved attempt answer text.", "duration": 10})
-    assert second_ans.status_code == 201
-    assert second_ans.json()["attempt_number"] == 2
 
 
 def test_question_count_progresses_and_completes(client):
@@ -331,3 +326,82 @@ def test_final_answer_persists_completion_summary_and_latest_feedback(client):
     summary = client.get(f"/api/v1/interviews/{session_id}/feedback")
     assert summary.status_code == 200
     assert summary.json()["total_questions"] == 1
+
+
+def test_retry_preserves_attempts_without_advancing_interview(client):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    session_id = created["id"]
+    question_id = created["questions"][0]["id"]
+    assert client.post(f"/api/v1/interviews/{session_id}/start").status_code == 200
+
+    first = client.post(f"/api/v1/interviews/questions/{question_id}/answer", json={"transcript": "This is an initial answer with useful context and results.", "duration": 8})
+    assert first.status_code == 201
+    questions_after_first = client.get(f"/api/v1/interviews/{session_id}/questions").json()["items"]
+    assert len(questions_after_first) == 2
+
+    retry = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json={"transcript": "This retry answer adds more specific measurable results.", "duration": 9})
+    assert retry.status_code == 200
+    assert retry.json()["attempt_number"] == 2
+    assert retry.json()["status"] == "submitted"
+
+    attempts = client.get(f"/api/v1/interviews/questions/{question_id}/attempts")
+    assert attempts.status_code == 200
+    assert [item["attempt_number"] for item in attempts.json()["items"]] == [1, 2]
+    assert attempts.json()["score_delta"] == -20
+    assert len(client.get(f"/api/v1/interviews/{session_id}/questions").json()["items"]) == 2
+
+
+def test_duplicate_answer_requires_dedicated_retry_endpoint(client):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    session_id = created["id"]
+    question_id = created["questions"][0]["id"]
+    client.post(f"/api/v1/interviews/{session_id}/start")
+
+    answer_payload = {"transcript": "This is the original answer with useful context.", "duration": 8}
+    assert client.post(f"/api/v1/interviews/questions/{question_id}/answer", json=answer_payload).status_code == 201
+
+    duplicate = client.post(f"/api/v1/interviews/questions/{question_id}/answer", json=answer_payload)
+    assert duplicate.status_code == 409
+    assert duplicate.json()["error"]["code"] == "invalid_state"
+
+
+def test_multiple_retries_preserve_evaluations(client):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    session_id = created["id"]
+    question_id = created["questions"][0]["id"]
+    client.post(f"/api/v1/interviews/{session_id}/start")
+    client.post(
+        f"/api/v1/interviews/questions/{question_id}/answer",
+        json={"transcript": "The first answer includes context and a measurable result.", "duration": 8},
+    )
+
+    for transcript in [
+        "The second answer includes additional context and a measurable result.",
+        "The third answer includes even more context and a measurable result.",
+    ]:
+        retry = client.post(
+            f"/api/v1/interviews/questions/{question_id}/retry",
+            json={"transcript": transcript, "duration": 9},
+        )
+        assert retry.status_code == 200
+
+    attempts = client.get(f"/api/v1/interviews/questions/{question_id}/attempts")
+    assert attempts.status_code == 200
+    assert [item["attempt_number"] for item in attempts.json()["items"]] == [1, 2, 3]
+    assert all(item["evaluation"] is not None for item in attempts.json()["items"])
+
+
+def test_retry_after_completion_does_not_recomplete_session(client):
+    payload = interview_payload()
+    payload["question_count"] = 1
+    created = client.post("/api/v1/interviews", json=payload).json()
+    session_id = created["id"]
+    question_id = created["questions"][0]["id"]
+    client.post(f"/api/v1/interviews/{session_id}/start")
+    client.post(f"/api/v1/interviews/questions/{question_id}/answer", json={"transcript": "The original answer includes a clear result and measurable impact.", "duration": 8})
+
+    retry = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json={"transcript": "The improved answer explains the measurable impact in more detail.", "duration": 9})
+
+    assert retry.status_code == 200
+    assert client.get(f"/api/v1/interviews/{session_id}").json()["status"] == "completed"
+    assert len(client.get(f"/api/v1/interviews/questions/{question_id}/attempts").json()["items"]) == 2
