@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./grillr.db"
     cors_origins: list[str] = ["http://localhost:3000"]
     jwt_secret: str = "change-me-in-development"
+    openai_api_key: str | None = None
     supabase_jwt_secret: str | None = None
     supabase_url: str | None = None
     supabase_anon_key: str | None = None

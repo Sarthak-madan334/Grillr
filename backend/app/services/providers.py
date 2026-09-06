@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class AIInterviewer(Protocol):
     def first_question(self, job_role: str, interview_type: str) -> str: ...
-    def next_question(self, job_role: str, question_number: int) -> str: ...
+    def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]]) -> str: ...
 
 
 class SpeechToText(Protocol):
@@ -35,7 +35,7 @@ class MockAIInterviewer:
     def first_question(self, job_role: str, interview_type: str) -> str:
         return f"Tell me about your experience relevant to {job_role}."
 
-    def next_question(self, job_role: str, question_number: int) -> str:
+    def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]]) -> str:
         return f"What was your most meaningful contribution as a {job_role}?"
 
 

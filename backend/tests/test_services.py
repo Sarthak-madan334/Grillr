@@ -135,7 +135,7 @@ def test_mock_ai_interviewer():
     ai = MockAIInterviewer()
     first = ai.first_question("DevOps Engineer", "technical")
     assert "DevOps Engineer" in first
-    nxt = ai.next_question("DevOps Engineer", 2)
+    nxt = ai.next_question("DevOps Engineer", 2, [])
     assert "DevOps Engineer" in nxt
 
 

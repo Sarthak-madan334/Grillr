@@ -130,7 +130,7 @@ export function TopNav() {
               onClick={handleSignOut}
               className="rounded-full border border-[#1d1d1f] bg-white px-3 py-2 text-xs font-medium text-[#1d1d1f] transition hover:bg-[#f5f5f7] sm:px-4 sm:text-sm"
             >
-              Sign out
+              Log out
             </button>
           ) : (
             <>
@@ -190,7 +190,10 @@ export function TopNav() {
                 {isAuthenticated ? (
                   <button
                     type="button"
-                    onClick={handleSignOut}
+                    onClick={() => {
+                      closeMenu();
+                      void handleSignOut();
+                    }}
                     className="flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e7d8c5] bg-white px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none"
                   >
                     Sign out
