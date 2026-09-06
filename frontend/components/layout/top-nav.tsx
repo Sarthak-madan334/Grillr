@@ -75,14 +75,23 @@ export function TopNav() {
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-8 text-sm text-[#5e4d40] md:flex">
-          <Link href="/dashboard" className="transition hover:text-[#201a17]">
+        <nav className="hidden items-center gap-2 text-sm text-[#5e4d40] md:flex">
+          <Link
+            href="/dashboard"
+            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
+          >
             Dashboard
           </Link>
-          <Link href="/interview/setup" className="transition hover:text-[#201a17]">
+          <Link
+            href="/interview/setup"
+            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
+          >
             Interview Setup
           </Link>
-          <Link href="/history" className="transition hover:text-[#201a17]">
+          <Link
+            href="/history"
+            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
+          >
             History
           </Link>
         </nav>
@@ -90,15 +99,16 @@ export function TopNav() {
         <div className="hidden items-center gap-3 md:flex">
           <Link
             href="/login"
-            className="rounded-full px-4 py-2 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7]"
+            className="hidden rounded-full px-2 py-2 text-sm font-medium text-[#424245] transition hover:bg-[#f5f5f7] sm:inline-flex sm:px-4"
           >
             Sign in
           </Link>
           <Link
             href="/signup"
-            className="rounded-full border border-[#e7d8c5] bg-[linear-gradient(135deg,rgba(48,38,31,0.96),rgba(76,62,54,0.9))] px-4 py-2 text-sm font-medium text-[#f9f5f1] shadow-[0_12px_24px_rgba(47,36,30,0.16)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_28px_rgba(47,36,30,0.2)]"
+            className="rounded-full border border-[#1d1d1f] bg-[#1d1d1f] px-3 py-2 text-xs font-medium text-white shadow-[0_12px_24px_rgba(0,0,0,0.14)] transition duration-200 hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_16px_28px_rgba(0,0,0,0.18)] sm:px-4 sm:text-sm"
           >
-            Create account
+            <span className="sm:hidden">Join</span>
+            <span className="hidden sm:inline">Create account</span>
           </Link>
         </div>
 

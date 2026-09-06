@@ -2,11 +2,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.auth import CurrentUser, get_current_user
 from app.db.session import get_db
-from app.models import SessionStatus
+from app.models import Answer, InterviewSession, SessionStatus
 from app.schemas.answer import AnswerCreate, AnswerResponse
 from app.schemas.common import RetryRequest
 from app.models import Answer, Question
@@ -23,6 +23,21 @@ def service(db: Session = Depends(get_db)) -> InterviewService:
 @router.post("", response_model=InterviewResponse, status_code=status.HTTP_201_CREATED)
 def create_interview(data: InterviewCreate, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
     return interviews.create(identity.id, data)
+
+
+@router.get("/{session_id}/latest-answer", response_model=AnswerResponse)
+def latest_answer(session_id: UUID, identity: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    answer = db.scalar(
+        select(Answer)
+        .join(InterviewSession, Answer.session_id == InterviewSession.id)
+        .where(Answer.session_id == session_id, InterviewSession.user_id == identity.id)
+        .options(selectinload(Answer.speech_metrics), selectinload(Answer.evaluation))
+        .order_by(Answer.created_at.desc())
+    )
+    if answer is None:
+        from app.core.errors import NotFoundError
+        raise NotFoundError("Answer")
+    return answer
 
 
 @router.get("", response_model=InterviewListResponse)
