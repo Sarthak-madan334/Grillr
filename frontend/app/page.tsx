@@ -82,17 +82,22 @@ export default function HomePage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 pb-8 sm:px-6 lg:px-8">
-        <div className="grid gap-5 border-b border-[#d2d2d7] pb-8 md:grid-cols-3">
-          {promoCards.map((card) => (
-            <Card key={card.title} className={`group p-5 ${card.kind === "count" ? "md:scale-[1.03] md:shadow-[0_24px_60px_rgba(120,92,68,0.14)]" : ""}`}>
+        <div className="grid grid-cols-2 gap-3 border-b border-[#d2d2d7] pb-8 md:grid-cols-3 md:gap-5">
+          {promoCards.map((card, index) => (
+            <Card
+              key={card.title}
+              className={`group flex min-h-[112px] flex-col p-3 md:min-h-0 md:p-5 ${
+                index === 2 ? "col-span-2 flex-row items-center justify-between gap-4 md:col-span-1 md:flex-col md:items-stretch" : ""
+              } ${card.kind === "count" ? "md:scale-[1.03] md:shadow-[0_24px_60px_rgba(120,92,68,0.14)]" : ""}`}
+            >
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#d2d2d7] bg-white text-[#2563eb] transition duration-300 group-hover:rotate-[-4deg] group-hover:bg-[#eff6ff]"><StatIcon icon={card.icon} /></span>
-                <p className="text-sm text-[#424245]">{card.title}</p>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#d2d2d7] bg-white text-[#2563eb] transition duration-300 group-hover:rotate-[-4deg] group-hover:bg-[#eff6ff] sm:h-10 sm:w-10 sm:rounded-2xl"><StatIcon icon={card.icon} /></span>
+                <p className="text-sm leading-5 text-[#424245]">{card.title}</p>
               </div>
               {card.kind === "count" ? (
-                <p className="mt-5 text-4xl font-semibold tracking-tight text-[#201a17] transition duration-300 group-hover:translate-x-1 group-hover:text-[#755d4a]">{card.value}</p>
+                <p className="mt-3 text-3xl font-semibold tracking-tight text-[#201a17] transition duration-300 group-hover:translate-x-1 group-hover:text-[#755d4a] sm:text-4xl md:mt-5">{card.value}</p>
               ) : (
-                <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#d4eadb] bg-[#e7f6ec] px-3 py-1.5 text-sm font-semibold text-[#26724d] transition duration-300 group-hover:translate-x-1"><span className="h-1.5 w-1.5 rounded-full bg-[#3b9a68]" />{card.value}</span>
+                <span className={`mt-3 inline-flex items-center gap-2 self-start rounded-full border border-[#d4eadb] bg-[#e7f6ec] px-3 py-1.5 text-sm font-semibold text-[#26724d] transition duration-300 group-hover:translate-x-1 sm:mt-5 ${index === 2 ? "sm:self-auto md:self-start" : ""}`}><span className="h-1.5 w-1.5 rounded-full bg-[#3b9a68]" />{card.value}</span>
               )}
             </Card>
           ))}
