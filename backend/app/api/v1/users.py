@@ -12,7 +12,7 @@ from app.core.config import get_settings
 from app.db.session import get_db
 from app.models import User
 from app.schemas.common import UserResponse
-from app.schemas.user import UserPublic, UserSignupRequest, UserSignupResponse
+from app.schemas.user import UserLoginRequest, UserLoginResponse, UserPublic, UserSignupRequest, UserSignupResponse
 
 router = APIRouter()
 
@@ -64,6 +64,30 @@ async def _create_supabase_user(payload: dict[str, Any]) -> dict[str, Any]:
         if response.status_code == 409 or "already" in message and "registered" in message:
             raise HTTPException(status_code=409, detail="An account with this email already exists.")
         raise HTTPException(status_code=400, detail="Invalid sign up information.")
+    if response.status_code == 429:
+        raise HTTPException(status_code=429, detail="Too many sign up attempts. Please wait a few minutes and try again.")
+    if response.status_code >= 400:
+        raise HTTPException(status_code=503, detail="Authentication provider is unavailable.")
+    return await _read_json_response(response)
+
+
+async def _sign_in_supabase_user(payload: dict[str, Any]) -> dict[str, Any]:
+    settings = get_settings()
+    if not settings.supabase_url or not settings.supabase_anon_key:
+        raise HTTPException(status_code=503, detail="Authentication provider is unavailable.")
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                f"{settings.supabase_url.rstrip('/')}/auth/v1/token",
+                headers={"apikey": settings.supabase_anon_key, "Content-Type": "application/json"},
+                json=payload,
+            )
+    except httpx.HTTPError:
+        raise HTTPException(status_code=503, detail="Authentication provider is unavailable.") from None
+
+    if response.status_code == 400:
+        raise HTTPException(status_code=401, detail={"code": "invalid_credentials", "message": "Invalid email or password."})
     if response.status_code >= 400:
         raise HTTPException(status_code=503, detail="Authentication provider is unavailable.")
     return await _read_json_response(response)
@@ -112,4 +136,47 @@ async def signup_user(payload: UserSignupRequest, db: Session = Depends(get_db))
         access_token=access_token,
         refresh_token=session.get("refresh_token"),
         requires_email_confirmation=not bool(access_token),
+    )
+
+
+@router.post("/login", response_model=UserLoginResponse)
+async def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)) -> UserLoginResponse:
+    email = payload.email.strip().lower()
+
+    auth_result = await _sign_in_supabase_user({
+        "email": email,
+        "password": payload.password,
+        "grant_type": "password",
+    })
+
+    auth_user = auth_result.get("user") or {}
+    try:
+        user_id = UUID(str(auth_user["id"]))
+    except (KeyError, ValueError, TypeError):
+        raise HTTPException(status_code=503, detail="Authentication provider returned an invalid user.") from None
+
+    user = db.get(User, user_id)
+    if user is None:
+        user = User(id=user_id, email=email, name=auth_user.get("user_metadata", {}).get("name") or email)
+        db.add(user)
+    else:
+        user.email = email
+        user.name = user.name or auth_user.get("user_metadata", {}).get("name") or email
+
+    db.commit()
+
+    user_name = user.name or auth_user.get("user_metadata", {}).get("name") or email
+    first_name = "" if not user_name else user_name.split(" ", 1)[0]
+    last_name = "" if not user_name else user_name.rsplit(" ", 1)[-1] if user_name.count(" ") > 0 else ""
+
+    return UserLoginResponse(
+        user=UserPublic(
+            id=str(user.id),
+            email=user.email,
+            first_name=first_name,
+            last_name=last_name,
+            name=user_name,
+        ),
+        access_token=auth_result.get("access_token"),
+        refresh_token=auth_result.get("refresh_token"),
     )

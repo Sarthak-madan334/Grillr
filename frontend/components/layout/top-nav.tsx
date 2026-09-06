@@ -1,6 +1,25 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export function TopNav() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    setIsAuthenticated(document.cookie.includes("grillr_access_token="));
+  }, [pathname]);
+
+  async function handleSignOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setIsAuthenticated(false);
+    router.push("/login");
+    router.refresh();
+  }
+
   return (
     <header className="sticky top-0 z-30 border-b border-[#d2d2d7] bg-[rgba(255,255,255,0.92)] backdrop-blur-2xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-4 sm:px-6 lg:px-8">
@@ -55,19 +74,31 @@ export function TopNav() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-          <Link
-            href="/login"
-            className="hidden rounded-full px-2 py-2 text-sm font-medium text-[#424245] transition hover:bg-[#f5f5f7] sm:inline-flex sm:px-4"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-full border border-[#1d1d1f] bg-[#1d1d1f] px-3 py-2 text-xs font-medium text-white shadow-[0_12px_24px_rgba(0,0,0,0.14)] transition duration-200 hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_16px_28px_rgba(0,0,0,0.18)] sm:px-4 sm:text-sm"
-          >
-            <span className="sm:hidden">Join</span>
-            <span className="hidden sm:inline">Create account</span>
-          </Link>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="rounded-full border border-[#1d1d1f] bg-white px-3 py-2 text-xs font-medium text-[#1d1d1f] transition hover:bg-[#f5f5f7] sm:px-4 sm:text-sm"
+            >
+              Sign out
+            </button>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="hidden rounded-full px-2 py-2 text-sm font-medium text-[#424245] transition hover:bg-[#f5f5f7] sm:inline-flex sm:px-4"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-full border border-[#1d1d1f] bg-[#1d1d1f] px-3 py-2 text-xs font-medium text-white shadow-[0_12px_24px_rgba(0,0,0,0.14)] transition duration-200 hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_16px_28px_rgba(0,0,0,0.18)] sm:px-4 sm:text-sm"
+              >
+                <span className="sm:hidden">Join</span>
+                <span className="hidden sm:inline">Create account</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
