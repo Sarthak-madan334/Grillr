@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { microphoneService } from "../lib/audio/microphone-service";
+import { useVoiceActivityDetection } from "../lib/audio/use-voice-activity-detection";
 
 type VoiceStatus = "checking" | "ready" | "recording" | "denied" | "no-device" | "unsupported" | "revoked";
 type TranscriptionState = "idle" | "processing" | "error";
@@ -52,9 +53,11 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
   const [socketError, setSocketError] = useState("");
   const [transcriptionState, setTranscriptionState] = useState<TranscriptionState>("idle");
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
+  const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const pendingChunksRef = useRef<Blob[]>([]);
+  const { isSpeaking, level } = useVoiceActivityDetection(activeStream);
 
   function getSocketUrl() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? window.location.origin;
@@ -68,6 +71,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
     socketRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    setActiveStream(null);
     pendingChunksRef.current = [];
     onRecordingChange?.(false);
   }, [onRecordingChange]);
@@ -123,6 +127,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
         track.addEventListener("ended", handleTrackEnded, { once: true });
       });
       streamRef.current = stream;
+      setActiveStream(stream);
       pendingChunksRef.current = [];
       setRecordingBlob(null);
       const handleAudioChunk = (chunk: Blob) => {
@@ -217,6 +222,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
       </div>
       {status === "checking" ? <p className="mt-4 animate-pulse text-xs text-[#7a5f48] motion-reduce:animate-none" aria-live="polite">Checking microphone support...</p> : null}
       {status === "recording" ? <p className="mt-4 flex items-center gap-2 text-xs font-medium text-[#26724d]" aria-live="polite"><span className="h-2 w-2 animate-pulse rounded-full bg-[#26724d] motion-reduce:animate-none" /> Recording in progress. Stop when you finish.</p> : null}
+      {activeStream ? <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#e7d8c5] bg-white/50 px-3 py-2" aria-live="polite"><span className={`h-2.5 w-2.5 rounded-full transition-colors motion-reduce:transition-none ${isSpeaking ? "bg-[#26724d] shadow-[0_0_0_4px_rgba(38,114,77,0.14)]" : "bg-[#b8916d]"}`} /><span className="text-xs font-medium text-[#5e4d40]">{isSpeaking ? "Speaking detected" : "Listening for your voice"}</span><span className="ml-auto text-[10px] tabular-nums text-[#7a5f48]">{Math.round(level * 100)}%</span></div> : null}
       {transcriptionState === "processing" ? <p className="mt-4 flex items-center gap-2 text-xs font-medium text-[#7a5f48]" aria-live="polite"><span className="h-3 w-3 animate-pulse rounded-full bg-[#b8916d] motion-reduce:animate-none" /> Processing your recording...</p> : null}
       {liveTranscript ? <div className="mt-4 rounded-xl border border-[#d4eadb] bg-[#f2fbf5] p-3" aria-live="polite"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#26724d]">Live transcript</p><p className="mt-1 text-sm leading-6 text-[#315743]">{liveTranscript}</p></div> : null}
       {recordingUrl ? <div className="mt-4 rounded-xl border border-[#e7d8c5] bg-white/60 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7a5f48]">Captured locally</p><audio className="mt-2 h-9 w-full" controls src={recordingUrl} aria-label="Recorded answer preview" /></div> : null}
