@@ -26,10 +26,10 @@ export default function HomePage() {
     <main className="min-h-screen text-[#241d1a]">
       <TopNav />
 
-      <section className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-        <div className="transform-gpu grid items-center gap-8 rounded-[38px] border border-[#e7d8c5]/80 bg-[rgba(255,255,255,0.16)] px-4 py-4 shadow-[0_28px_90px_rgba(120,92,68,0.1)] backdrop-blur-xl transition-[transform,box-shadow] duration-300 [transform:perspective(1200px)_translateZ(0)] hover:[transform:perspective(1200px)_translateY(-3px)_rotateX(0.5deg)_rotateY(-0.5deg)] hover:shadow-[0_34px_100px_rgba(120,92,68,0.14)] sm:px-5 lg:grid-cols-[1.2fr_0.8fr] lg:px-6 lg:py-6">
-          <div className="px-2 py-6 sm:px-3 sm:py-8 lg:px-4 lg:py-10">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-[#7a5f48]">
+      <section className="mx-auto max-w-6xl px-4 pb-12 pt-7 sm:px-6 sm:pb-16 sm:pt-10 lg:px-8">
+        <div className="transform-gpu grid items-center gap-8 transition-[transform,box-shadow] duration-300 sm:rounded-[38px] sm:border sm:border-[#d2d2d7] sm:bg-white sm:px-5 sm:py-4 sm:shadow-[0_28px_90px_rgba(0,0,0,0.06)] sm:[transform:perspective(1200px)_translateZ(0)] sm:hover:[transform:perspective(1200px)_translateY(-3px)] sm:hover:shadow-[0_34px_100px_rgba(0,0,0,0.1)] lg:grid-cols-[1.2fr_0.8fr] lg:px-6 lg:py-6">
+          <div className="rounded-[28px] border border-[#d2d2d7] bg-white px-5 py-9 shadow-[0_18px_50px_rgba(0,0,0,0.04)] sm:rounded-none sm:border-0 sm:px-3 sm:py-8 sm:shadow-none lg:px-4 lg:py-10">
+            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-[#424245] sm:mb-4">
               Speak. Practice. Grow.
             </p>
             <h1 className="group/headline max-w-xl text-3xl font-semibold tracking-tight text-[#201a17] sm:text-4xl lg:text-[3rem]">
@@ -37,42 +37,42 @@ export default function HomePage() {
                 Turn every answer into momentum.
               </span>
             </h1>
-            <p className="mt-5 max-w-lg text-lg leading-8 text-[#5e4d40]">
+            <p className="mt-6 max-w-lg text-base leading-7 text-[#6e6e73] sm:mt-5 sm:text-lg sm:leading-8">
               Grillr helps candidates sharpen answers, improve delivery, and build confidence with focused mock interviews and structured feedback.
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link href="/signup">
-                <Button size="lg">Create account</Button>
+            <div className="mt-9 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center">
+              <Link href="/signup" className="w-full sm:w-auto">
+                <Button className="w-full" size="lg">Create account</Button>
               </Link>
-              <Link href="/dashboard">
-                <Button variant="secondary" size="lg">
+              <Link href="/dashboard" className="w-full sm:w-auto">
+                <Button className="w-full" variant="secondary" size="lg">
                   Explore dashboard
                 </Button>
               </Link>
             </div>
           </div>
 
-          <div className="rounded-[30px] border border-[#e7d8c5] bg-[linear-gradient(180deg,rgba(255,255,255,0.36),rgba(243,233,224,0.9))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_18px_40px_rgba(121,94,72,0.06)] backdrop-blur-xl">
-            <div className="rounded-[24px] border border-[#e8dac5] bg-[rgba(255,255,255,0.48)] p-5 shadow-[0_14px_30px_rgba(121,94,72,0.08)] backdrop-blur-lg">
+          <div className="rounded-[30px] border border-[#d2d2d7] bg-white p-4 shadow-[0_18px_40px_rgba(0,0,0,0.06)] sm:p-5">
+            <div className="rounded-[24px] border border-[#d2d2d7] bg-white p-5 shadow-[0_14px_30px_rgba(0,0,0,0.04)]">
               <div className="mb-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-[#7a5f48]">Current session</p>
-                  <h2 className="mt-2 text-xl font-semibold text-[#201a17]">Software Engineer</h2>
+                  <p className="text-xs uppercase tracking-[0.16em] text-[#424245]">Current session</p>
+                  <h2 className="mt-2 text-xl font-semibold text-[#1d1d1f]">Software Engineer</h2>
                 </div>
                 <div className="rounded-full bg-[#dff5e8] px-2.5 py-1 text-xs font-medium text-[#1c7c4d]">
                   Live
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#eadcc8] bg-[linear-gradient(135deg,rgba(255,255,255,0.78),rgba(250,245,240,0.9))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-                <p className="text-sm text-[#7a5f48]">Question</p>
-                <p className="mt-2 text-base font-medium text-[#201a17]">
+              <div className="rounded-2xl border border-[#d2d2d7] bg-[#f5f5f7] p-4">
+                <p className="text-sm text-[#424245]">Question</p>
+                <p className="mt-2 text-base font-medium text-[#1d1d1f]">
                   Tell me about a time you improved a system under pressure.
                 </p>
               </div>
 
-              <div className="mt-4 flex items-center justify-between text-sm text-[#5e4d40]">
+              <div className="mt-4 flex items-center justify-between text-sm text-[#6e6e73]">
                 <span>Question 3 of 8</span>
                 <span>18:42 remaining</span>
               </div>
@@ -82,12 +82,12 @@ export default function HomePage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 pb-8 sm:px-6 lg:px-8">
-        <div className="grid gap-5 border-b border-[#e7d8c5]/80 pb-8 md:grid-cols-3">
+        <div className="grid gap-5 border-b border-[#d2d2d7] pb-8 md:grid-cols-3">
           {promoCards.map((card) => (
             <Card key={card.title} className={`group p-5 ${card.kind === "count" ? "md:scale-[1.03] md:shadow-[0_24px_60px_rgba(120,92,68,0.14)]" : ""}`}>
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#e7d8c5] bg-[#f8eee4] text-[#7a5f48] transition duration-300 group-hover:rotate-[-4deg] group-hover:bg-[#efe0d1]"><StatIcon icon={card.icon} /></span>
-                <p className="text-sm text-[#7a5f48]">{card.title}</p>
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#d2d2d7] bg-white text-[#2563eb] transition duration-300 group-hover:rotate-[-4deg] group-hover:bg-[#eff6ff]"><StatIcon icon={card.icon} /></span>
+                <p className="text-sm text-[#424245]">{card.title}</p>
               </div>
               {card.kind === "count" ? (
                 <p className="mt-5 text-4xl font-semibold tracking-tight text-[#201a17] transition duration-300 group-hover:translate-x-1 group-hover:text-[#755d4a]">{card.value}</p>
