@@ -1,11 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 export function TopNav() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((response) => response.json() as Promise<{ authenticated?: boolean }>)
+      .then((data) => {
+        if (active) setIsAuthenticated(Boolean(data.authenticated));
+      })
+      .catch(() => {
+        if (active) setIsAuthenticated(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -32,6 +51,14 @@ export function TopNav() {
 
   function closeMenu() {
     setIsMenuOpen(false);
+  }
+
+  async function handleSignOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setIsAuthenticated(false);
+    setIsMenuOpen(false);
+    router.push("/login");
+    router.refresh();
   }
 
   return (
@@ -97,19 +124,31 @@ export function TopNav() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link
-            href="/login"
-            className="hidden rounded-full px-2 py-2 text-sm font-medium text-[#424245] transition hover:bg-[#f5f5f7] sm:inline-flex sm:px-4"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/signup"
-            className="rounded-full border border-[#1d1d1f] bg-[#1d1d1f] px-3 py-2 text-xs font-medium text-white shadow-[0_12px_24px_rgba(0,0,0,0.14)] transition duration-200 hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_16px_28px_rgba(0,0,0,0.18)] sm:px-4 sm:text-sm"
-          >
-            <span className="sm:hidden">Join</span>
-            <span className="hidden sm:inline">Create account</span>
-          </Link>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="rounded-full border border-[#1d1d1f] bg-white px-3 py-2 text-xs font-medium text-[#1d1d1f] transition hover:bg-[#f5f5f7] sm:px-4 sm:text-sm"
+            >
+              Sign out
+            </button>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="hidden rounded-full px-2 py-2 text-sm font-medium text-[#424245] transition hover:bg-[#f5f5f7] sm:inline-flex sm:px-4"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-full border border-[#1d1d1f] bg-[#1d1d1f] px-3 py-2 text-xs font-medium text-white shadow-[0_12px_24px_rgba(0,0,0,0.14)] transition duration-200 hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_16px_28px_rgba(0,0,0,0.18)] sm:px-4 sm:text-sm"
+              >
+                <span className="sm:hidden">Join</span>
+                <span className="hidden sm:inline">Create account</span>
+              </Link>
+            </>
+          )}
         </div>
 
         <div ref={menuRef} className="relative md:hidden">
@@ -148,12 +187,24 @@ export function TopNav() {
               </div>
               <div className="my-3 border-t border-[#e7d8c5]" />
               <div className="space-y-1">
-                <Link href="/login" onClick={closeMenu} className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none">
-                  Sign in
-                </Link>
-                <Link href="/signup" onClick={closeMenu} className="flex min-h-11 items-center justify-center rounded-xl border border-[#e7d8c5] bg-[linear-gradient(135deg,rgba(48,38,31,0.96),rgba(76,62,54,0.9))] px-3 text-sm font-medium text-[#f9f5f1] shadow-[0_8px_18px_rgba(47,36,30,0.14)] transition hover:shadow-[0_10px_22px_rgba(47,36,30,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none">
-                  Create account
-                </Link>
+                {isAuthenticated ? (
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e7d8c5] bg-white px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none"
+                  >
+                    Sign out
+                  </button>
+                ) : (
+                  <>
+                    <Link href="/login" onClick={closeMenu} className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none">
+                      Sign in
+                    </Link>
+                    <Link href="/signup" onClick={closeMenu} className="flex min-h-11 items-center justify-center rounded-xl border border-[#e7d8c5] bg-[linear-gradient(135deg,rgba(48,38,31,0.96),rgba(76,62,54,0.9))] px-3 text-sm font-medium text-[#f9f5f1] shadow-[0_8px_18px_rgba(47,36,30,0.14)] transition hover:shadow-[0_10px_22px_rgba(47,36,30,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none">
+                      Create account
+                    </Link>
+                  </>
+                )}
               </div>
             </nav>
           ) : null}

@@ -53,6 +53,10 @@ class InterviewSession(Base):
     questions: Mapped[list["Question"]] = relationship(back_populates="session", cascade="all, delete-orphan")
     summary: Mapped["InterviewSummary | None"] = relationship(back_populates="session", uselist=False, cascade="all, delete-orphan")
 
+    @property
+    def overall_score(self) -> int | None:
+        return self.summary.overall_score if self.summary is not None else None
+
 
 class Question(Base):
     __tablename__ = "questions"

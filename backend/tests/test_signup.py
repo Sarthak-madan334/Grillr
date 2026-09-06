@@ -123,3 +123,42 @@ def test_signup_email_confirmation_mode_returns_flag(mock_async_client):
 
     assert response.status_code == 201
     assert response.json()["requires_email_confirmation"] is True
+
+
+@patch("app.api.v1.users.httpx.AsyncClient")
+def test_login_success_returns_session(mock_async_client):
+    mock_response = AsyncMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "user": {"id": "00000000-0000-0000-0000-000000000999", "email": "login@example.com"},
+        "access_token": "login-token",
+        "refresh_token": "login-refresh",
+    }
+    mock_async_client.return_value.__aenter__.return_value.post.return_value = mock_response
+
+    response = client.post(
+        "/api/v1/users/login",
+        json={"email": "login@example.com", "password": "StrongPass1"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["user"]["email"] == "login@example.com"
+    assert body["access_token"] == "login-token"
+    assert body["refresh_token"] == "login-refresh"
+
+
+@patch("app.api.v1.users.httpx.AsyncClient")
+def test_login_invalid_credentials_returns_401(mock_async_client):
+    mock_response = AsyncMock()
+    mock_response.status_code = 400
+    mock_response.json.return_value = {"error": "Invalid login credentials"}
+    mock_async_client.return_value.__aenter__.return_value.post.return_value = mock_response
+
+    response = client.post(
+        "/api/v1/users/login",
+        json={"email": "login@example.com", "password": "wrong-pass"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["error"]["message"] == "Invalid email or password."

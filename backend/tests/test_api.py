@@ -173,6 +173,45 @@ def test_multi_tenant_isolation(client):
     assert ans_b.status_code == 404
 
 
+def test_dashboard_stats_empty_state(client):
+    response = client.get("/api/v1/interviews/stats")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "average_score": None,
+        "interview_count": 0,
+        "role_count": 0,
+        "dimensions": {
+            "relevance": None,
+            "clarity": None,
+            "structure": None,
+            "specificity": None,
+            "technical_accuracy": None,
+            "conciseness": None,
+            "communication": None,
+        },
+    }
+
+
+def test_dashboard_stats_aggregate_completed_interview(client):
+    payload = interview_payload()
+    payload["question_count"] = 1
+    created = client.post("/api/v1/interviews", json=payload).json()
+    client.post(f"/api/v1/interviews/{created['id']}/start")
+    client.post(
+        f"/api/v1/interviews/questions/{created['questions'][0]['id']}/answer",
+        json={"transcript": "I delivered a measurable project outcome for the team and customers.", "duration": 10},
+    )
+
+    stats = client.get("/api/v1/interviews/stats")
+
+    assert stats.status_code == 200
+    assert stats.json()["average_score"] == 80.0
+    assert stats.json()["interview_count"] == 1
+    assert stats.json()["role_count"] == 1
+    assert stats.json()["dimensions"]["clarity"] == 80.0
+
+
 def test_invalid_transition_is_rejected(client):
     interview = client.post("/api/v1/interviews", json=interview_payload()).json()
     session_id = interview["id"]

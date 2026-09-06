@@ -52,6 +52,7 @@ class InterviewResponse(BaseModel):
     created_at: datetime
     started_at: datetime | None
     completed_at: datetime | None
+    overall_score: int | None = None
     questions: list[QuestionResponse] = []
 
     model_config = {"from_attributes": True}
@@ -95,3 +96,10 @@ class SummaryResponse(BaseModel):
     recommendations: list[str]
 
     model_config = {"from_attributes": True}
+
+
+class DashboardStatsResponse(BaseModel):
+    average_score: float | None
+    interview_count: int
+    role_count: int
+    dimensions: dict[str, float | None]

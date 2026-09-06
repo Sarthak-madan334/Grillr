@@ -1,5 +1,16 @@
 export type SessionStatus = "created" | "active" | "completed" | "cancelled";
 
+export type InterviewListItem = {
+  id: string;
+  status: SessionStatus;
+  interview_type: string;
+  job_role: string;
+  question_count: number;
+  overall_score: number | null;
+  created_at: string;
+  completed_at: string | null;
+};
+
 export type InterviewQuestion = {
   id: string;
   question_number: number;
@@ -103,6 +114,10 @@ async function request<T>(path: string, init?: RequestInit, signal?: AbortSignal
     throw new InterviewApiError(response.status, typeof message === "string" ? message : "The interview service is unavailable.");
   }
   return body as T;
+}
+
+export function listInterviews(limit = 20, offset = 0, signal?: AbortSignal) {
+  return request<{ items: InterviewListItem[]; total: number }>(`/api/v1/interviews?status=completed&limit=${limit}&offset=${offset}`, undefined, signal);
 }
 
 export function createInterview(input: InterviewCreateInput, signal?: AbortSignal) {
