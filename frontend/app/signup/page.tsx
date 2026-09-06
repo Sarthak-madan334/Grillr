@@ -68,7 +68,7 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen bg-white px-3 py-3 text-[#1d1d1f] sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-7xl overflow-hidden rounded-[30px] border border-[#d2d2d7] bg-white shadow-[0_28px_100px_rgba(0,0,0,0.1)] sm:min-h-[calc(100vh-3rem)] lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="relative overflow-hidden bg-[#2d241d] px-6 py-10 text-[#f9f5f1] sm:px-10 sm:py-12 lg:px-12 lg:py-10">
+        <section className="relative hidden overflow-hidden bg-[#2d241d] px-6 py-10 text-[#f9f5f1] lg:block sm:px-10 sm:py-12 lg:px-12 lg:py-10">
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-[#cda67f]/20" />
           <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full border border-[#cda67f]/15" />
           <div className="relative flex h-full flex-col">
