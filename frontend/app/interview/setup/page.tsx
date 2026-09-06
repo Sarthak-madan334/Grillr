@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { TopNav } from "@/components/layout/top-nav";
 
 type SetupFormState = {
@@ -32,7 +35,10 @@ const initialFormState: SetupFormState = {
 };
 
 export default function InterviewSetupPage() {
+  const router = useRouter();
   const [formState, setFormState] = useState<SetupFormState>(initialFormState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
@@ -42,6 +48,44 @@ export default function InterviewSetupPage() {
 
   function updateField<Key extends keyof SetupFormState>(field: Key, value: SetupFormState[Key]) {
     setFormState((currentState) => ({ ...currentState, [field]: value }));
+    setSubmitError("");
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitError("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000"}/api/v1/interviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          interview_type: formState.interviewType,
+          job_role: formState.jobTitle,
+          experience_level: formState.experienceLevel,
+          difficulty: formState.difficulty,
+          personality: formState.personality,
+          duration: Number(formState.duration),
+          question_count: formState.questionCount,
+          resume_url: null,
+          job_description: formState.jobDescription || null,
+        }),
+      });
+
+      const payload = (await response.json()) as { id?: string; detail?: string };
+      if (!response.ok) {
+        throw new Error(typeof payload.detail === "string" ? payload.detail : "Unable to create the interview.");
+      }
+      if (!payload.id) {
+        throw new Error("The interview was created without an ID.");
+      }
+      router.push(`/interview/${payload.id}`);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Unable to create the interview. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -60,14 +104,11 @@ export default function InterviewSetupPage() {
         </div>
 
         <Card className="p-6 sm:p-8">
-          <form className="grid gap-6 md:grid-cols-2" onSubmit={(event) => event.preventDefault()}>
+          <form className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit}>
+            {submitError ? <p role="alert" className="md:col-span-2 rounded-2xl border border-[#e7b8a9] bg-[#fff1ed] px-4 py-3 text-sm text-[#9a4635]">{submitError}</p> : null}
             <div className="space-y-2">
               <label htmlFor="interviewType" className="text-sm font-medium text-[#5e4d40]">Interview type</label>
-              <select id="interviewType" name="interviewType" value={formState.interviewType} onChange={(event) => updateField("interviewType", event.target.value as SetupFormState["interviewType"])} className="w-full rounded-2xl border border-[#e7d8c5] bg-[rgba(255,255,255,0.62)] px-3.5 py-3 text-sm text-[#201a17] outline-none backdrop-blur-sm focus:border-[#b8916d]">
-                <option value="technical">Technical</option>
-                <option value="behavioral">Behavioral</option>
-                <option value="hr">HR</option>
-              </select>
+              <Select id="interviewType" name="interviewType" value={formState.interviewType} onChange={(value) => updateField("interviewType", value as SetupFormState["interviewType"])} options={[{ value: "technical", label: "Technical" }, { value: "behavioral", label: "Behavioral" }, { value: "hr", label: "HR" }]} />
             </div>
 
             <div className="space-y-2">
@@ -77,38 +118,22 @@ export default function InterviewSetupPage() {
 
             <div className="space-y-2">
               <label htmlFor="experienceLevel" className="text-sm font-medium text-[#5e4d40]">Experience level</label>
-              <select id="experienceLevel" name="experienceLevel" value={formState.experienceLevel} onChange={(event) => updateField("experienceLevel", event.target.value as SetupFormState["experienceLevel"])} className="w-full rounded-2xl border border-[#e7d8c5] bg-[rgba(255,255,255,0.62)] px-3.5 py-3 text-sm text-[#201a17] outline-none backdrop-blur-sm focus:border-[#b8916d]">
-                <option value="mid">Mid</option>
-                <option value="junior">Junior</option>
-                <option value="senior">Senior</option>
-              </select>
+              <Select id="experienceLevel" name="experienceLevel" value={formState.experienceLevel} onChange={(value) => updateField("experienceLevel", value as SetupFormState["experienceLevel"])} options={[{ value: "mid", label: "Mid" }, { value: "junior", label: "Junior" }, { value: "senior", label: "Senior" }]} />
             </div>
 
             <div className="space-y-2">
               <label htmlFor="difficulty" className="text-sm font-medium text-[#5e4d40]">Difficulty</label>
-              <select id="difficulty" name="difficulty" value={formState.difficulty} onChange={(event) => updateField("difficulty", event.target.value as SetupFormState["difficulty"])} className="w-full rounded-2xl border border-[#e7d8c5] bg-[rgba(255,255,255,0.62)] px-3.5 py-3 text-sm text-[#201a17] outline-none backdrop-blur-sm focus:border-[#b8916d]">
-                <option value="medium">Medium</option>
-                <option value="easy">Easy</option>
-                <option value="hard">Hard</option>
-              </select>
+              <Select id="difficulty" name="difficulty" value={formState.difficulty} onChange={(value) => updateField("difficulty", value as SetupFormState["difficulty"])} options={[{ value: "medium", label: "Medium" }, { value: "easy", label: "Easy" }, { value: "hard", label: "Hard" }]} />
             </div>
 
             <div className="space-y-2">
               <label htmlFor="personality" className="text-sm font-medium text-[#5e4d40]">AI personality</label>
-              <select id="personality" name="personality" value={formState.personality} onChange={(event) => updateField("personality", event.target.value as SetupFormState["personality"])} className="w-full rounded-2xl border border-[#e7d8c5] bg-[rgba(255,255,255,0.62)] px-3.5 py-3 text-sm text-[#201a17] outline-none backdrop-blur-sm focus:border-[#b8916d]">
-                <option value="professional">Professional</option>
-                <option value="friendly">Friendly</option>
-                <option value="tough">Tough</option>
-              </select>
+              <Select id="personality" name="personality" value={formState.personality} onChange={(value) => updateField("personality", value as SetupFormState["personality"])} options={[{ value: "professional", label: "Professional" }, { value: "friendly", label: "Friendly" }, { value: "tough", label: "Tough" }]} />
             </div>
 
             <div className="space-y-2">
               <label htmlFor="duration" className="text-sm font-medium text-[#5e4d40]">Duration</label>
-              <select id="duration" name="duration" value={formState.duration} onChange={(event) => updateField("duration", event.target.value as SetupFormState["duration"])} className="w-full rounded-2xl border border-[#e7d8c5] bg-[rgba(255,255,255,0.62)] px-3.5 py-3 text-sm text-[#201a17] outline-none backdrop-blur-sm focus:border-[#b8916d]">
-                <option value="30">30 minutes</option>
-                <option value="15">15 minutes</option>
-                <option value="45">45 minutes</option>
-              </select>
+              <Select id="duration" name="duration" value={formState.duration} onChange={(value) => updateField("duration", value as SetupFormState["duration"])} options={[{ value: "30", label: "30 minutes" }, { value: "15", label: "15 minutes" }, { value: "45", label: "45 minutes" }]} />
             </div>
 
             <div className="space-y-2">
@@ -139,9 +164,9 @@ export default function InterviewSetupPage() {
             </div>
 
             <div className="md:col-span-2 flex justify-end">
-              <Link href="/interview">
-                <Button size="lg">Begin interview</Button>
-              </Link>
+              <Button type="submit" size="lg" disabled={isSubmitting}>
+                {isSubmitting ? "Creating interview..." : "Begin interview"}
+              </Button>
             </div>
           </form>
         </Card>

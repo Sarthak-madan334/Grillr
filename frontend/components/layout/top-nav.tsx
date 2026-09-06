@@ -2,10 +2,10 @@ import Link from "next/link";
 
 export function TopNav() {
   return (
-    <header className="sticky top-0 z-30 border-b border-[#eadcc8]/80 bg-[rgba(255,250,244,0.58)] backdrop-blur-2xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-[#d2d2d7] bg-[rgba(255,255,255,0.92)] backdrop-blur-2xl">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="group flex items-center gap-3">
-          <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-[#e7d8c5] bg-[linear-gradient(135deg,rgba(255,255,255,0.7),rgba(236,220,204,0.82))] shadow-[0_10px_22px_rgba(80,59,43,0.12)] transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_14px_26px_rgba(80,59,43,0.16)]">
+          <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-[#d2d2d7] bg-white shadow-[0_10px_22px_rgba(0,0,0,0.08)] transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_14px_26px_rgba(0,0,0,0.12)]">
             <span className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_transparent_55%)]" />
             <svg
               viewBox="0 0 56 56"
@@ -38,34 +38,44 @@ export function TopNav() {
             </svg>
           </div>
           <div>
-            <div className="text-[11px] font-semibold tracking-[0.2em] text-[#755d4a]">GRILLR</div>
+            <div className="text-[11px] font-semibold tracking-[0.2em] text-[#1d1d1f]">GRILLR</div>
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-8 text-sm text-[#5e4d40] md:flex">
-          <Link href="/dashboard" className="transition hover:text-[#201a17]">
+        <nav className="hidden items-center gap-2 text-sm text-[#5e4d40] md:flex">
+          <Link
+            href="/dashboard"
+            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
+          >
             Dashboard
           </Link>
-          <Link href="/interview/setup" className="transition hover:text-[#201a17]">
+          <Link
+            href="/interview/setup"
+            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
+          >
             Interview Setup
           </Link>
-          <Link href="/history" className="transition hover:text-[#201a17]">
+          <Link
+            href="/history"
+            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
+          >
             History
           </Link>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <Link
             href="/login"
-            className="rounded-full px-4 py-2 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7]"
+            className="hidden rounded-full px-2 py-2 text-sm font-medium text-[#424245] transition hover:bg-[#f5f5f7] sm:inline-flex sm:px-4"
           >
             Sign in
           </Link>
           <Link
             href="/signup"
-            className="rounded-full border border-[#e7d8c5] bg-[linear-gradient(135deg,rgba(48,38,31,0.96),rgba(76,62,54,0.9))] px-4 py-2 text-sm font-medium text-[#f9f5f1] shadow-[0_12px_24px_rgba(47,36,30,0.16)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_28px_rgba(47,36,30,0.2)]"
+            className="rounded-full border border-[#1d1d1f] bg-[#1d1d1f] px-3 py-2 text-xs font-medium text-white shadow-[0_12px_24px_rgba(0,0,0,0.14)] transition duration-200 hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_16px_28px_rgba(0,0,0,0.18)] sm:px-4 sm:text-sm"
           >
-            Create account
+            <span className="sm:hidden">Join</span>
+            <span className="hidden sm:inline">Create account</span>
           </Link>
         </div>
       </div>
