@@ -42,14 +42,23 @@ export function TopNav() {
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-8 text-sm text-[#5e4d40] md:flex">
-          <Link href="/dashboard" className="transition hover:text-[#201a17]">
+        <nav className="hidden items-center gap-2 text-sm text-[#5e4d40] md:flex">
+          <Link
+            href="/dashboard"
+            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
+          >
             Dashboard
           </Link>
-          <Link href="/interview/setup" className="transition hover:text-[#201a17]">
+          <Link
+            href="/interview/setup"
+            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
+          >
             Interview Setup
           </Link>
-          <Link href="/history" className="transition hover:text-[#201a17]">
+          <Link
+            href="/history"
+            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
+          >
             History
           </Link>
         </nav>
