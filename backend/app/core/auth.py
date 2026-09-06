@@ -79,7 +79,7 @@ def authenticate_token(token: str, db: Session) -> CurrentUser:
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
-    access_token: str | None = Cookie(default=None),
+    access_token: str | None = Cookie(default=None, alias="grillr_access_token"),
     db: Session = Depends(get_db),
 ) -> CurrentUser:
     settings = get_settings()
