@@ -421,7 +421,7 @@ export default function InterviewSessionPage() {
                 >
                   {question.question_text}
                 </h2>
-                <QuestionAudioPlayer key={question.id} sessionId={session.id} questionId={question.id} />
+                <QuestionAudioPlayer key={question.id} sessionId={session.id} questionId={question.id} shouldStop={state === "submitting"} />
                 <div className="mt-10">
                   <VoiceAnswerPanel
                     sessionId={session.id}
