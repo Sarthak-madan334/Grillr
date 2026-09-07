@@ -4,7 +4,9 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import select
 
+import app.api.v1.questions as questions_api
 import app.services.interview_service as interview_service
+from app.services.providers import TextToSpeechProviderError
 from app.db.session import SessionLocal
 from app.models import InterviewSummary
 
@@ -414,8 +416,48 @@ def test_get_question_audio(client):
     # Request the audio for the question
     res = client.get(f"/api/v1/questions/{question_id}/audio")
     assert res.status_code == 200
-    assert res.headers["content-type"] == "audio/mpeg"
+    assert res.headers["content-type"] == "audio/wav"
     assert len(res.content) > 0  # ensure we got some bytes
+
+
+def test_get_question_audio_uses_configured_provider(client, monkeypatch):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    question_id = created["questions"][0]["id"]
+
+    class RecordingTTS:
+        media_type = "audio/mpeg"
+
+        def __init__(self):
+            self.text = None
+
+        def synthesize(self, text):
+            self.text = text
+            return b"rime-audio"
+
+    tts = RecordingTTS()
+    monkeypatch.setattr(questions_api, "create_text_to_speech", lambda: tts)
+
+    response = client.get(f"/api/v1/questions/{question_id}/audio")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "audio/mpeg"
+    assert response.content == b"rime-audio"
+    assert tts.text == created["questions"][0]["question_text"]
+
+
+def test_get_question_audio_provider_failure_is_retryable(client, monkeypatch):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    question_id = created["questions"][0]["id"]
+    monkeypatch.setattr(
+        questions_api,
+        "create_text_to_speech",
+        lambda: (_ for _ in ()).throw(TextToSpeechProviderError("provider failed")),
+    )
+
+    response = client.get(f"/api/v1/questions/{question_id}/audio")
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "provider_unavailable"
 
 
 def test_get_question_audio_not_found(client):

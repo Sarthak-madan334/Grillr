@@ -1,6 +1,8 @@
 import asyncio
+import io
 import json
 import logging
+import wave
 from dataclasses import dataclass
 from typing import Protocol
 from uuid import UUID
@@ -88,6 +90,14 @@ class TextToSpeech(Protocol):
     def synthesize(self, text: str) -> bytes: ...
 
 
+class TextToSpeechConfigurationError(RuntimeError):
+    """The TTS provider is not configured for this deployment."""
+
+
+class TextToSpeechProviderError(RuntimeError):
+    """The TTS provider could not return valid audio."""
+
+
 class SpeechAnalyzer(Protocol):
     def analyze(self, transcript: str, duration: float) -> dict: ...
 
@@ -110,14 +120,25 @@ class MockSpeechToText:
 
 
 class MockTextToSpeech:
+    media_type = "audio/wav"
+
     def synthesize(self, text: str) -> bytes:
-        return text.encode("utf-8")
+        del text
+        buffer = io.BytesIO()
+        with wave.open(buffer, "wb") as audio:
+            audio.setnchannels(1)
+            audio.setsampwidth(2)
+            audio.setframerate(8000)
+            audio.writeframes(b"\x00\x00" * 800)
+        return buffer.getvalue()
 
 
 def create_text_to_speech() -> TextToSpeech:
     settings = get_settings()
     if settings.rime_api_key:
         return RimeTextToSpeech(api_key=settings.rime_api_key)
+    if getattr(settings, "is_production", False):
+        raise TextToSpeechConfigurationError("Rime TTS is not configured")
     return MockTextToSpeech()
 
 
@@ -125,6 +146,7 @@ class RimeTextToSpeech:
     """Synchronous adapter for Rime's audio-byte TTS endpoint."""
 
     endpoint = "https://users.rime.ai/v1/rime-tts"
+    media_type = "audio/mpeg"
 
     def __init__(self, api_key: str | None = None, speaker: str = "astra", model_id: str = "coda"):
         self.api_key = api_key if api_key is not None else get_settings().rime_api_key
@@ -133,7 +155,7 @@ class RimeTextToSpeech:
 
     def synthesize(self, text: str) -> bytes:
         if not self.api_key:
-            raise RuntimeError("Rime TTS is not configured: RIME_API_KEY is missing")
+            raise TextToSpeechConfigurationError("Rime TTS is not configured: RIME_API_KEY is missing")
         if not text.strip():
             raise ValueError("Rime TTS cannot synthesize empty text")
 
@@ -145,17 +167,17 @@ class RimeTextToSpeech:
                     json={"text": text, "speaker": self.speaker, "modelId": self.model_id},
                 )
         except httpx.HTTPError as exc:
-            raise RuntimeError(f"Rime TTS network request failed: {exc}") from exc
+            raise TextToSpeechProviderError("Rime TTS network request failed") from exc
 
         if response.status_code >= 400:
-            detail = response.text.strip().replace("\n", " ")[:200]
-            raise RuntimeError(f"Rime TTS request failed with HTTP {response.status_code}: {detail}")
+            raise TextToSpeechProviderError(f"Rime TTS request failed with HTTP {response.status_code}")
 
         content_type = response.headers.get("content-type", "").lower()
-        if "json" in content_type:
-            raise RuntimeError("Rime TTS returned an API response instead of audio")
+        if not content_type.startswith("audio/"):
+            raise TextToSpeechProviderError("Rime TTS returned an API response instead of audio")
         if not response.content:
-            raise RuntimeError("Rime TTS returned an empty audio response")
+            raise TextToSpeechProviderError("Rime TTS returned an empty audio response")
+        self.media_type = content_type.split(";", 1)[0].strip()
         return response.content
 
 
