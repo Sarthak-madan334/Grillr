@@ -1,20 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { OAuthButtons } from "@/components/OAuthButtons";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { normalizeLoginValues, validateLoginForm, type LoginFormErrors, type LoginFormValues } from "@/lib/auth";
 
 const initialValues: LoginFormValues = { email: "", password: "" };
 
-export default function LoginPage() {
+function oauthErrorMessage(code: string | null) {
+  const messages: Record<string, string> = {
+    cancelled: "Sign-in was cancelled. You can try again.",
+    invalid_callback: "The sign-in response was invalid. Please try again.",
+    exchange_failed: "We could not complete sign-in with the provider. Please try again.",
+    account_sync_failed: "Your provider sign-in succeeded, but we could not prepare your Grillr account.",
+    provider_unavailable: "The authentication provider is unavailable. Please try again later.",
+    unsupported_provider: "That sign-in provider is not supported.",
+  };
+  return messages[code ?? ""] ?? "";
+}
+
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<LoginFormErrors>({});
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => oauthErrorMessage(searchParams.get("oauth_error")));
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const requestedNext = searchParams.get("next");
+  const nextPath = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/dashboard";
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -68,6 +84,9 @@ export default function LoginPage() {
           </div>
         ) : null}
 
+        <OAuthButtons next={nextPath} />
+        <div className="my-5 flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" /><span>or continue with email</span><span className="h-px flex-1 bg-slate-200" /></div>
+
         <form className="space-y-5" onSubmit={handleSubmit} noValidate aria-busy={isSubmitting}>
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium text-slate-700">
@@ -109,4 +128,8 @@ export default function LoginPage() {
       </div>
     </main>
   );
+}
+
+export default function LoginPage() {
+  return <Suspense fallback={null}><LoginContent /></Suspense>;
 }
