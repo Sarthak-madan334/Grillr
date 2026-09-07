@@ -23,7 +23,7 @@ describe("interview API client", () => {
       status: "active",
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/interviews/session-1",
+      "/api/interviews/session-1",
       expect.objectContaining({ credentials: "include" }),
     );
   });
@@ -55,7 +55,7 @@ describe("interview API client", () => {
       submitAnswer("question-1", "A detailed answer", 8),
     ).resolves.toMatchObject({ id: "answer-1" });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/interviews/questions/question-1/answer",
+      "/api/interviews/questions/question-1/answer",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ transcript: "A detailed answer", duration: 8 }),

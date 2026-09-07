@@ -9,6 +9,7 @@ from typing import Any, Callable, ClassVar, Protocol
 from uuid import UUID
 
 import httpx
+from openai import OpenAI
 
 from app.core.config import get_settings
 from app.core.errors import ProviderError
@@ -242,6 +243,26 @@ class WhisperSpeechToText:
             raise
         except Exception as exc:
             raise WhisperTranscriptionError(f"Whisper transcription failed: {exc}") from exc
+
+
+class OpenAISpeechToText:
+    """Speech-to-text adapter for recorded browser audio."""
+
+    def __init__(self, api_key: str | None = None, model: str = "gpt-4o-mini-transcribe"):
+        self.client = OpenAI(api_key=api_key or get_settings().openai_api_key)
+        self.model = model
+
+    def transcribe(self, audio: bytes) -> str:
+        response = self.client.audio.transcriptions.create(
+            model=self.model,
+            file=("answer.webm", audio, "audio/webm"),
+        )
+        return response.text
+
+
+def create_speech_to_text() -> SpeechToText:
+    settings = get_settings()
+    return OpenAISpeechToText(api_key=settings.openai_api_key) if settings.openai_api_key else MockSpeechToText()
 
 
 class MockTextToSpeech:

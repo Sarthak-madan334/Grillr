@@ -39,7 +39,8 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/dashboard");
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.push(next?.startsWith("/") ? next : "/dashboard");
       router.refresh();
     } catch {
       setMessage("We could not reach the authentication service. Please try again.");
