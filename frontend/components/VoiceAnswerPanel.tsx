@@ -124,6 +124,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
         reconnectAttemptsRef.current = 0;
         setConnectionStatus("connected");
         socket.send(JSON.stringify({ type: "session.resync" }));
+        socket.send(JSON.stringify({ type: "speech.start" }));
         pendingChunksRef.current.forEach((chunk) => socket.send(chunk));
       }, { once: true });
       socket.addEventListener("message", (event) => {

@@ -44,6 +44,11 @@ class MockSpeechToText:
         return "This is a mock transcript."
 
 
+def create_speech_to_text() -> SpeechToText:
+    """Return the configured STT provider; the mock keeps local development deterministic."""
+    return MockSpeechToText()
+
+
 class MockTextToSpeech:
     def synthesize(self, text: str) -> bytes:
         return text.encode("utf-8")
