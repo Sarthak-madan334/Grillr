@@ -1,13 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { normalizeSignupValues, validateSignupForm, type SignupFormErrors, type SignupFormValues } from "@/lib/auth";
-
-const initialValues: SignupFormValues = { firstName: "", lastName: "", email: "", password: "" };
 
 function GoogleIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4"><path fill="#4285F4" d="M21.35 12.22c0-.71-.06-1.4-.18-2.05H12v3.88h5.24a4.48 4.48 0 0 1-1.94 2.94v2.44h3.14c1.84-1.69 2.91-4.18 2.91-7.21Z" /><path fill="#34A853" d="M12 21.7c2.63 0 4.84-.87 6.45-2.36l-3.14-2.44c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.52A9.74 9.74 0 0 0 12 21.7Z" /><path fill="#FBBC05" d="M6.54 13.79A5.85 5.85 0 0 1 6.24 12c0-.62.11-1.23.3-1.79V7.69H3.3A9.73 9.73 0 0 0 2.27 12c0 1.57.38 3.06 1.03 4.31l3.24-2.52Z" /><path fill="#EA4335" d="M12 6.18c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.84 3.27 14.63 2.3 12 2.3a9.74 9.74 0 0 0-8.7 5.39l3.24 2.52c.77-2.31 2.92-4.03 5.46-4.03Z" /></svg>;
@@ -18,53 +11,6 @@ function GithubIcon() {
 }
 
 export default function SignupPage() {
-  const router = useRouter();
-  const [values, setValues] = useState(initialValues);
-  const [errors, setErrors] = useState<SignupFormErrors>({});
-  const [message, setMessage] = useState("");
-  const [confirmationRequired, setConfirmationRequired] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalized = normalizeSignupValues(values);
-    const nextErrors = validateSignupForm(normalized);
-    setErrors(nextErrors);
-    setMessage("");
-    setConfirmationRequired(false);
-    if (Object.values(nextErrors).some(Boolean)) return;
-
-    setIsSubmitting(true);
-    try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          first_name: normalized.firstName,
-          last_name: normalized.lastName,
-          email: normalized.email,
-          password: normalized.password,
-        }),
-      });
-      const data = await response.json() as { error?: { message?: string }; requires_email_confirmation?: boolean };
-      if (!response.ok) {
-        setMessage(data.error?.message ?? "We could not create your account. Please try again.");
-        return;
-      }
-      if (data.requires_email_confirmation) {
-        setConfirmationRequired(true);
-        setMessage("Check your inbox to confirm your email address before signing in.");
-        setValues((current) => ({ ...current, password: "" }));
-        return;
-      }
-      router.push("/onboarding");
-    } catch {
-      setMessage("We could not reach the authentication service. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
   return (
     <main className="min-h-screen bg-white px-3 py-3 text-[#1d1d1f] sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-7xl overflow-hidden rounded-[30px] border border-[#d2d2d7] bg-white shadow-[0_28px_100px_rgba(0,0,0,0.1)] sm:min-h-[calc(100vh-3rem)] lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[0.95fr_1.05fr]">
@@ -84,15 +30,10 @@ export default function SignupPage() {
         </section>
 
         <section className="px-6 py-8 sm:px-12 sm:py-10 lg:px-14 lg:py-8">
-          <div className="flex justify-end text-sm text-[#6e6e73]">Already a member?<Link href="/login" className="ml-1 font-semibold text-[#2563eb] hover:underline">Sign in</Link></div>
+          <div className="flex justify-end text-sm text-[#6e6e73]">Already signed in?<Link href="/login" className="ml-1 font-semibold text-[#1d1d1f] hover:underline">Continue</Link></div>
           <div className="mx-auto mt-6 max-w-md lg:mt-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#6e6e73]">Get started</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#1d1d1f]">Create your account</h2>
-            <p className="mt-2 text-sm leading-6 text-[#6e6e73]">Your next stronger answer starts here.</p>
-            <div className="mt-5 grid gap-2"><button type="button" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#d2d2d7] bg-white text-sm font-medium text-[#1d1d1f] transition hover:-translate-y-0.5 hover:bg-[#f5f5f7]"><GoogleIcon />Continue with Google</button><button type="button" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#d2d2d7] bg-white text-sm font-medium text-[#1d1d1f] transition hover:-translate-y-0.5 hover:bg-[#f5f5f7]"><GithubIcon />Continue with GitHub</button></div>
-            <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-[#6e6e73]"><span className="h-px flex-1 bg-[#d2d2d7]" />or<span className="h-px flex-1 bg-[#d2d2d7]" /></div>
-            {message ? <div role={confirmationRequired ? "status" : "alert"} className={`mb-5 rounded-2xl border px-4 py-3 text-sm ${confirmationRequired ? "border-amber-200 bg-amber-50 text-amber-900" : "border-rose-200 bg-rose-50 text-rose-700"}`}>{message}</div> : null}
-            <form className="space-y-3" onSubmit={handleSubmit} noValidate aria-busy={isSubmitting}><div className="grid gap-3 sm:grid-cols-2"><div className="space-y-1.5"><label htmlFor="firstName" className="text-sm font-medium text-[#424245]">First name</label><Input className="py-2.5" id="firstName" placeholder="Ari" value={values.firstName} onChange={(event) => setValues((current) => ({ ...current, firstName: event.target.value }))} disabled={isSubmitting} aria-invalid={Boolean(errors.firstName)} /></div><div className="space-y-1.5"><label htmlFor="lastName" className="text-sm font-medium text-[#424245]">Last name</label><Input className="py-2.5" id="lastName" placeholder="Miller" value={values.lastName} onChange={(event) => setValues((current) => ({ ...current, lastName: event.target.value }))} disabled={isSubmitting} aria-invalid={Boolean(errors.lastName)} /></div></div><div className="space-y-1.5"><label htmlFor="email" className="text-sm font-medium text-[#424245]">Email</label><Input className="py-2.5" id="email" type="email" placeholder="you@example.com" value={values.email} onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))} disabled={isSubmitting} aria-invalid={Boolean(errors.email)} /></div><div className="space-y-1.5"><label htmlFor="password" className="text-sm font-medium text-[#424245]">Password</label><Input className="py-2.5" id="password" type="password" placeholder="Create a strong password" value={values.password} onChange={(event) => setValues((current) => ({ ...current, password: event.target.value }))} disabled={isSubmitting} aria-invalid={Boolean(errors.password)} /></div><Button type="submit" className="w-full" size="md" disabled={isSubmitting}>{isSubmitting ? "Creating account..." : "Create account"}</Button></form>
+            <p className="mt-2 text-sm leading-6 text-[#6e6e73]">Use your existing Google or GitHub account to get started.</p>
+            <div className="mx-auto mt-7 grid w-full max-w-sm gap-3"><button type="button" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-5 text-sm font-medium text-[#1d1d1f] transition hover:-translate-y-0.5 hover:bg-[#f5f5f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/50"><GoogleIcon />Sign in with Google</button><button type="button" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-5 text-sm font-medium text-[#1d1d1f] transition hover:-translate-y-0.5 hover:bg-[#f5f5f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/50"><GithubIcon />Sign in with GitHub</button></div>
           </div>
         </section>
       </div>
