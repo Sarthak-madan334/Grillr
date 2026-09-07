@@ -12,7 +12,7 @@ from app.models import Answer, AnswerEvaluation, InterviewSession, InterviewSumm
 from app.repositories.interview_repository import InterviewRepository
 from app.schemas.answer import AnswerCreate
 from app.schemas.interview import InterviewCreate
-from app.services.providers import MockAIInterviewer, MockSpeechAnalyzer, TextToSpeech, create_answer_evaluator, create_text_to_speech
+from app.services.providers import FollowUpDecision, MockAIInterviewer, MockSpeechAnalyzer, TextToSpeech, create_answer_evaluator, create_text_to_speech
 
 
 class InterviewService:
@@ -78,6 +78,66 @@ class InterviewService:
     def questions(self, session_id: UUID, user_id: UUID) -> list[Question]:
         return self.get(session_id, user_id).questions
 
+    def _history(self, session: InterviewSession) -> list[dict[str, str]]:
+        history: list[dict[str, str]] = []
+        for item in sorted(session.questions, key=lambda value: value.question_number):
+            history.append({"role": "assistant", "content": item.question_text})
+            latest_answer = max(item.answers, key=lambda answer: answer.attempt_number, default=None)
+            if latest_answer:
+                history.append({"role": "user", "content": latest_answer.transcript})
+        return history
+
+    def _insert_question(self, session: InterviewSession, question: Question, after: Question | None = None) -> Question:
+        self.db.add(question)
+        if after is None:
+            question.question_number = max((item.question_number for item in session.questions), default=0) + 1
+            self.db.flush()
+            return question
+        questions = sorted([item for item in session.questions if item.id != question.id] + [question], key=lambda item: item.question_number)
+        insert_at = questions.index(after) + 1
+        while insert_at < len(questions) and questions[insert_at].is_follow_up and questions[insert_at].parent_question_id == after.id:
+            insert_at += 1
+        questions.insert(insert_at, question)
+
+        for index, item in enumerate(questions, start=1):
+            item.question_number = -index
+        self.db.flush()
+        for index, item in enumerate(questions, start=1):
+            item.question_number = index
+        self.db.flush()
+        return question
+
+    def _follow_up_decision(self, question: Question, transcript: str, evaluation: dict) -> FollowUpDecision:
+        root_id = question.parent_question_id or question.id
+        follow_up_count = sum(
+            1 for item in question.session.questions
+            if item.is_follow_up and (item.parent_question_id == root_id or item.id == question.id and question.is_follow_up)
+        )
+        if follow_up_count >= getattr(self.settings, "max_follow_ups_per_question", 1):
+            return FollowUpDecision(action="next_question", reason="Follow-up limit reached")
+        try:
+            decision = self.ai.decide_follow_up(
+                job_role=question.session.job_role,
+                interview_type=question.session.interview_type,
+                experience_level=question.session.experience_level,
+                difficulty=question.session.difficulty,
+                personality=question.session.personality,
+                question=question.question_text,
+                answer=transcript,
+                evaluation=evaluation,
+                history=self._history(question.session),
+                follow_up_count=follow_up_count,
+            )
+            normalized = decision if isinstance(decision, FollowUpDecision) else FollowUpDecision.from_payload(decision)
+            if normalized.question:
+                candidate = " ".join(normalized.question.lower().split())
+                existing = {" ".join(item.question_text.lower().split()) for item in question.session.questions}
+                if candidate in existing or any(candidate in item or item in candidate for item in existing):
+                    return FollowUpDecision(action="next_question", reason="Duplicate question rejected")
+            return normalized
+        except Exception:
+            return FollowUpDecision(action="next_question", reason="Decision unavailable")
+
     def get_question(self, question_id: UUID, user_id: UUID) -> Question:
         question = self.db.scalar(
             select(Question)
@@ -88,7 +148,6 @@ class InterviewService:
         if question is None:
             raise NotFoundError("Question")
         return question
-
     def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate, is_retry: bool = False) -> Answer:
         question = self.db.scalar(select(Question).join(InterviewSession).where(Question.id == question_id, InterviewSession.user_id == user_id).options(selectinload(Question.session)))
         if question is None:
@@ -106,26 +165,48 @@ class InterviewService:
         self.db.flush()
         metrics = self.analyzer.analyze(data.transcript, data.duration)
         self.db.add(SpeechMetrics(answer_id=answer.id, **metrics))
-        self.db.add(AnswerEvaluation(answer_id=answer.id, **self.evaluator.evaluate(data.transcript, question.question_text)))
+        evaluation = self.evaluator.evaluate(data.transcript, question.question_text)
+        self.db.add(AnswerEvaluation(answer_id=answer.id, **evaluation))
         if not is_retry:
             question.answered_at = datetime.now(timezone.utc)
             question.session.current_question_number = question.question_number
-        if not is_retry and question.question_number < question.session.question_count:
-            next_question_number = question.question_number + 1
-            existing_next = self.db.scalar(select(Question).where(Question.session_id == question.session_id, Question.question_number == next_question_number))
-            if existing_next is None:
-                history = []
-                sorted_questions = sorted(question.session.questions, key=lambda item: item.question_number)
-                for session_question in sorted_questions:
-                    history.append({"role": "assistant", "content": session_question.question_text})
-                    latest_answer = max(session_question.answers, key=lambda item: item.attempt_number, default=None)
-                    if latest_answer:
-                        history.append({"role": "user", "content": latest_answer.transcript})
-                next_question_text = self.ai.next_question(question.session.job_role, next_question_number, history)
-                self.db.add(self._create_question(question.session_id, next_question_number, next_question_text, question.session.interview_type))
+        if not is_retry:
+            decision = self._follow_up_decision(question, data.transcript, evaluation)
+            if decision.action in {"follow_up", "clarification"} and decision.question:
+                root_id = question.parent_question_id or question.id
+                try:
+                    follow_up = self._create_question(question.session_id, 0, decision.question, question.session.interview_type)
+                    follow_up.is_follow_up = True
+                    follow_up.parent_question_id = root_id
+                    parent = next((item for item in question.session.questions if item.id == root_id), question)
+                    self._insert_question(question.session, follow_up, after=parent)
+                except Exception:
+                    if "follow_up" in locals() and follow_up in self.db:
+                        self.db.expunge(follow_up)
+            else:
+                planned = sorted((item for item in question.session.questions if not item.is_follow_up), key=lambda item: item.question_number)
+                answered_planned = [item for item in planned if item.answers]
+                next_planned = next((item for item in planned if item.question_number > question.question_number and not item.answers), None)
+                if next_planned is None and len(answered_planned) < question.session.question_count:
+                    next_question_number = len(planned) + 1
+                    next_question_text = self.ai.next_question(question.session.job_role, next_question_number, self._history(question.session))
+                    next_question = self._create_question(question.session_id, 0, next_question_text, question.session.interview_type)
+                    self._insert_question(question.session, next_question)
         self.db.commit()
         self.db.refresh(answer)
-        if not is_retry and question.question_number == question.session.question_count:
+        planned_questions = list(self.db.scalars(
+            select(Question)
+            .where(Question.session_id == question.session_id, Question.is_follow_up.is_(False))
+            .options(selectinload(Question.answers))
+        ).all())
+        all_planned_answered = len([item for item in planned_questions if item.answers]) >= question.session.question_count
+        pending_follow_up = self.db.scalar(
+            select(Question.id)
+            .where(Question.session_id == question.session_id, Question.is_follow_up.is_(True))
+            .where(~Question.answers.any())
+            .limit(1)
+        ) is not None
+        if not is_retry and all_planned_answered and not pending_follow_up:
             self.complete(question.session_id, user_id)
         return answer
 

@@ -151,6 +151,49 @@ def test_question_count_progresses_and_completes(client):
     assert interview["current_question_number"] == 2
 
 
+def test_contextual_follow_up_is_persisted_and_limited(client, monkeypatch):
+    class FollowUpAI:
+        def first_question(self, job_role, interview_type):
+            return "Tell me about a project you led."
+
+        def next_question(self, job_role, question_number, history):
+            return f"What else did you contribute as a {job_role}?"
+
+        def decide_follow_up(self, **kwargs):
+            return {
+                "action": "follow_up",
+                "question": "What was your specific contribution?",
+                "reason": "The answer lacked individual evidence.",
+            }
+
+    monkeypatch.setattr(interview_service, "MockAIInterviewer", FollowUpAI)
+    payload = interview_payload()
+    payload["question_count"] = 1
+    created = client.post("/api/v1/interviews", json=payload).json()
+    session_id = created["id"]
+    first_question_id = created["questions"][0]["id"]
+    client.post(f"/api/v1/interviews/{session_id}/start")
+
+    answer = client.post(
+        f"/api/v1/interviews/questions/{first_question_id}/answer",
+        json={"transcript": "We improved the product.", "duration": 8},
+    )
+    assert answer.status_code == 201
+    questions = client.get(f"/api/v1/interviews/{session_id}/questions").json()["items"]
+    assert len(questions) == 2
+    follow_up = questions[1]
+    assert follow_up["is_follow_up"] is True
+    assert follow_up["parent_question_id"] == first_question_id
+    assert follow_up["question_text"] == "What was your specific contribution?"
+
+    follow_up_answer = client.post(
+        f"/api/v1/interviews/questions/{follow_up['id']}/answer",
+        json={"transcript": "I designed and shipped the core change.", "duration": 8},
+    )
+    assert follow_up_answer.status_code == 201
+    assert client.get(f"/api/v1/interviews/{session_id}").json()["status"] == "completed"
+
+
 @pytest.mark.parametrize("question_count", [0, -1, 21])
 def test_question_count_validation(client, question_count):
     payload = interview_payload()

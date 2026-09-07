@@ -5,7 +5,7 @@ import logging
 import threading
 import wave
 from dataclasses import dataclass
-from typing import Any, Callable, ClassVar, Protocol
+from typing import Any, Callable, ClassVar, Literal, Protocol
 from uuid import UUID
 
 import httpx
@@ -21,6 +21,41 @@ WHISPER_SAMPLE_RATE = 16000
 class AIInterviewer(Protocol):
     def first_question(self, job_role: str, interview_type: str) -> str: ...
     def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]]) -> str: ...
+    def decide_follow_up(
+        self,
+        *,
+        job_role: str,
+        interview_type: str,
+        experience_level: str,
+        difficulty: str,
+        personality: str,
+        question: str,
+        answer: str,
+        evaluation: dict[str, Any],
+        history: list[dict[str, str]],
+        follow_up_count: int,
+    ) -> "FollowUpDecision": ...
+
+
+@dataclass(frozen=True)
+class FollowUpDecision:
+    action: Literal["follow_up", "clarification", "next_question", "complete"]
+    question: str | None = None
+    reason: str = ""
+
+    @classmethod
+    def from_payload(cls, payload: Any) -> "FollowUpDecision":
+        if not isinstance(payload, dict):
+            raise ValueError("Follow-up decision must be an object")
+        action = payload.get("action")
+        if action not in {"follow_up", "clarification", "next_question", "complete"}:
+            raise ValueError("Follow-up decision has an invalid action")
+        question = payload.get("question")
+        if question is not None and (not isinstance(question, str) or not 5 <= len(question.strip()) <= 500):
+            raise ValueError("Follow-up question length is invalid")
+        if action in {"follow_up", "clarification"} and not question:
+            raise ValueError("Follow-up actions require a question")
+        return cls(action=action, question=question.strip() if question else None, reason=str(payload.get("reason", ""))[:500])
 
 
 class SpeechToText(Protocol):
@@ -191,6 +226,9 @@ class MockAIInterviewer:
 
     def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]]) -> str:
         return f"What was your most meaningful contribution as a {job_role}?"
+
+    def decide_follow_up(self, **_: Any) -> FollowUpDecision:
+        return FollowUpDecision(action="next_question", reason="The answer can proceed to the next planned question")
 
 
 class MockSpeechToText:
