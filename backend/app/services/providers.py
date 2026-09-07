@@ -19,8 +19,8 @@ WHISPER_SAMPLE_RATE = 16000
 
 
 class AIInterviewer(Protocol):
-    def first_question(self, job_role: str, interview_type: str) -> str: ...
-    def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]]) -> str: ...
+    def first_question(self, job_role: str, interview_type: str, *, personality: str = "professional", difficulty: str = "medium") -> str: ...
+    def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]], *, personality: str = "professional", difficulty: str = "medium") -> str: ...
     def decide_follow_up(
         self,
         *,
@@ -221,11 +221,15 @@ class AnswerEvaluator(Protocol):
 
 
 class MockAIInterviewer:
-    def first_question(self, job_role: str, interview_type: str) -> str:
-        return f"Tell me about your experience relevant to {job_role}."
+    def first_question(self, job_role: str, interview_type: str, *, personality: str = "professional", difficulty: str = "medium") -> str:
+        tone = {"challenging": "I’d like you to defend", "friendly": "Let’s explore", "concise": "Briefly describe"}.get(personality, "Tell me about")
+        topic = {"easy": "your background", "hard": "a high-impact challenge you solved", "medium": f"your experience relevant to {job_role}"}.get(difficulty, f"your experience relevant to {job_role}")
+        return f"{tone} {topic}."
 
-    def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]]) -> str:
-        return f"What was your most meaningful contribution as a {job_role}?"
+    def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]], *, personality: str = "professional", difficulty: str = "medium") -> str:
+        detail = "including trade-offs and measurable impact" if difficulty == "hard" else "with one concrete example" if difficulty == "medium" else "in one clear sentence"
+        prefix = "Challenge yourself: " if personality == "challenging" else "Could you " if personality == "friendly" else ""
+        return f"{prefix}describe your most meaningful contribution as a {job_role}, {detail}."
 
     def decide_follow_up(self, **_: Any) -> FollowUpDecision:
         return FollowUpDecision(action="next_question", reason="The answer can proceed to the next planned question")
