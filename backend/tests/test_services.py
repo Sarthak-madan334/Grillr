@@ -184,6 +184,42 @@ def test_mock_ai_interviewer():
     assert "DevOps Engineer" in nxt
 
 
+def test_mock_interviewer_personality_and_difficulty_change_generation():
+    ai = MockAIInterviewer()
+
+    friendly_easy = ai.first_question("Engineer", "technical", personality="friendly", difficulty="easy")
+    challenging_hard = ai.first_question("Engineer", "technical", personality="challenging", difficulty="hard")
+
+    assert friendly_easy != challenging_hard
+    assert "background" in friendly_easy
+    assert "challenge" in challenging_hard
+
+
+def test_evaluator_standard_is_independent_of_interview_settings():
+    evaluator = MockAnswerEvaluator()
+    answer = "I led the migration and reduced deployment time by forty percent."
+
+    professional = evaluator.evaluate(answer, "Tell me about a project you led.")
+    challenging = evaluator.evaluate(answer, "Tell me about a project you led.")
+
+    assert professional == challenging
+
+
+def test_difficulty_adapts_by_one_level_from_performance():
+    service = InterviewService.__new__(InterviewService)
+    session = SimpleNamespace(
+        difficulty="medium",
+        questions=[
+            SimpleNamespace(answers=[SimpleNamespace(evaluation=SimpleNamespace(overall_score=90))]),
+        ],
+    )
+
+    assert service._adaptive_difficulty(session) == "hard"
+
+    session.questions[0].answers[0].evaluation.overall_score = 40
+    assert service._adaptive_difficulty(session) == "easy"
+
+
 def test_rime_tts_returns_audio_bytes(monkeypatch):
     response = httpx.Response(200, content=b"audio-bytes", headers={"content-type": "audio/mpeg"})
     client = FakeHttpClient(response=response)

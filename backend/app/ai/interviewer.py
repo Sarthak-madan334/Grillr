@@ -19,9 +19,9 @@ class LLMAIInterviewer(AIInterviewer):
         # Delegate client lifecycle to AI Core
         self.ai_core = AICore(api_key=api_key)
 
-    def first_question(self, job_role: str, interview_type: str) -> str:
+    def first_question(self, job_role: str, interview_type: str, *, personality: str = "professional", difficulty: str = "medium") -> str:
         messages = [
-            build_interviewer_system_message(job_role, interview_type),
+            build_interviewer_system_message(job_role, interview_type, personality, difficulty),
             build_first_question_prompt()
         ]
         
@@ -31,13 +31,13 @@ class LLMAIInterviewer(AIInterviewer):
             logger.error(f"LLM AIInterviewer failed on first_question: {e}")
             return f"Tell me about your background and experience relevant to {job_role}."
 
-    def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]]) -> str:
+    def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]], *, personality: str = "professional", difficulty: str = "medium") -> str:
         messages = [
-            build_interviewer_system_message(job_role, "continuation")
+            build_interviewer_system_message(job_role, "continuation", personality, difficulty)
         ]
         
         messages.extend(build_conversation_history(history))
-        messages.append(build_next_question_prompt(question_number))
+        messages.append(build_next_question_prompt(question_number, difficulty))
         
         try:
             return self.ai_core.generate_text(messages)
@@ -59,9 +59,9 @@ class LLMAIInterviewer(AIInterviewer):
         history: list[dict[str, str]],
         follow_up_count: int,
     ) -> FollowUpDecision:
-        messages = [build_interviewer_system_message(job_role, interview_type)]
+        messages = [build_interviewer_system_message(job_role, interview_type, personality, difficulty)]
         messages.extend(build_conversation_history(history))
-        messages.append(build_follow_up_decision_prompt(question, answer, evaluation, follow_up_count))
+        messages.append(build_follow_up_decision_prompt(question, answer, evaluation, follow_up_count, personality, difficulty))
         try:
             payload = json.loads(self.ai_core.generate_text(messages))
             return FollowUpDecision.from_payload(payload)

@@ -41,11 +41,36 @@ class InterviewService:
         question._audio_bytes = self.tts.synthesize(question_text)
         return question
 
+    @staticmethod
+    def _difficulty_level(value: str) -> int:
+        return {"easy": 0, "medium": 1, "hard": 2}.get(value.lower(), 1)
+
+    def _adaptive_difficulty(self, session: InterviewSession) -> str:
+        base = self._difficulty_level(session.difficulty)
+        evaluations = [answer.evaluation.overall_score for question in session.questions for answer in question.answers if answer.evaluation]
+        if not evaluations:
+            return ("easy", "medium", "hard")[base]
+        average = sum(evaluations) / len(evaluations)
+        adjustment = 1 if average >= 80 else -1 if average < 55 else 0
+        return ("easy", "medium", "hard")[max(0, min(2, base + adjustment))]
+
+    def _first_question(self, job_role: str, interview_type: str, personality: str, difficulty: str) -> str:
+        try:
+            return self.ai.first_question(job_role, interview_type, personality=personality, difficulty=difficulty)
+        except TypeError:
+            return self.ai.first_question(job_role, interview_type)
+
+    def _next_question(self, job_role: str, question_number: int, history: list[dict[str, str]], personality: str, difficulty: str) -> str:
+        try:
+            return self.ai.next_question(job_role, question_number, history, personality=personality, difficulty=difficulty)
+        except TypeError:
+            return self.ai.next_question(job_role, question_number, history)
+
     def create(self, user_id: UUID, data: InterviewCreate) -> InterviewSession:
         session = InterviewSession(user_id=user_id, interview_type=data.interview_type.value, job_role=data.job_role, experience_level=data.experience_level, difficulty=data.difficulty, personality=data.personality, duration=data.duration, question_count=data.question_count, resume_url=str(data.resume_url) if data.resume_url else None, job_description=data.job_description)
         self.db.add(session)
         self.db.flush()
-        question_text = self.ai.first_question(data.job_role, data.interview_type.value)
+        question_text = self._first_question(data.job_role, data.interview_type.value, data.personality, data.difficulty)
         question = self._create_question(session.id, 1, question_text, data.interview_type.value)
         self.db.add(question)
         self.db.commit()
@@ -121,7 +146,7 @@ class InterviewService:
                 job_role=question.session.job_role,
                 interview_type=question.session.interview_type,
                 experience_level=question.session.experience_level,
-                difficulty=question.session.difficulty,
+                difficulty=self._adaptive_difficulty(question.session),
                 personality=question.session.personality,
                 question=question.question_text,
                 answer=transcript,
@@ -225,7 +250,13 @@ class InterviewService:
                 next_planned = next((item for item in planned if item.question_number > question.question_number and not item.answers), None)
                 if next_planned is None and len(answered_planned) < question.session.question_count:
                     next_question_number = len(planned) + 1
-                    next_question_text = self.ai.next_question(question.session.job_role, next_question_number, self._history(question.session))
+                    next_question_text = self._next_question(
+                        question.session.job_role,
+                        next_question_number,
+                        self._history(question.session),
+                        question.session.personality,
+                        self._adaptive_difficulty(question.session),
+                    )
                     next_question = self._create_question(question.session_id, 0, next_question_text, question.session.interview_type)
                     self._insert_question(question.session, next_question)
         self.db.commit()

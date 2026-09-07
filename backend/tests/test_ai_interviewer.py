@@ -74,3 +74,18 @@ def test_invalid_follow_up_decision_falls_back(monkeypatch):
     )
 
     assert decision.action == "next_question"
+
+
+def test_next_question_prompt_contains_personality_and_difficulty(monkeypatch):
+    mock_ai_core = MagicMock()
+    mock_ai_core.generate_text.return_value = "Challenge question"
+    monkeypatch.setattr("app.ai.interviewer.AICore", lambda api_key: mock_ai_core)
+
+    LLMAIInterviewer(api_key="test").next_question(
+        "Engineer", 2, [], personality="challenging", difficulty="hard"
+    )
+
+    messages = mock_ai_core.generate_text.call_args[0][0]
+    combined = "\n".join(message["content"] for message in messages)
+    assert "challenging" in combined
+    assert "hard" in combined
