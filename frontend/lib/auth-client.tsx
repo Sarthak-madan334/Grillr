@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 export type AuthUser = { id: string; email: string; name: string | null };
 type AuthContextValue = {
@@ -52,6 +53,8 @@ async function request(
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -65,6 +68,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => setUser(null))
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+    const protectedPath = ["/dashboard", "/history", "/interview"].some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    );
+    if (protectedPath && !user) {
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+    }
+  }, [isLoading, pathname, router, user]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

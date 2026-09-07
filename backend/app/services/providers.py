@@ -6,6 +6,7 @@ from typing import Protocol
 from uuid import UUID
 
 import httpx
+from openai import OpenAI
 
 from app.core.config import get_settings
 
@@ -109,9 +110,24 @@ class MockSpeechToText:
         return "This is a mock transcript."
 
 
+class OpenAISpeechToText:
+    """Speech-to-text adapter for recorded browser audio."""
+
+    def __init__(self, api_key: str | None = None, model: str = "gpt-4o-mini-transcribe"):
+        self.client = OpenAI(api_key=api_key or get_settings().openai_api_key)
+        self.model = model
+
+    def transcribe(self, audio: bytes) -> str:
+        response = self.client.audio.transcriptions.create(
+            model=self.model,
+            file=("answer.webm", audio, "audio/webm"),
+        )
+        return response.text
+
+
 def create_speech_to_text() -> SpeechToText:
-    """Return the configured speech provider used by realtime interview sessions."""
-    return MockSpeechToText()
+    settings = get_settings()
+    return OpenAISpeechToText(api_key=settings.openai_api_key) if settings.openai_api_key else MockSpeechToText()
 
 
 class MockTextToSpeech:
