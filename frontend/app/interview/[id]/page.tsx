@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/layout/top-nav";
 import { QuestionAudioPlayer } from "@/components/QuestionAudioPlayer";
 import { VoiceAnswerPanel } from "@/components/VoiceAnswerPanel";
-import { ConversationTurnBanner } from "@/components/ConversationTurnBanner";
 import type { TurnState } from "@/components/VoiceAnswerPanel";
+import { ConversationTurnBanner } from "@/components/ConversationTurnBanner";
 import {
   getInterview,
   getLatestAnswer,
@@ -218,7 +218,7 @@ export default function InterviewSessionPage() {
     "loading" | "ready" | "submitting" | "feedback" | "completed" | "error"
   >("loading");
   const [error, setError] = useState("");
-  const [turnState, setTurnState] = useState<TurnState>("listening");
+  const [turnState] = useState<TurnState>("listening");
   const questionStartedAt = useRef<number | null>(null);
 
   const loadSession = useCallback(
@@ -428,10 +428,7 @@ export default function InterviewSessionPage() {
                 <QuestionAudioPlayer key={question.id} sessionId={session.id} questionId={question.id} shouldStop={state === "submitting"} />
                 <div className="mt-10">
                   <VoiceAnswerPanel
-                    sessionId={session.id}
                     disabled={state === "submitting" || turnState === "asking" || turnState === "processing"}
-                    onTranscript={setDraft}
-                    onTurnStateChange={setTurnState}
                   />
                   <label
                     htmlFor="answer"
