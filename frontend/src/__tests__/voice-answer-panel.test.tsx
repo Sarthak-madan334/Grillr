@@ -7,6 +7,8 @@ type MediaMocks = {
   enumerateDevices: ReturnType<typeof vi.fn>;
 };
 
+const realtimeTokenResponse = () => new Response(JSON.stringify({ token: "test-token" }), { status: 200, headers: { "Content-Type": "application/json" } });
+
 class TestRecorder {
   state = "recording";
   private listeners = new Map<string, (event: { data: Blob }) => void>();
@@ -18,6 +20,7 @@ class TestRecorder {
 
 beforeEach(() => {
   vi.stubGlobal("MediaRecorder", TestRecorder);
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(realtimeTokenResponse()));
 });
 
 function mockMediaDevices(mocks: MediaMocks) {
@@ -99,16 +102,36 @@ describe("VoiceAnswerPanel", () => {
     expect(track.stop).toHaveBeenCalled();
   });
 
-  it("captures locally without opening a WebSocket", async () => {
-    const socketConstructor = vi.fn();
-    vi.stubGlobal("WebSocket", socketConstructor);
+  it("streams audio and applies the final transcript", async () => {
+    class FakeSocket {
+      static OPEN = 1;
+      static latest: FakeSocket | undefined;
+      readyState = 1;
+      listeners = new Map<string, (event: MessageEvent) => void>();
+      sent: unknown[] = [];
+      constructor() { FakeSocket.latest = this; }
+      addEventListener(event: string, callback: (event: MessageEvent) => void) {
+        this.listeners.set(event, callback);
+        if (event === "open") callback(new MessageEvent("open"));
+      }
+      send(value: unknown) { this.sent.push(value); }
+      close() { this.readyState = 3; }
+      emit(data: string) { this.listeners.get("message")?.(new MessageEvent("message", { data })); }
+    }
+    vi.stubGlobal("WebSocket", FakeSocket);
+    const onTranscript = vi.fn();
     const track = { addEventListener: vi.fn(), stop: vi.fn() };
     mockMediaDevices({ getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [track] }), enumerateDevices: vi.fn().mockResolvedValue([]) });
-    render(<VoiceAnswerPanel />);
+    render(<VoiceAnswerPanel sessionId="session-1" onTranscript={onTranscript} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Stop recording" }));
 
-    expect(socketConstructor).not.toHaveBeenCalled();
+    const socket = FakeSocket.latest;
+    expect(onTranscript).not.toHaveBeenCalled();
+    expect(screen.getByText("Processing your answer...")).toBeInTheDocument();
+    socket?.emit(JSON.stringify({ type: "transcript.final", data: { text: "I improved the deployment pipeline." } }));
+    expect(onTranscript).toHaveBeenCalledWith("I improved the deployment pipeline.");
   });
 
 });

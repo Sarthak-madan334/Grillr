@@ -218,7 +218,7 @@ export default function InterviewSessionPage() {
     "loading" | "ready" | "submitting" | "feedback" | "completed" | "error"
   >("loading");
   const [error, setError] = useState("");
-  const [turnState] = useState<TurnState>("listening");
+  const [turnState, setTurnState] = useState<TurnState>("listening");
   const questionStartedAt = useRef<number | null>(null);
 
   const loadSession = useCallback(
@@ -265,6 +265,7 @@ export default function InterviewSessionPage() {
       if (!unanswered)
         throw new Error("This interview has no unanswered question.");
       setQuestion(unanswered);
+      setTurnState("listening");
       questionStartedAt.current = Date.now();
       setState("ready");
     },
@@ -425,10 +426,13 @@ export default function InterviewSessionPage() {
                   {question.question_text}
                 </h2>
                 <ConversationTurnBanner state={turnState} />
-                <QuestionAudioPlayer key={question.id} sessionId={session.id} questionId={question.id} shouldStop={state === "submitting"} />
+                <QuestionAudioPlayer key={question.id} questionId={question.id} shouldStop={state === "submitting"} />
                 <div className="mt-10">
                   <VoiceAnswerPanel
+                    sessionId={session.id}
                     disabled={state === "submitting" || turnState === "asking" || turnState === "processing"}
+                    onTranscript={setDraft}
+                    onTurnStateChange={setTurnState}
                   />
                   <label
                     htmlFor="answer"

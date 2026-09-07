@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 type AudioState = "loading" | "ready" | "unavailable";
 
 type QuestionAudioPlayerProps = {
-  sessionId: string;
   questionId: string;
   shouldStop?: boolean;
 };
@@ -16,12 +15,12 @@ function SpeakerIcon() {
   return <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10v4h4l5 4V6l-5 4H4Z" /><path d="M17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11" /></svg>;
 }
 
-export function QuestionAudioPlayer({ sessionId, questionId, shouldStop = false }: QuestionAudioPlayerProps) {
+export function QuestionAudioPlayer({ questionId, shouldStop = false }: QuestionAudioPlayerProps) {
   const [state, setState] = useState<AudioState>("loading");
   const [attempt, setAttempt] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrl = `${API_BASE}/interviews/${encodeURIComponent(sessionId)}/questions/${encodeURIComponent(questionId)}/audio`;
+  const audioUrl = `${API_BASE}/questions/${encodeURIComponent(questionId)}/audio`;
 
   useEffect(() => {
     if (!shouldStop || !audioRef.current) return;

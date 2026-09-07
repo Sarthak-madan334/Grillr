@@ -8,8 +8,11 @@ type VoiceStatus = "checking" | "ready" | "recording" | "denied" | "no-device" |
 export type TurnState = "asking" | "listening" | "processing" | "completed";
 
 type VoiceAnswerPanelProps = {
+  sessionId?: string;
   disabled?: boolean;
   onRecordingChange?: (recording: boolean) => void;
+  onTranscript?: (transcript: string) => void;
+  onTurnStateChange?: (state: TurnState) => void;
 };
 
 function MicrophoneIcon() {
@@ -39,7 +42,7 @@ function statusCopy(status: VoiceStatus) {
   }
 }
 
-export function VoiceAnswerPanel({ disabled = false, onRecordingChange }: VoiceAnswerPanelProps) {
+export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChange, onTranscript, onTurnStateChange }: VoiceAnswerPanelProps) {
   const [status, setStatus] = useState<VoiceStatus>(() =>
     typeof navigator !== "undefined" &&
     typeof navigator.mediaDevices?.getUserMedia === "function"
@@ -49,12 +52,17 @@ export function VoiceAnswerPanel({ disabled = false, onRecordingChange }: VoiceA
   const [isRetrying, setIsRetrying] = useState(false);
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
   const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
+  const [socketError, setSocketError] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
   const pendingChunksRef = useRef<Blob[]>([]);
   const { isSpeaking, level } = useVoiceActivityDetection(activeStream);
 
   const stopStream = useCallback(() => {
     microphoneService.releaseMicrophone();
+    socketRef.current?.close();
+    socketRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     setActiveStream(null);
@@ -89,6 +97,8 @@ export function VoiceAnswerPanel({ disabled = false, onRecordingChange }: VoiceA
       return;
     }
     setIsRetrying(true);
+    setSocketError("");
+    setIsProcessing(false);
     try {
       const devices = navigator.mediaDevices.enumerateDevices
         ? await navigator.mediaDevices.enumerateDevices()
@@ -116,7 +126,54 @@ export function VoiceAnswerPanel({ disabled = false, onRecordingChange }: VoiceA
       const handleAudioChunk = (chunk: Blob) => {
         pendingChunksRef.current.push(chunk);
         setRecordingBlob(new Blob([...pendingChunksRef.current], { type: chunk.type || "audio/webm" }));
+      if (typeof WebSocket !== "undefined" && socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(chunk);
       };
+      if (sessionId && typeof WebSocket !== "undefined" && typeof MediaRecorder !== "undefined") {
+        const tokenResponse = await fetch("/api/auth/realtime-token", { cache: "no-store" });
+        if (!tokenResponse.ok) throw new Error("Realtime authentication failed");
+        const { token } = (await tokenResponse.json()) as { token?: string };
+        if (!token) throw new Error("Realtime authentication failed");
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? window.location.origin;
+        const socketUrl = apiUrl.replace(/^http/, "ws");
+        const socket = new WebSocket(`${socketUrl}/api/v1/ws/interviews/${sessionId}?token=${encodeURIComponent(token)}`);
+        socketRef.current = socket;
+        socket.addEventListener("open", () => {
+          socket.send(JSON.stringify({ type: "speech.start" }));
+          pendingChunksRef.current.forEach((chunk) => socket.send(chunk));
+        }, { once: true });
+        socket.addEventListener("message", (event) => {
+          try {
+            const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; state?: TurnState; message?: string } };
+            if (message.type === "turn.state_changed" && message.data?.state) {
+              setIsProcessing(message.data.state === "processing");
+              onTurnStateChange?.(message.data.state);
+            }
+            if (message.type === "transcript.final" && message.data?.text) {
+              onTranscript?.(message.data.text);
+              setIsProcessing(false);
+              onTurnStateChange?.("listening");
+              stopStream();
+              setStatus("ready");
+            }
+            if (message.type === "error") {
+              setIsProcessing(false);
+              onTurnStateChange?.("listening");
+              setSocketError(message.data?.message ?? "Transcription is unavailable. Continue by typing your answer.");
+              stopStream();
+              setStatus("ready");
+            }
+          } catch {
+            setSocketError("Live transcription returned an unreadable response.");
+          }
+        });
+        socket.addEventListener("error", () => {
+          setIsProcessing(false);
+          onTurnStateChange?.("listening");
+          setSocketError("Transcription is unavailable. Continue by typing your answer.");
+          stopStream();
+          setStatus("ready");
+        }, { once: true });
+      }
       if (!microphoneService.startRecording(handleAudioChunk)) {
         microphoneService.releaseMicrophone();
         streamRef.current = null;
@@ -126,7 +183,7 @@ export function VoiceAnswerPanel({ disabled = false, onRecordingChange }: VoiceA
       setStatus("recording");
       onRecordingChange?.(true);
     } catch (error) {
-      microphoneService.releaseMicrophone();
+      stopStream();
       streamRef.current = null;
       const errorName = getErrorName(error);
       setStatus(errorName === "NotFoundError" ? "no-device" : "denied");
@@ -138,9 +195,17 @@ export function VoiceAnswerPanel({ disabled = false, onRecordingChange }: VoiceA
   function stopRecording() {
     if (microphoneService.isRecording()) {
       microphoneService.stopRecording();
+      if (typeof WebSocket !== "undefined" && socketRef.current?.readyState === WebSocket.OPEN) {
+        setIsProcessing(true);
+        onTurnStateChange?.("processing");
+        socketRef.current.send(JSON.stringify({ type: "speech.stop" }));
+      } else {
+        stopStream();
+      }
+    } else {
+      stopStream();
     }
-    stopStream();
-    setStatus("ready");
+    if (!sessionId || !socketRef.current) setStatus("ready");
   }
 
   const message = statusCopy(status);
@@ -159,8 +224,10 @@ export function VoiceAnswerPanel({ disabled = false, onRecordingChange }: VoiceA
       </div>
       {status === "checking" ? <p className="mt-4 animate-pulse text-xs text-[#7a5f48] motion-reduce:animate-none" aria-live="polite">Checking microphone support...</p> : null}
       {status === "recording" ? <p className="mt-4 flex items-center gap-2 text-xs font-medium text-[#26724d]" aria-live="polite"><span className="h-2 w-2 animate-pulse rounded-full bg-[#26724d] motion-reduce:animate-none" /> Recording in progress. Stop when you finish.</p> : null}
+      {isProcessing ? <p className="mt-4 flex items-center gap-2 text-xs font-medium text-[#7a5f48]" aria-live="polite"><span className="h-3 w-3 animate-pulse rounded-full bg-[#b8916d] motion-reduce:animate-none" /> Processing your answer...</p> : null}
       {activeStream ? <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#e7d8c5] bg-white/50 px-3 py-2" aria-live="polite"><span className={`h-2.5 w-2.5 rounded-full transition-colors motion-reduce:transition-none ${isSpeaking ? "bg-[#26724d] shadow-[0_0_0_4px_rgba(38,114,77,0.14)]" : "bg-[#b8916d]"}`} /><span className="text-xs font-medium text-[#5e4d40]">{isSpeaking ? "Speaking detected" : "Listening for your voice"}</span><span className="ml-auto text-[10px] tabular-nums text-[#7a5f48]">{Math.round(level * 100)}%</span></div> : null}
       {recordingUrl ? <div className="mt-4 rounded-xl border border-[#e7d8c5] bg-white/60 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7a5f48]">Captured locally</p><audio className="mt-2 h-9 w-full" controls src={recordingUrl} aria-label="Recorded answer preview" /></div> : null}
+      {socketError ? <div role="alert" className="mt-3 rounded-xl border border-[#d8b9a7] bg-[#fff7f1] px-3 py-2 text-xs leading-5 text-[#805542]">{socketError}</div> : null}
       {message ? <div role="alert" className="mt-4 flex flex-col gap-3 rounded-xl border border-[#d8b9a7] bg-[#fff7f1] p-3 text-sm text-[#713f2c] sm:flex-row sm:items-center sm:justify-between"><div><strong className="block font-semibold">{message.title}</strong><span className="mt-1 block text-xs leading-5 text-[#805542]">{message.body}</span></div>{status !== "unsupported" ? <button type="button" onClick={() => void startRecording()} disabled={isRetrying} className="shrink-0 self-start rounded-full border border-[#b8916d] px-3 py-2 text-xs font-semibold text-[#5e402e] transition hover:bg-[#f3e3d5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8916d] focus-visible:ring-offset-2 sm:self-center">Retry voice</button> : null}</div> : null}
     </section>
   );
