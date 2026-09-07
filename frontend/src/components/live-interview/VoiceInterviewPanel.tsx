@@ -4,7 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AudioVisualizer } from "@/components/live-interview/AudioVisualizer";
 import { TranscriptPanel } from "@/components/live-interview/TranscriptPanel";
-import { MockRealtimeClient, type RealtimeEvent, type TranscriptEntry } from "@/lib/realtime";
+import {
+  MockRealtimeClient,
+  type RealtimeEvent,
+  type TranscriptEntry,
+} from "@/lib/realtime";
 import {
   applyVoiceEvent,
   initialVoiceState,
@@ -12,7 +16,8 @@ import {
   type VoiceStateMachineEvent,
 } from "@/lib/voice-state";
 
-const demoQuestion = "Tell me about yourself and why this role fits your background.";
+const demoQuestion =
+  "Tell me about yourself and why this role fits your background.";
 
 export function VoiceInterviewPanel() {
   const realtime = useMemo(() => new MockRealtimeClient(), []);
@@ -51,7 +56,10 @@ export function VoiceInterviewPanel() {
         "next.question": { type: "NEXT_QUESTION_RECEIVED" },
         "connection.error": {
           type: "ERROR",
-          message: typeof data.message === "string" ? data.message : "Connection error",
+          message:
+            typeof data.message === "string"
+              ? data.message
+              : "Connection error",
         },
       };
 
@@ -61,25 +69,36 @@ export function VoiceInterviewPanel() {
       }
 
       if (event.type === "ai.question" || event.type === "next.question") {
-        const nextQuestion = typeof data.text === "string" ? data.text : demoQuestion;
+        const nextQuestion =
+          typeof data.text === "string" ? data.text : demoQuestion;
         setQuestion(nextQuestion);
-        setTranscripts((previous) => [...previous, { speaker: "ai", text: nextQuestion }]);
+        setTranscripts((previous) => [
+          ...previous,
+          { speaker: "ai", text: nextQuestion },
+        ]);
       }
 
       if (event.type === "user.partial_transcript") {
         const text = typeof data.text === "string" ? data.text : "";
         if (!text) return;
-        setTranscripts((previous) => [...previous, { speaker: "user", text, isPartial: true }]);
+        setTranscripts((previous) => [
+          ...previous,
+          { speaker: "user", text, isPartial: true },
+        ]);
       }
 
       if (event.type === "user.final_transcript") {
         const text = typeof data.text === "string" ? data.text : "";
         if (!text) return;
-        setTranscripts((previous) => [...previous, { speaker: "user", text, isPartial: false }]);
+        setTranscripts((previous) => [
+          ...previous,
+          { speaker: "user", text, isPartial: false },
+        ]);
       }
 
       if (event.type === "connection.error") {
-        const message = typeof data.message === "string" ? data.message : "Connection error";
+        const message =
+          typeof data.message === "string" ? data.message : "Connection error";
         setErrorMessage(message);
       }
 
@@ -104,8 +123,14 @@ export function VoiceInterviewPanel() {
 
     intervalRef.current = window.setInterval(() => {
       setAudioLevel((previous) => {
-        if (voiceState.stage === "user_speaking" || voiceState.stage === "ai_speaking") {
-          return Math.max(18, Math.min(92, previous + (Math.random() > 0.5 ? 6 : -6)));
+        if (
+          voiceState.stage === "user_speaking" ||
+          voiceState.stage === "ai_speaking"
+        ) {
+          return Math.max(
+            18,
+            Math.min(92, previous + (Math.random() > 0.5 ? 6 : -6)),
+          );
         }
         return Math.max(12, previous - 2);
       });
@@ -121,9 +146,17 @@ export function VoiceInterviewPanel() {
   }, [realtime, voiceState.stage]);
 
   const requestMicAccess = async () => {
-    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices?.getUserMedia
+    ) {
       setErrorMessage("Microphone access is not supported in this browser.");
-      setVoiceState((previous) => applyVoiceEvent(previous, { type: "ERROR", message: "Microphone unsupported" }));
+      setVoiceState((previous) =>
+        applyVoiceEvent(previous, {
+          type: "ERROR",
+          message: "Microphone unsupported",
+        }),
+      );
       return;
     }
 
@@ -131,15 +164,26 @@ export function VoiceInterviewPanel() {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsMicOn((previous) => !previous);
       setErrorMessage("");
-      setVoiceState((previous) => applyVoiceEvent(previous, { type: "USER_STARTED_SPEAKING" }));
+      setVoiceState((previous) =>
+        applyVoiceEvent(previous, { type: "USER_STARTED_SPEAKING" }),
+      );
     } catch {
-      setErrorMessage("Microphone permission was denied. Please allow access to continue.");
-      setVoiceState((previous) => applyVoiceEvent(previous, { type: "ERROR", message: "Permission denied" }));
+      setErrorMessage(
+        "Microphone permission was denied. Please allow access to continue.",
+      );
+      setVoiceState((previous) =>
+        applyVoiceEvent(previous, {
+          type: "ERROR",
+          message: "Permission denied",
+        }),
+      );
     }
   };
 
   const handleInterrupt = () => {
-    setVoiceState((previous) => applyVoiceEvent(previous, { type: "USER_INTERRUPTED_AI" }));
+    setVoiceState((previous) =>
+      applyVoiceEvent(previous, { type: "USER_INTERRUPTED_AI" }),
+    );
     setAudioLevel(32);
   };
 
@@ -151,20 +195,31 @@ export function VoiceInterviewPanel() {
             G
           </div>
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">Grillr</div>
-            <h1 className="text-base font-semibold text-slate-900">Interview room</h1>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+              Grillr
+            </div>
+            <h1 className="text-base font-semibold text-slate-900">
+              Interview room
+            </h1>
           </div>
         </div>
 
         <div className="hidden items-center gap-6 text-sm text-slate-600 md:flex">
           <div className="text-center">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Progress</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+              Progress
+            </div>
             <div className="mt-1 font-medium text-slate-900">02 / 05</div>
           </div>
           <div className="h-8 w-px bg-slate-200" />
           <div className="flex items-center gap-2">
-            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />
-            <span className="font-medium text-slate-700">{connectionState}</span>
+            <span
+              className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"
+              aria-hidden="true"
+            />
+            <span className="font-medium text-slate-700">
+              {connectionState}
+            </span>
           </div>
         </div>
 
@@ -173,7 +228,9 @@ export function VoiceInterviewPanel() {
             SA
           </div>
           <div className="hidden text-left sm:block">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Profile</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+              Profile
+            </div>
             <div className="text-sm font-medium text-slate-700">Sarthak</div>
           </div>
         </div>
@@ -184,15 +241,22 @@ export function VoiceInterviewPanel() {
           <section className="space-y-6">
             <div className="rounded-[26px] border border-slate-200 bg-slate-50 p-5 shadow-[0_12px_30px_rgba(15,23,42,0.04)] md:p-6">
               <div className="mb-5 flex items-center justify-between text-sm text-slate-500">
-                <span className="font-medium text-slate-700">Question 2 of 5</span>
+                <span className="font-medium text-slate-700">
+                  Question 2 of 5
+                </span>
                 <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-600">
-                  <span className="h-2 w-2 rounded-full bg-indigo-500" aria-hidden="true" />
+                  <span
+                    className="h-2 w-2 rounded-full bg-indigo-500"
+                    aria-hidden="true"
+                  />
                   03:45
                 </span>
               </div>
 
               <div className="space-y-3">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-slate-400">Interview prompt</p>
+                <p className="text-[11px] uppercase tracking-[0.28em] text-slate-400">
+                  Interview prompt
+                </p>
                 <h2 className="max-w-3xl text-2xl font-semibold leading-tight text-slate-900 md:text-[2rem]">
                   {question}
                 </h2>
@@ -204,7 +268,9 @@ export function VoiceInterviewPanel() {
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
-                    aria-label={isMicOn ? "Stop microphone" : "Start microphone"}
+                    aria-label={
+                      isMicOn ? "Stop microphone" : "Start microphone"
+                    }
                     onClick={requestMicAccess}
                     className={`flex h-20 w-20 items-center justify-center rounded-full border text-xl font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-200 ${
                       isMicOn
@@ -216,33 +282,57 @@ export function VoiceInterviewPanel() {
                   </button>
 
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400">Voice state</div>
-                    <div className="mt-1 text-xl font-semibold text-slate-900">{currentStatus}</div>
+                    <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400">
+                      Voice state
+                    </div>
+                    <div className="mt-1 text-xl font-semibold text-slate-900">
+                      {currentStatus}
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                  <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                  <span
+                    className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"
+                    aria-hidden="true"
+                  />
                   {currentStatus}
                 </div>
               </div>
 
               <div className="mt-6 rounded-[22px] border border-slate-200 bg-slate-50 p-4 md:p-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div className="text-sm font-medium text-slate-600">Live waveform</div>
+                  <div className="text-sm font-medium text-slate-600">
+                    Live waveform
+                  </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-400">
-                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">AI speaking</span>
-                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">Listening</span>
-                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">You’re speaking</span>
-                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">Processing</span>
+                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">
+                      AI speaking
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">
+                      Listening
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">
+                      You’re speaking
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">
+                      Processing
+                    </span>
                   </div>
                 </div>
 
                 <div className="mt-5 flex items-center justify-center rounded-[20px] border border-slate-200 bg-white px-4 py-5 shadow-inner shadow-slate-100">
                   <AudioVisualizer
                     level={audioLevel}
-                    active={voiceState.stage === "user_speaking" || voiceState.stage === "ai_speaking"}
-                    label={voiceState.stage === "user_speaking" ? "User speaking" : "AI speaking"}
+                    active={
+                      voiceState.stage === "user_speaking" ||
+                      voiceState.stage === "ai_speaking"
+                    }
+                    label={
+                      voiceState.stage === "user_speaking"
+                        ? "User speaking"
+                        : "AI speaking"
+                    }
                   />
                 </div>
               </div>
@@ -251,8 +341,12 @@ export function VoiceInterviewPanel() {
             <div className="rounded-[26px] border border-slate-200 bg-white p-4 shadow-[0_12px_28px_rgba(15,23,42,0.04)] md:p-5">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400">Controls</div>
-                  <h3 className="mt-1 text-lg font-semibold text-slate-900">Answer actions</h3>
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400">
+                    Controls
+                  </div>
+                  <h3 className="mt-1 text-lg font-semibold text-slate-900">
+                    Answer actions
+                  </h3>
                 </div>
               </div>
 
@@ -294,8 +388,12 @@ export function VoiceInterviewPanel() {
             <div className="rounded-[26px] border border-slate-200 bg-slate-50 p-4 shadow-[0_12px_24px_rgba(15,23,42,0.04)] md:p-5">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400">Session</div>
-                  <h3 className="mt-1 text-lg font-semibold text-slate-900">State</h3>
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400">
+                    Session
+                  </div>
+                  <h3 className="mt-1 text-lg font-semibold text-slate-900">
+                    State
+                  </h3>
                 </div>
                 <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-slate-500">
                   {voiceState.stage}
@@ -303,15 +401,38 @@ export function VoiceInterviewPanel() {
               </div>
 
               <ul className="space-y-3 text-sm text-slate-600">
-                <li className="flex items-center justify-between"><span>Microphone</span><span className="font-medium text-slate-900">{isMicOn ? "Active" : "Standby"}</span></li>
-                <li className="flex items-center justify-between"><span>AI audio</span><span className="font-medium text-slate-900">{voiceState.stage === "ai_speaking" ? "Speaking" : "Idle"}</span></li>
-                <li className="flex items-center justify-between"><span>Realtime</span><span className="font-medium text-slate-900">{connectionState}</span></li>
-                <li className="flex items-center justify-between"><span>Last event</span><span className="font-medium text-slate-900">{voiceState.lastEvent ?? "idle"}</span></li>
+                <li className="flex items-center justify-between">
+                  <span>Microphone</span>
+                  <span className="font-medium text-slate-900">
+                    {isMicOn ? "Active" : "Standby"}
+                  </span>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>AI audio</span>
+                  <span className="font-medium text-slate-900">
+                    {voiceState.stage === "ai_speaking" ? "Speaking" : "Idle"}
+                  </span>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>Realtime</span>
+                  <span className="font-medium text-slate-900">
+                    {connectionState}
+                  </span>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>Last event</span>
+                  <span className="font-medium text-slate-900">
+                    {voiceState.lastEvent ?? "idle"}
+                  </span>
+                </li>
               </ul>
             </div>
 
             {errorMessage ? (
-              <div className="rounded-[22px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700" role="alert">
+              <div
+                className="rounded-[22px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
+                role="alert"
+              >
                 {errorMessage}
               </div>
             ) : null}

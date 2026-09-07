@@ -4,7 +4,11 @@ interface AudioVisualizerProps {
   label: string;
 }
 
-export function AudioVisualizer({ level, active, label }: AudioVisualizerProps) {
+export function AudioVisualizer({
+  level,
+  active,
+  label,
+}: AudioVisualizerProps) {
   const bars = Array.from({ length: 16 }, (_, index) => {
     const base = 18 + (index % 4) * 6;
     const swing = active ? level * 0.8 : 8;

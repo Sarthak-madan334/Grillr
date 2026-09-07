@@ -34,6 +34,7 @@ class QuestionResponse(BaseModel):
     question_type: str
     is_follow_up: bool
     answered_at: datetime | None
+    audio_base64: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -71,8 +72,10 @@ class QuestionsResponse(BaseModel):
 
 class RetryResponse(BaseModel):
     question_id: UUID
+    answer_id: UUID
     attempt_number: int
     status: str
+    score_delta: int | None = None
 
 
 class FeedbackResponse(BaseModel):

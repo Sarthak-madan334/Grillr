@@ -1,11 +1,14 @@
+import base64
 from uuid import UUID, uuid4
 
+import pytest
 from sqlalchemy import select
 
+import app.api.v1.questions as questions_api
+import app.services.interview_service as interview_service
+from app.core.errors import ProviderError
 from app.db.session import SessionLocal
 from app.models import InterviewSummary
-
-import pytest
 
 
 def interview_payload():
@@ -29,6 +32,35 @@ def test_health_and_current_user(client):
     response = client.get("/api/v1/users/me")
     assert response.status_code == 200
     assert response.json()["email"] == "developer@localhost"
+
+
+def test_interview_creation_synthesizes_and_returns_question_audio(client, monkeypatch):
+    class RecordingTTS:
+        def __init__(self):
+            self.calls = []
+
+        def synthesize(self, text):
+            self.calls.append(text)
+            return b"question-audio"
+
+    tts = RecordingTTS()
+    monkeypatch.setattr(interview_service, "create_text_to_speech", lambda: tts)
+
+    response = client.post("/api/v1/interviews", json=interview_payload())
+
+    assert response.status_code == 201
+    question = response.json()["questions"][0]
+    assert tts.calls == [question["question_text"]]
+    assert question["audio_base64"] == base64.b64encode(b"question-audio").decode("ascii")
+
+    session_id = response.json()["id"]
+    assert client.post(f"/api/v1/interviews/{session_id}/start").status_code == 200
+    answer = client.post(
+        f"/api/v1/interviews/questions/{question['id']}/answer",
+        json={"transcript": "A detailed answer with enough context for the next question.", "duration": 8},
+    )
+    assert answer.status_code == 201
+    assert len(tts.calls) == 2
 
 
 def test_interview_lifecycle_and_answer(client):
@@ -86,14 +118,9 @@ def test_retry_answer(client):
     client.post(f"/api/v1/interviews/{session_id}/start")
     client.post(f"/api/v1/interviews/questions/{question_id}/answer", json={"transcript": "First attempt answer text.", "duration": 8})
 
-    retry_res = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json={})
+    retry_res = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json={"transcript": "Second improved attempt answer text.", "duration": 10})
     assert retry_res.status_code == 200
     assert retry_res.json()["attempt_number"] == 2
-
-    # Submit second attempt
-    second_ans = client.post(f"/api/v1/interviews/questions/{question_id}/answer", json={"transcript": "Second improved attempt answer text.", "duration": 10})
-    assert second_ans.status_code == 201
-    assert second_ans.json()["attempt_number"] == 2
 
 
 def test_question_count_progresses_and_completes(client):
@@ -301,3 +328,140 @@ def test_final_answer_persists_completion_summary_and_latest_feedback(client):
     summary = client.get(f"/api/v1/interviews/{session_id}/feedback")
     assert summary.status_code == 200
     assert summary.json()["total_questions"] == 1
+
+
+def test_retry_preserves_attempts_without_advancing_interview(client):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    session_id = created["id"]
+    question_id = created["questions"][0]["id"]
+    assert client.post(f"/api/v1/interviews/{session_id}/start").status_code == 200
+
+    first = client.post(f"/api/v1/interviews/questions/{question_id}/answer", json={"transcript": "This is an initial answer with useful context and results.", "duration": 8})
+    assert first.status_code == 201
+    questions_after_first = client.get(f"/api/v1/interviews/{session_id}/questions").json()["items"]
+    assert len(questions_after_first) == 2
+
+    retry = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json={"transcript": "This retry answer adds more specific measurable results.", "duration": 9})
+    assert retry.status_code == 200
+    assert retry.json()["attempt_number"] == 2
+    assert retry.json()["status"] == "submitted"
+
+    attempts = client.get(f"/api/v1/interviews/questions/{question_id}/attempts")
+    assert attempts.status_code == 200
+    assert [item["attempt_number"] for item in attempts.json()["items"]] == [1, 2]
+    assert attempts.json()["score_delta"] == -20
+    assert len(client.get(f"/api/v1/interviews/{session_id}/questions").json()["items"]) == 2
+
+
+def test_duplicate_answer_requires_dedicated_retry_endpoint(client):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    session_id = created["id"]
+    question_id = created["questions"][0]["id"]
+    client.post(f"/api/v1/interviews/{session_id}/start")
+
+    answer_payload = {"transcript": "This is the original answer with useful context.", "duration": 8}
+    assert client.post(f"/api/v1/interviews/questions/{question_id}/answer", json=answer_payload).status_code == 201
+
+    duplicate = client.post(f"/api/v1/interviews/questions/{question_id}/answer", json=answer_payload)
+    assert duplicate.status_code == 409
+    assert duplicate.json()["error"]["code"] == "invalid_state"
+
+
+def test_multiple_retries_preserve_evaluations(client):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    session_id = created["id"]
+    question_id = created["questions"][0]["id"]
+    client.post(f"/api/v1/interviews/{session_id}/start")
+    client.post(
+        f"/api/v1/interviews/questions/{question_id}/answer",
+        json={"transcript": "The first answer includes context and a measurable result.", "duration": 8},
+    )
+
+    for transcript in [
+        "The second answer includes additional context and a measurable result.",
+        "The third answer includes even more context and a measurable result.",
+    ]:
+        retry = client.post(
+            f"/api/v1/interviews/questions/{question_id}/retry",
+            json={"transcript": transcript, "duration": 9},
+        )
+        assert retry.status_code == 200
+
+    attempts = client.get(f"/api/v1/interviews/questions/{question_id}/attempts")
+    assert attempts.status_code == 200
+    assert [item["attempt_number"] for item in attempts.json()["items"]] == [1, 2, 3]
+    assert all(item["evaluation"] is not None for item in attempts.json()["items"])
+
+
+def test_retry_after_completion_does_not_recomplete_session(client):
+    payload = interview_payload()
+    payload["question_count"] = 1
+    created = client.post("/api/v1/interviews", json=payload).json()
+    session_id = created["id"]
+    question_id = created["questions"][0]["id"]
+    client.post(f"/api/v1/interviews/{session_id}/start")
+    client.post(f"/api/v1/interviews/questions/{question_id}/answer", json={"transcript": "The original answer includes a clear result and measurable impact.", "duration": 8})
+
+    retry = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json={"transcript": "The improved answer explains the measurable impact in more detail.", "duration": 9})
+
+    assert retry.status_code == 200
+    assert client.get(f"/api/v1/interviews/{session_id}").json()["status"] == "completed"
+    assert len(client.get(f"/api/v1/interviews/questions/{question_id}/attempts").json()["items"]) == 2
+
+
+def test_get_question_audio(client):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    question_id = created["questions"][0]["id"]
+
+    # Request the audio for the question
+    res = client.get(f"/api/v1/questions/{question_id}/audio")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "audio/mpeg"
+    assert len(res.content) > 0  # ensure we got some bytes
+
+
+def test_get_question_audio_uses_tts_factory(client, monkeypatch):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    question_id = created["questions"][0]["id"]
+
+    class RecordingTTS:
+        def __init__(self):
+            self.calls = []
+
+        def synthesize(self, text):
+            self.calls.append(text)
+            return b"rime-audio"
+
+    tts = RecordingTTS()
+    monkeypatch.setattr(questions_api, "create_text_to_speech", lambda: tts)
+
+    response = client.get(f"/api/v1/questions/{question_id}/audio")
+
+    assert response.status_code == 200
+    assert response.content == b"rime-audio"
+    assert len(tts.calls) == 1
+
+
+def test_get_question_audio_reports_tts_failure(client, monkeypatch):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    question_id = created["questions"][0]["id"]
+
+    class FailingTTS:
+        def synthesize(self, text):
+            raise ProviderError("Rime TTS request failed with HTTP 503")
+
+    monkeypatch.setattr(questions_api, "create_text_to_speech", FailingTTS)
+
+    response = client.get(f"/api/v1/questions/{question_id}/audio")
+
+    assert response.status_code == 503
+    assert response.json()["error"] == {
+        "code": "provider_unavailable",
+        "message": "Rime TTS request failed with HTTP 503",
+    }
+
+
+def test_get_question_audio_not_found(client):
+    invalid_id = str(uuid4())
+    res = client.get(f"/api/v1/questions/{invalid_id}/audio")
+    assert res.status_code == 404

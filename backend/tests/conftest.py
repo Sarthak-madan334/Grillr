@@ -13,6 +13,7 @@ from sqlalchemy.pool import StaticPool
 
 import app.db.session as sys_db_session
 from app.db.session import Base, get_db
+from app.core.rate_limit import limiter
 from app.main import app
 
 test_engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
@@ -22,9 +23,11 @@ sys_db_session.SessionLocal.configure(bind=test_engine)
 
 @pytest.fixture(autouse=True)
 def setup_db():
+    limiter.clear()
     Base.metadata.create_all(bind=test_engine)
     yield
     Base.metadata.drop_all(bind=test_engine)
+    limiter.clear()
 
 
 @pytest.fixture

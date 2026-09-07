@@ -48,29 +48,56 @@ export class MockRealtimeClient {
     const queue = [
       {
         type: "ai.question",
-        data: { id: "q-1", text: "Tell me about yourself and why this role fits your background." },
+        data: {
+          id: "q-1",
+          text: "Tell me about yourself and why this role fits your background.",
+        },
       },
       { type: "ai.speech.start", data: {} },
       { type: "ai.speech.end", data: {} },
       { type: "user.speech.start", data: {} },
-      { type: "user.partial_transcript", data: { speaker: "user", text: "I have spent the last " } },
-      { type: "user.partial_transcript", data: { speaker: "user", text: "I have spent the last three years building products" } },
-      { type: "user.final_transcript", data: { speaker: "user", text: "I have spent the last three years building products and leading cross-functional teams to ship customer-focused features." } },
+      {
+        type: "user.partial_transcript",
+        data: { speaker: "user", text: "I have spent the last " },
+      },
+      {
+        type: "user.partial_transcript",
+        data: {
+          speaker: "user",
+          text: "I have spent the last three years building products",
+        },
+      },
+      {
+        type: "user.final_transcript",
+        data: {
+          speaker: "user",
+          text: "I have spent the last three years building products and leading cross-functional teams to ship customer-focused features.",
+        },
+      },
       { type: "answer.processing", data: {} },
-      { type: "next.question", data: { id: "q-2", text: "Describe a time you resolved a technical or product challenge under pressure." } },
+      {
+        type: "next.question",
+        data: {
+          id: "q-2",
+          text: "Describe a time you resolved a technical or product challenge under pressure.",
+        },
+      },
       { type: "interview.complete", data: { status: "completed" } },
     ] as const;
 
     queue.forEach((item, index) => {
-      const timer = setTimeout(() => {
-        const event: RealtimeEvent = {
-          type: item.type,
-          data: item.data,
-          timestamp: Date.now(),
-        };
+      const timer = setTimeout(
+        () => {
+          const event: RealtimeEvent = {
+            type: item.type,
+            data: item.data,
+            timestamp: Date.now(),
+          };
 
-        this.listeners.forEach((listener) => listener(event));
-      }, 800 + index * 1100);
+          this.listeners.forEach((listener) => listener(event));
+        },
+        800 + index * 1100,
+      );
 
       this.timers.push(timer);
     });

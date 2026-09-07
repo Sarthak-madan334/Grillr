@@ -11,7 +11,8 @@ class UserResponse(BaseModel):
     email: str
     name: str | None = None
     username: str | None = None
-    username_setup_complete: bool
+    username_complete: bool = False
+    username_setup_complete: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -28,4 +29,5 @@ class ErrorResponse(BaseModel):
 
 
 class RetryRequest(BaseModel):
-    answer_id: UUID | None = None
+    transcript: str = Field(min_length=1, max_length=50000)
+    duration: float = Field(gt=0, le=3600)

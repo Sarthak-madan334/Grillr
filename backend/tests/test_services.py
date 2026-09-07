@@ -1,11 +1,57 @@
-from uuid import uuid4
 from types import SimpleNamespace
+from uuid import uuid4
 
 import httpx
 import pytest
 
 import app.services.providers as providers
-from app.services.providers import MockSpeechAnalyzer, MockAnswerEvaluator, MockAIInterviewer, RimeTextToSpeech
+from app.services.interview_service import InterviewService
+from app.services.providers import LLMAnswerEvaluator, MockSpeechAnalyzer, MockAnswerEvaluator, MockAIInterviewer, MockTextToSpeech, RimeTextToSpeech, SpeechToTextService, TranscriptionError, TranscriptionTimeoutError, create_text_to_speech
+
+
+class FailingSpeechToText:
+    def transcribe(self, audio: bytes) -> str:
+        raise RuntimeError("provider unavailable")
+
+
+class SlowSpeechToText:
+    def transcribe(self, audio: bytes) -> str:
+        import time
+        time.sleep(0.05)
+        return "too late"
+
+
+class SilentSpeechToText:
+    def transcribe(self, audio: bytes) -> str:
+        return "  "
+
+
+@pytest.mark.asyncio
+async def test_stt_provider_failure_becomes_defined_error(caplog):
+    service = SpeechToTextService(FailingSpeechToText(), timeout_seconds=1)
+
+    with pytest.raises(TranscriptionError, match="Speech transcription failed"):
+        await service.transcribe(b"private-audio", session_id=uuid4(), question_id=uuid4())
+
+    assert "private-audio" not in caplog.text
+    assert "Speech transcription failed" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_stt_timeout_becomes_defined_timeout_error():
+    service = SpeechToTextService(SlowSpeechToText(), timeout_seconds=0.01)
+
+    with pytest.raises(TranscriptionTimeoutError, match="exceeded"):
+        await service.transcribe(b"audio")
+
+
+@pytest.mark.asyncio
+async def test_stt_empty_transcript_is_no_speech_outcome():
+    result = await SpeechToTextService(SilentSpeechToText()).transcribe(b"silent-audio")
+
+    assert result.code == "no_speech_detected"
+    assert result.transcript == ""
+    assert result.has_speech is False
 
 
 class FakeHttpClient:
@@ -46,6 +92,24 @@ def test_speech_analyzer_zero_duration_safeguard():
     assert metrics["words_per_minute"] > 0  # does not divide by zero
 
 
+def test_speech_analyzer_detects_common_filler_phrases():
+    metrics = MockSpeechAnalyzer().analyze("Um, you know, I mean, basically we can sort of improve it", 10.0)
+
+    assert metrics["filler_count"] == 5
+
+
+def test_speech_analyzer_detects_repeated_phrases():
+    metrics = MockSpeechAnalyzer().analyze("I think the plan is strong and I think the plan should ship", 10.0)
+
+    assert metrics["repetition_count"] >= 2
+
+
+def test_speech_analyzer_clamps_near_zero_duration():
+    metrics = MockSpeechAnalyzer().analyze("one two", 0.001)
+
+    assert metrics["words_per_minute"] == 120
+
+
 def test_answer_evaluator_scoring():
     evaluator = MockAnswerEvaluator()
     short_eval = evaluator.evaluate("Short answer", "What is OOP?")
@@ -55,11 +119,68 @@ def test_answer_evaluator_scoring():
     assert long_eval["overall_score"] == 80
 
 
+def test_answer_evaluator_factory_uses_mock_without_key():
+    evaluator = providers.create_answer_evaluator(SimpleNamespace(groq_api_key=None, groq_model="test-model"))
+
+    assert isinstance(evaluator, MockAnswerEvaluator)
+
+
+def test_interview_service_uses_llm_evaluator_with_injected_key():
+    service = InterviewService(object(), tts=MockTextToSpeech(), settings=SimpleNamespace(groq_api_key="test-key", groq_model="test-model"))
+
+    assert isinstance(service.evaluator, LLMAnswerEvaluator)
+    assert service.evaluator.api_key == "test-key"
+    assert service.evaluator.model == "test-model"
+
+
+def test_llm_answer_evaluator_parses_and_clamps_scores(monkeypatch):
+    payload = {"choices": [{"message": {"content": '{"relevance_score": 120, "clarity_score": 80, "structure_score": 70, "specificity_score": 60, "technical_accuracy_score": 50, "conciseness_score": 40, "communication_score": 30, "overall_score": 75, "strengths": ["Clear"], "weaknesses": [], "suggestions": ["Add metrics"], "improved_answer": "A stronger answer."}'}}]}
+    client = FakeHttpClient(response=httpx.Response(200, json=payload, request=httpx.Request("POST", "https://api.groq.com")))
+    monkeypatch.setattr(providers.httpx, "Client", lambda timeout: client)
+
+    result = LLMAnswerEvaluator(api_key="test-key").evaluate("I led a migration and reduced deploy time by 40 percent.", "Tell me about a project you led.")
+
+    assert result["relevance_score"] == 100
+    assert result["overall_score"] == 75
+    assert result["strengths"] == ["Clear"]
+
+
+def test_llm_answer_evaluator_malformed_response_uses_fallback(monkeypatch):
+    client = FakeHttpClient(response=httpx.Response(200, json={"choices": [{"message": {"content": "not json"}}]}, request=httpx.Request("POST", "https://api.groq.com")))
+    monkeypatch.setattr(providers.httpx, "Client", lambda timeout: client)
+
+    result = LLMAnswerEvaluator(api_key="test-key").evaluate("I improved the process by documenting the workflow and measuring cycle time.", "How did you improve a process?")
+
+    assert result["overall_score"] == 0
+    assert "Evaluation unavailable" in result["weaknesses"][0]
+
+
+def test_llm_answer_evaluator_provider_failure_uses_fallback(monkeypatch):
+    client = FakeHttpClient(error=httpx.ConnectError("connection refused"))
+    monkeypatch.setattr(providers.httpx, "Client", lambda timeout: client)
+
+    result = LLMAnswerEvaluator(api_key="test-key").evaluate("I improved the process by documenting the workflow and measuring cycle time.", "How did you improve a process?")
+
+    assert result["overall_score"] == 0
+    assert "Evaluation unavailable" in result["weaknesses"][0]
+
+
+def test_llm_answer_evaluator_trivial_answer_scores_low_without_call(monkeypatch):
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("trivial answers should not call the LLM")
+
+    monkeypatch.setattr(providers.httpx, "Client", fail_if_called)
+    result = LLMAnswerEvaluator(api_key="test-key").evaluate("I don't know", "What is your greatest strength?")
+
+    assert result["overall_score"] == 0
+    assert "too brief" in result["weaknesses"][0]
+
+
 def test_mock_ai_interviewer():
     ai = MockAIInterviewer()
     first = ai.first_question("DevOps Engineer", "technical")
     assert "DevOps Engineer" in first
-    nxt = ai.next_question("DevOps Engineer", 2)
+    nxt = ai.next_question("DevOps Engineer", 2, [])
     assert "DevOps Engineer" in nxt
 
 
@@ -108,6 +229,42 @@ def test_rime_tts_requires_api_key(monkeypatch):
 
     with pytest.raises(RuntimeError, match="RIME_API_KEY is missing"):
         RimeTextToSpeech().synthesize("Hello there")
+
+
+def test_text_to_speech_factory_uses_mock_without_rime_key(monkeypatch):
+    monkeypatch.setattr(providers, "get_settings", lambda: SimpleNamespace(rime_api_key=None))
+
+    assert isinstance(create_text_to_speech(), MockTextToSpeech)
+
+
+def test_text_to_speech_factory_rejects_missing_rime_key_in_production(monkeypatch):
+    monkeypatch.setattr(
+        providers,
+        "get_settings",
+        lambda: SimpleNamespace(rime_api_key=None, is_production=True),
+    )
+
+    with pytest.raises(RuntimeError, match="Rime TTS is required outside development"):
+        create_text_to_speech()
+
+
+def test_text_to_speech_factory_never_returns_mock_in_production(monkeypatch):
+    monkeypatch.setattr(
+        providers,
+        "get_settings",
+        lambda: SimpleNamespace(rime_api_key="test-rime-key", is_production=True),
+    )
+
+    assert not isinstance(create_text_to_speech(), MockTextToSpeech)
+
+
+def test_text_to_speech_factory_uses_rime_with_api_key(monkeypatch):
+    monkeypatch.setattr(providers, "get_settings", lambda: SimpleNamespace(rime_api_key="test-rime-key"))
+
+    provider = create_text_to_speech()
+
+    assert isinstance(provider, RimeTextToSpeech)
+    assert provider.api_key == "test-rime-key"
 
 
 def test_unknown_interview_is_not_accessible(client):

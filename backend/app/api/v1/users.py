@@ -3,20 +3,25 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+import logging
+
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Response, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.auth import CurrentUser, get_current_user
+from app.core.rate_limit import auth_rate_limit
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.models import User
 from app.schemas.common import UserResponse
-from app.schemas.user import UserLoginRequest, UserLoginResponse, UserPublic, UserSignupRequest, UserSignupResponse, UsernameRequest
+from app.schemas.user import UserLoginRequest, UserLoginResponse, UserPublic, UserSignupRequest, UserSignupResponse, UsernameRequest, UsernameUpdateRequest
 
 router = APIRouter()
+bearer = HTTPBearer(auto_error=False)
 
 
 async def _read_json_response(response: httpx.Response) -> dict[str, Any]:
@@ -106,7 +111,7 @@ def username_availability(username: str = Query(...), db: Session = Depends(get_
         normalized_username = UsernameRequest(username=username).username
     except ValueError as exc:
         raise HTTPException(status_code=422, detail={"code": "validation_error", "message": str(exc)}) from exc
-    taken = db.scalar(select(User.id).where(User.username == normalized_username)) is not None
+    taken = db.scalar(select(User.id).where(func.lower(User.username) == normalized_username)) is not None
     return {"available": not taken}
 
 
@@ -128,7 +133,26 @@ def set_username(payload: UsernameRequest, identity: CurrentUser = Depends(get_c
     return user
 
 
-@router.post("/signup", response_model=UserSignupResponse, status_code=status.HTTP_201_CREATED)
+@router.put("/me/username", response_model=UserResponse)
+def update_username(payload: UsernameUpdateRequest, identity: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
+    username = payload.username.lower()
+    user = db.get(User, identity.id)
+    if user is None:
+        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "User not found"})
+    duplicate = db.scalar(select(User.id).where(func.lower(User.username) == username, User.id != identity.id))
+    if duplicate is not None:
+        raise HTTPException(status_code=409, detail={"code": "username_unavailable", "message": "Username is already unavailable"})
+    user.username = username
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"code": "username_unavailable", "message": "Username is already unavailable"}) from None
+    db.refresh(user)
+    return user
+
+
+@router.post("/signup", response_model=UserSignupResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(auth_rate_limit)])
 async def signup_user(payload: UserSignupRequest, db: Session = Depends(get_db)) -> UserSignupResponse:
     first_name = _normalize_name(payload.first_name, "First name")
     last_name = _normalize_name(payload.last_name, "Last name")
@@ -162,14 +186,23 @@ async def signup_user(payload: UserSignupRequest, db: Session = Depends(get_db))
     session = auth_result.get("session") or {}
     access_token = session.get("access_token")
     return UserSignupResponse(
-        user=UserPublic(id=str(user.id), email=user.email, first_name=first_name, last_name=last_name, name=full_name, username=user.username, username_setup_complete=user.username_setup_complete),
+        user=UserPublic(
+            id=str(user.id),
+            email=user.email,
+            first_name=first_name,
+            last_name=last_name,
+            name=full_name,
+            username=user.username,
+            username_complete=user.username_complete,
+            username_setup_complete=user.username_setup_complete,
+        ),
         access_token=access_token,
         refresh_token=session.get("refresh_token"),
         requires_email_confirmation=not bool(access_token),
     )
 
 
-@router.post("/login", response_model=UserLoginResponse)
+@router.post("/login", response_model=UserLoginResponse, dependencies=[Depends(auth_rate_limit)])
 async def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)) -> UserLoginResponse:
     email = payload.email.strip().lower()
 
@@ -207,8 +240,33 @@ async def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)) -
             last_name=last_name,
             name=user_name,
             username=user.username,
+            username_complete=user.username_complete,
             username_setup_complete=user.username_setup_complete,
         ),
         access_token=auth_result.get("access_token"),
         refresh_token=auth_result.get("refresh_token"),
     )
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+async def logout_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    access_token: str | None = Cookie(default=None, alias="grillr_access_token")
+) -> Response:
+    token = credentials.credentials if credentials is not None else access_token
+    if token and not token.startswith("dev:"):
+        settings = get_settings()
+        if settings.supabase_url and settings.supabase_anon_key:
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    await client.post(
+                        f"{settings.supabase_url.rstrip('/')}/auth/v1/logout",
+                        headers={
+                            "apikey": settings.supabase_anon_key,
+                            "Authorization": f"Bearer {token}"
+                        }
+                    )
+            except Exception:
+                logging.getLogger(__name__).warning("Failed to sign out from Supabase", exc_info=True)
+                
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
