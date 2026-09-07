@@ -118,9 +118,9 @@ textarea {
 @media (prefers-reduced-motion: reduce) { .ai-message, .ai-typing span, .ai-send-button { animation: none; transition: none; } }
 
 .ai-core-shell { background: var(--background); color: var(--foreground); }
-.ai-back-button { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 22px; border: 0; color: #6b6258; background: transparent; cursor: pointer; font-size: 12px; font-weight: 600; }
+.ai-back-button { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; margin-bottom: 22px; padding: 6px 12px; border: 1px solid transparent; border-radius: 999px; color: #6b6258; background: transparent; cursor: pointer; font-size: 12px; font-weight: 600; }
 .ai-back-button:hover { color: #2f2a26; }
-.ai-back-button:focus-visible { outline: 2px solid #a69b90; outline-offset: 4px; border-radius: 4px; }
+.ai-back-button:focus-visible { outline: 2px solid #a69b90; outline-offset: 3px; }
 .ai-back-button .ai-icon { width: 15px; height: 15px; }
 .ai-core-header h1, .ai-panel-toolbar h2, .ai-message-meta strong, .ai-select-copy strong, .ai-empty-state h3 { color: var(--foreground); }
 .ai-message-body p { color: #374151; }
