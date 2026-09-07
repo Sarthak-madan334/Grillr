@@ -13,7 +13,7 @@ from app.schemas.answer import AnswerCreate, AnswerResponse
 from app.schemas.common import RetryRequest
 from app.schemas.interview import RetryResponse
 from app.services.interview_service import InterviewService
-from app.services.providers import MockTextToSpeech
+from app.services.providers import create_text_to_speech
 
 router = APIRouter()
 
@@ -46,7 +46,7 @@ def get_question_audio(question_id: UUID, identity: CurrentUser = Depends(get_cu
     if question_id in _audio_cache:
         audio = _audio_cache[question_id]
     else:
-        tts = MockTextToSpeech()
+        tts = create_text_to_speech()
         audio = tts.synthesize(question.question_text)
         _audio_cache[question_id] = audio
     return Response(content=audio, media_type="audio/mpeg")

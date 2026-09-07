@@ -237,6 +237,27 @@ def test_text_to_speech_factory_uses_mock_without_rime_key(monkeypatch):
     assert isinstance(create_text_to_speech(), MockTextToSpeech)
 
 
+def test_text_to_speech_factory_rejects_missing_rime_key_in_production(monkeypatch):
+    monkeypatch.setattr(
+        providers,
+        "get_settings",
+        lambda: SimpleNamespace(rime_api_key=None, is_production=True),
+    )
+
+    with pytest.raises(RuntimeError, match="Rime TTS is required outside development"):
+        create_text_to_speech()
+
+
+def test_text_to_speech_factory_never_returns_mock_in_production(monkeypatch):
+    monkeypatch.setattr(
+        providers,
+        "get_settings",
+        lambda: SimpleNamespace(rime_api_key="test-rime-key", is_production=True),
+    )
+
+    assert not isinstance(create_text_to_speech(), MockTextToSpeech)
+
+
 def test_text_to_speech_factory_uses_rime_with_api_key(monkeypatch):
     monkeypatch.setattr(providers, "get_settings", lambda: SimpleNamespace(rime_api_key="test-rime-key"))
 

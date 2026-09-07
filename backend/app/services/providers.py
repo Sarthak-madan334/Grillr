@@ -9,6 +9,7 @@ import httpx
 from openai import OpenAI
 
 from app.core.config import get_settings
+from app.core.errors import ProviderError
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +140,8 @@ def create_text_to_speech() -> TextToSpeech:
     settings = get_settings()
     if settings.rime_api_key:
         return RimeTextToSpeech(api_key=settings.rime_api_key)
+    if getattr(settings, "is_production", False):
+        raise RuntimeError("Rime TTS is required outside development: RIME_API_KEY is missing")
     return MockTextToSpeech()
 
 
@@ -154,7 +157,7 @@ class RimeTextToSpeech:
 
     def synthesize(self, text: str) -> bytes:
         if not self.api_key:
-            raise RuntimeError("Rime TTS is not configured: RIME_API_KEY is missing")
+            raise ProviderError("Rime TTS is not configured: RIME_API_KEY is missing")
         if not text.strip():
             raise ValueError("Rime TTS cannot synthesize empty text")
 
@@ -166,17 +169,17 @@ class RimeTextToSpeech:
                     json={"text": text, "speaker": self.speaker, "modelId": self.model_id},
                 )
         except httpx.HTTPError as exc:
-            raise RuntimeError(f"Rime TTS network request failed: {exc}") from exc
+            raise ProviderError(f"Rime TTS network request failed: {exc}") from exc
 
         if response.status_code >= 400:
             detail = response.text.strip().replace("\n", " ")[:200]
-            raise RuntimeError(f"Rime TTS request failed with HTTP {response.status_code}: {detail}")
+            raise ProviderError(f"Rime TTS request failed with HTTP {response.status_code}: {detail}")
 
         content_type = response.headers.get("content-type", "").lower()
         if "json" in content_type:
-            raise RuntimeError("Rime TTS returned an API response instead of audio")
+            raise ProviderError("Rime TTS returned an API response instead of audio")
         if not response.content:
-            raise RuntimeError("Rime TTS returned an empty audio response")
+            raise ProviderError("Rime TTS returned an empty audio response")
         return response.content
 
 

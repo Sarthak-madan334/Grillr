@@ -38,6 +38,11 @@ class RateLimitError(AppError):
         self.retry_after = retry_after
 
 
+class ProviderError(AppError, RuntimeError):
+    def __init__(self, message: str):
+        super().__init__("provider_unavailable", message, status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
 def error_body(code: str, message: str, details: Any = None) -> dict[str, Any]:
     body: dict[str, Any] = {"error": {"code": code, "message": message}}
     if details is not None:
