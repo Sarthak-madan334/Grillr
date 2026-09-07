@@ -25,9 +25,23 @@ class User(Base):
     id: Mapped[uuid.UUID] = uuid_column()
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     name: Mapped[str | None] = mapped_column(String(120))
+    username: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    __table_args__ = (
+        Index(
+            "users_username_lower_unique",
+            func.lower(username),
+            unique=True,
+            sqlite_where=username.is_not(None),
+            postgresql_where=username.is_not(None),
+        ),
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     interviews: Mapped[list["InterviewSession"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
+    @property
+    def username_complete(self) -> bool:
+        return self.username is not None
 
 
 class InterviewSession(Base):

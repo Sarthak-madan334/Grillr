@@ -2,16 +2,20 @@ import asyncio
 import io
 import json
 import logging
+import threading
 import wave
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Callable, ClassVar, Protocol
 from uuid import UUID
 
 import httpx
+from openai import OpenAI
 
 from app.core.config import get_settings
+from app.core.errors import ProviderError
 
 logger = logging.getLogger(__name__)
+WHISPER_SAMPLE_RATE = 16000
 
 
 class AIInterviewer(Protocol):
@@ -29,6 +33,81 @@ class TranscriptionError(RuntimeError):
 
 class TranscriptionTimeoutError(TranscriptionError):
     """A provider did not finish transcription within the configured limit."""
+
+
+class WhisperTranscriptionError(TranscriptionError):
+    """Whisper could not decode the audio, load its model, or transcribe it."""
+
+
+def _decode_wav(audio: bytes) -> tuple[Any, int]:
+    import numpy as np
+
+    try:
+        with wave.open(io.BytesIO(audio), "rb") as wav_file:
+            if wav_file.getnchannels() != 1 or wav_file.getsampwidth() != 2:
+                raise ValueError("WAV audio must be mono 16-bit PCM")
+            sample_rate = wav_file.getframerate()
+            samples = np.frombuffer(wav_file.readframes(wav_file.getnframes()), dtype=np.int16)
+    except Exception as exc:
+        raise WhisperTranscriptionError(f"Whisper could not decode WAV audio: {exc}") from exc
+
+    if not len(samples) or sample_rate <= 0:
+        raise WhisperTranscriptionError("Whisper received empty WAV audio")
+    samples = samples.astype(np.float32) / 32768.0
+    if sample_rate != WHISPER_SAMPLE_RATE:
+        source_positions = np.arange(len(samples), dtype=np.float32)
+        target_positions = np.linspace(
+            0,
+            len(samples) - 1,
+            num=round(len(samples) * WHISPER_SAMPLE_RATE / sample_rate),
+            dtype=np.float32,
+        )
+        samples = np.interp(target_positions, source_positions, samples).astype(np.float32)
+        sample_rate = WHISPER_SAMPLE_RATE
+    return samples, sample_rate
+
+
+def _decode_audio(audio: bytes) -> tuple[Any, int]:
+    """Decode WAV or browser WebM/Opus bytes to mono float32 samples.
+
+    WAV is decoded with the standard library. Other containers, including the
+    WebM/Opus payload produced by MediaRecorder, require PyAV from faster-whisper.
+    """
+    if audio.startswith(b"RIFF") and audio[8:12] == b"WAVE":
+        return _decode_wav(audio)
+
+    try:
+        import av
+        import numpy as np
+
+        with av.open(io.BytesIO(audio)) as container:
+            audio_stream = next(iter(container.streams.audio), None)
+            if audio_stream is None:
+                raise ValueError("audio stream not found")
+            frames = [frame.to_ndarray() for frame in container.decode(audio=0)]
+            if not frames:
+                raise ValueError("audio stream contained no frames")
+            samples = np.concatenate(frames, axis=1 if frames[0].ndim > 1 else 0)
+            if samples.ndim > 1:
+                samples = samples.mean(axis=0)
+            if np.issubdtype(samples.dtype, np.integer):
+                samples = samples.astype(np.float32) / np.iinfo(samples.dtype).max
+            else:
+                samples = samples.astype(np.float32)
+            if audio_stream.sample_rate != WHISPER_SAMPLE_RATE:
+                source_positions = np.arange(len(samples), dtype=np.float32)
+                target_positions = np.linspace(
+                    0,
+                    len(samples) - 1,
+                    num=round(len(samples) * WHISPER_SAMPLE_RATE / audio_stream.sample_rate),
+                    dtype=np.float32,
+                )
+                samples = np.interp(target_positions, source_positions, samples).astype(np.float32)
+            return samples, WHISPER_SAMPLE_RATE
+    except WhisperTranscriptionError:
+        raise
+    except Exception as exc:
+        raise WhisperTranscriptionError(f"Whisper could not decode audio: {exc}") from exc
 
 
 @dataclass(frozen=True)
@@ -119,6 +198,81 @@ class MockSpeechToText:
         return "This is a mock transcript."
 
 
+class WhisperSpeechToText:
+    """Transcribe encoded audio with a locally cached faster-whisper model.
+
+    ``transcribe`` expects encoded WAV (mono 16-bit PCM) or a container format
+    PyAV can decode, such as browser MediaRecorder WebM/Opus bytes. It returns
+    an empty string for valid audio with no detected speech; malformed, empty,
+    or failed inference raises ``WhisperTranscriptionError``.
+    """
+
+    _model_cache: ClassVar[dict[str, Any]] = {}
+    _model_lock: ClassVar[threading.Lock] = threading.Lock()
+
+    def __init__(
+        self,
+        model_size: str | None = None,
+        model_loader: Callable[[str], Any] | None = None,
+    ):
+        self.model_size = model_size or get_settings().whisper_model_size
+        self._model_loader = model_loader or self._load_model
+
+    @classmethod
+    def _load_model(cls, model_size: str) -> Any:
+        try:
+            from faster_whisper import WhisperModel
+
+            return WhisperModel(model_size, device="cpu", compute_type="int8")
+        except Exception as exc:
+            raise WhisperTranscriptionError(
+                f"Whisper model '{model_size}' could not be loaded: {exc}"
+            ) from exc
+
+    def _get_model(self) -> Any:
+        model = self._model_cache.get(self.model_size)
+        if model is not None:
+            return model
+        with self._model_lock:
+            model = self._model_cache.get(self.model_size)
+            if model is None:
+                model = self._model_loader(self.model_size)
+                self._model_cache[self.model_size] = model
+        return model
+
+    def transcribe(self, audio: bytes) -> str:
+        if not audio:
+            raise WhisperTranscriptionError("Whisper cannot transcribe empty audio")
+        samples, sample_rate = _decode_audio(audio)
+        try:
+            segments, _ = self._get_model().transcribe(samples)
+            return " ".join(segment.text.strip() for segment in segments).strip()
+        except WhisperTranscriptionError:
+            raise
+        except Exception as exc:
+            raise WhisperTranscriptionError(f"Whisper transcription failed: {exc}") from exc
+
+
+class OpenAISpeechToText:
+    """Speech-to-text adapter for recorded browser audio."""
+
+    def __init__(self, api_key: str | None = None, model: str = "gpt-4o-mini-transcribe"):
+        self.client = OpenAI(api_key=api_key or get_settings().openai_api_key)
+        self.model = model
+
+    def transcribe(self, audio: bytes) -> str:
+        response = self.client.audio.transcriptions.create(
+            model=self.model,
+            file=("answer.webm", audio, "audio/webm"),
+        )
+        return response.text
+
+
+def create_speech_to_text() -> SpeechToText:
+    settings = get_settings()
+    return OpenAISpeechToText(api_key=settings.openai_api_key) if settings.openai_api_key else MockSpeechToText()
+
+
 class MockTextToSpeech:
     media_type = "audio/wav"
 
@@ -138,7 +292,7 @@ def create_text_to_speech() -> TextToSpeech:
     if settings.rime_api_key:
         return RimeTextToSpeech(api_key=settings.rime_api_key)
     if getattr(settings, "is_production", False):
-        raise TextToSpeechConfigurationError("Rime TTS is not configured")
+        raise TextToSpeechConfigurationError("Rime TTS is required outside development: RIME_API_KEY is missing")
     return MockTextToSpeech()
 
 

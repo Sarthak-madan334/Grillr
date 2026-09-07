@@ -1,4 +1,17 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+USERNAME_PATTERN = r"^[a-z0-9]+(?:_[a-z0-9]+)*$"
+
+
+class UsernameUpdateRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=30, pattern=USERNAME_PATTERN)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def normalize_username(cls, value: str) -> str:
+        return value.strip().lower() if isinstance(value, str) else value
 
 
 class UserSignupRequest(BaseModel):
@@ -16,6 +29,8 @@ class UserPublic(BaseModel):
     first_name: str
     last_name: str
     name: str
+    username: str | None = None
+    username_complete: bool = False
 
 
 class UserLoginRequest(BaseModel):
