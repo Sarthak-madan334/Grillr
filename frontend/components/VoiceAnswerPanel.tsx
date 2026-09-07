@@ -131,7 +131,15 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
         if (socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(chunk);
       };
       if (sessionId && typeof WebSocket !== "undefined" && typeof MediaRecorder !== "undefined") {
-        const socket = new WebSocket(getSocketUrl());
+        const tokenResponse = await fetch("/api/auth/realtime-token", { cache: "no-store" });
+        if (!tokenResponse.ok) {
+          throw new Error("Realtime authentication failed");
+        }
+        const { token } = (await tokenResponse.json()) as { token?: string };
+        if (!token) {
+          throw new Error("Realtime authentication failed");
+        }
+        const socket = new WebSocket(`${getSocketUrl()}?token=${encodeURIComponent(token)}`);
         socketRef.current = socket;
         socket.addEventListener("open", () => {
           socket.send(JSON.stringify({ type: "speech.start" }));
@@ -197,8 +205,6 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
     } else {
       stopStream();
     }
-                setStatus("ready");
-                setTranscriptionState("idle");
   }
 
   const message = statusCopy(status);

@@ -120,6 +120,7 @@ describe("VoiceAnswerPanel", () => {
     const onTranscript = vi.fn();
     vi.stubGlobal("WebSocket", FakeSocket);
     vi.stubGlobal("MediaRecorder", FakeRecorder);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ token: "test-token" }), { status: 200, headers: { "Content-Type": "application/json" } })));
     const track = { addEventListener: vi.fn(), stop: vi.fn() };
     mockMediaDevices({ getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [track] }), enumerateDevices: vi.fn().mockResolvedValue([]) });
     render(<VoiceAnswerPanel sessionId="session-1" onTranscript={onTranscript} />);
