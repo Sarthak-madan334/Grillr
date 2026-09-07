@@ -42,12 +42,16 @@ textarea {
 }
 
 .signup-page {
-  background: radial-gradient(circle 240px at var(--signup-x, 50%) var(--signup-y, 35%), rgba(214, 169, 123, 0.1), transparent 72%), #ffffff;
+  background: radial-gradient(circle 240px at var(--signup-x, 50%) var(--signup-y, 35%), rgba(214, 169, 123, 0.12), transparent 72%), radial-gradient(circle 340px at calc(100% - var(--signup-x, 50%)) calc(100% - var(--signup-y, 35%)), rgba(226, 220, 211, 0.22), transparent 74%), #ffffff;
   transition: background 180ms ease-out;
 }
 
+.signup-surface { transition: transform 220ms ease, box-shadow 220ms ease; }
+.signup-surface:hover { transform: translateY(-2px); box-shadow: 0 32px 110px rgba(63, 52, 43, 0.13); }
+
 @media (prefers-reduced-motion: reduce) {
-  .signup-page { transition: none; }
+  .signup-page, .signup-surface { transition: none; }
+  .signup-surface:hover { transform: none; }
 }
 
 .ai-core-shell {
