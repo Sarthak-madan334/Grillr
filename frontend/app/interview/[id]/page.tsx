@@ -421,7 +421,11 @@ export default function InterviewSessionPage() {
                   {question.question_text}
                 </h2>
                 <div className="mt-10">
-                  <VoiceAnswerPanel disabled={state === "submitting"} />
+                  <VoiceAnswerPanel
+                    sessionId={session.id}
+                    disabled={state === "submitting"}
+                    onTranscript={setDraft}
+                  />
                   <label
                     htmlFor="answer"
                     className="text-sm font-semibold text-[#3d3028]"

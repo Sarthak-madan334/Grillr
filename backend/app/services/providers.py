@@ -109,6 +109,11 @@ class MockSpeechToText:
         return "This is a mock transcript."
 
 
+def create_speech_to_text() -> SpeechToText:
+    """Return the configured speech provider used by realtime interview sessions."""
+    return MockSpeechToText()
+
+
 class MockTextToSpeech:
     def synthesize(self, text: str) -> bytes:
         return text.encode("utf-8")
