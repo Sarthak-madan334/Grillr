@@ -152,14 +152,19 @@ class InterviewService:
 
     def retry(self, question_id: UUID, user_id: UUID, transcript: str, duration: float) -> Answer:
         self.get_question(question_id, user_id)
-        latest = self.db.scalar(
+        duplicate = self.db.scalar(
             select(Answer)
-            .where(Answer.question_id == question_id)
+            .where(
+                Answer.question_id == question_id,
+                Answer.attempt_number > 1,
+                Answer.transcript == transcript,
+                Answer.duration == duration,
+            )
             .options(selectinload(Answer.speech_metrics), selectinload(Answer.evaluation))
-            .order_by(Answer.attempt_number.desc())
+            .order_by(Answer.attempt_number.asc())
         )
-        if latest is not None and latest.attempt_number > 1 and latest.transcript == transcript and latest.duration == duration:
-            return latest
+        if duplicate is not None:
+            return duplicate
 
         try:
             return self.answer(question_id, user_id, AnswerCreate(transcript=transcript, duration=duration), is_retry=True)
