@@ -123,6 +123,59 @@ def test_retry_answer(client):
     assert retry_res.json()["attempt_number"] == 2
 
 
+def test_retry_is_idempotent_for_duplicate_submission(client):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    session_id = created["id"]
+    question_id = created["questions"][0]["id"]
+    client.post(f"/api/v1/interviews/{session_id}/start")
+    client.post(
+        f"/api/v1/interviews/questions/{question_id}/answer",
+        json={"transcript": "The original answer remains unchanged.", "duration": 8},
+    )
+    retry_payload = {"transcript": "The improved retry answer has concrete evidence.", "duration": 10}
+
+    first_retry = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json=retry_payload)
+    second_retry = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json=retry_payload)
+
+    assert first_retry.status_code == second_retry.status_code == 200
+    assert first_retry.json() == second_retry.json()
+    attempts = client.get(f"/api/v1/interviews/questions/{question_id}/attempts").json()["items"]
+    assert [item["attempt_number"] for item in attempts] == [1, 2]
+    assert attempts[0]["transcript"] == "The original answer remains unchanged."
+
+
+def test_retry_deduplicates_payload_from_any_prior_retry(client):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    session_id = created["id"]
+    question_id = created["questions"][0]["id"]
+    client.post(f"/api/v1/interviews/{session_id}/start")
+    client.post(
+        f"/api/v1/interviews/questions/{question_id}/answer",
+        json={"transcript": "The original answer remains unchanged.", "duration": 8},
+    )
+    first_payload = {"transcript": "First retry with measurable evidence.", "duration": 10}
+    second_payload = {"transcript": "Second retry with a different example.", "duration": 11}
+
+    first_retry = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json=first_payload)
+    second_retry = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json=second_payload)
+    repeated_retry = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json=first_payload)
+
+    assert first_retry.json()["attempt_number"] == 2
+    assert second_retry.json()["attempt_number"] == 3
+    assert repeated_retry.json() == first_retry.json()
+    attempts = client.get(f"/api/v1/interviews/questions/{question_id}/attempts").json()["items"]
+    assert [item["attempt_number"] for item in attempts] == [1, 2, 3]
+
+
+def test_duplicate_questions_retry_route_is_removed(client):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    question_id = created["questions"][0]["id"]
+
+    response = client.post(f"/api/v1/questions/{question_id}/retry", json={"transcript": "retry", "duration": 1})
+
+    assert response.status_code == 404
+
+
 def test_question_count_progresses_and_completes(client):
     payload = interview_payload()
     payload["question_count"] = 2

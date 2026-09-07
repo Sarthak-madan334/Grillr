@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.errors import InvalidStateError, NotFoundError
@@ -148,6 +149,41 @@ class InterviewService:
         if question is None:
             raise NotFoundError("Question")
         return question
+
+    def retry(self, question_id: UUID, user_id: UUID, transcript: str, duration: float) -> Answer:
+        self.get_question(question_id, user_id)
+        duplicate = self.db.scalar(
+            select(Answer)
+            .where(
+                Answer.question_id == question_id,
+                Answer.attempt_number > 1,
+                Answer.transcript == transcript,
+                Answer.duration == duration,
+            )
+            .options(selectinload(Answer.speech_metrics), selectinload(Answer.evaluation))
+            .order_by(Answer.attempt_number.asc())
+        )
+        if duplicate is not None:
+            return duplicate
+
+        try:
+            return self.answer(question_id, user_id, AnswerCreate(transcript=transcript, duration=duration), is_retry=True)
+        except IntegrityError:
+            self.db.rollback()
+            duplicate = self.db.scalar(
+                select(Answer)
+                .where(
+                    Answer.question_id == question_id,
+                    Answer.transcript == transcript,
+                    Answer.duration == duration,
+                )
+                .options(selectinload(Answer.speech_metrics), selectinload(Answer.evaluation))
+                .order_by(Answer.attempt_number.desc())
+            )
+            if duplicate is not None and duplicate.attempt_number > 1:
+                return duplicate
+            raise
+
     def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate, is_retry: bool = False) -> Answer:
         question = self.db.scalar(select(Question).join(InterviewSession).where(Question.id == question_id, InterviewSession.user_id == user_id).options(selectinload(Question.session)))
         if question is None:
