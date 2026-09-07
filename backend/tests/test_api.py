@@ -4,7 +4,9 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import select
 
+import app.api.v1.questions as questions_api
 import app.services.interview_service as interview_service
+from app.core.errors import ProviderError
 from app.db.session import SessionLocal
 from app.models import InterviewSummary
 
@@ -416,6 +418,47 @@ def test_get_question_audio(client):
     assert res.status_code == 200
     assert res.headers["content-type"] == "audio/mpeg"
     assert len(res.content) > 0  # ensure we got some bytes
+
+
+def test_get_question_audio_uses_tts_factory(client, monkeypatch):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    question_id = created["questions"][0]["id"]
+
+    class RecordingTTS:
+        def __init__(self):
+            self.calls = []
+
+        def synthesize(self, text):
+            self.calls.append(text)
+            return b"rime-audio"
+
+    tts = RecordingTTS()
+    monkeypatch.setattr(questions_api, "create_text_to_speech", lambda: tts)
+
+    response = client.get(f"/api/v1/questions/{question_id}/audio")
+
+    assert response.status_code == 200
+    assert response.content == b"rime-audio"
+    assert len(tts.calls) == 1
+
+
+def test_get_question_audio_reports_tts_failure(client, monkeypatch):
+    created = client.post("/api/v1/interviews", json=interview_payload()).json()
+    question_id = created["questions"][0]["id"]
+
+    class FailingTTS:
+        def synthesize(self, text):
+            raise ProviderError("Rime TTS request failed with HTTP 503")
+
+    monkeypatch.setattr(questions_api, "create_text_to_speech", FailingTTS)
+
+    response = client.get(f"/api/v1/questions/{question_id}/audio")
+
+    assert response.status_code == 503
+    assert response.json()["error"] == {
+        "code": "provider_unavailable",
+        "message": "Rime TTS request failed with HTTP 503",
+    }
 
 
 def test_get_question_audio_not_found(client):

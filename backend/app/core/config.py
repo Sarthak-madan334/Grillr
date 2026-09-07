@@ -58,6 +58,8 @@ class Settings(BaseSettings):
                 raise ValueError("AUTH_REQUIRED must be true outside development")
             if not self.supabase_jwt_secret:
                 raise ValueError("SUPABASE_JWT_SECRET is required outside development")
+            if not self.rime_api_key:
+                raise ValueError("RIME_API_KEY is required outside development")
             if self.auto_create_schema:
                 raise ValueError("AUTO_CREATE_SCHEMA must be false outside development")
         return self
