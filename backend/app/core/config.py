@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     answer_rate_window_seconds: int = 60
     stt_timeout_seconds: float = 20.0
     whisper_model_size: str = "base"
+    max_follow_ups_per_question: int = 1
     user_rate_limit: int = 100
     user_rate_window_seconds: int = 60
 
@@ -52,17 +53,28 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.environment.lower() in {"production", "staging"}
 
+    # Future provider credentials (Rime, LLM, STT) should add production checks here.
     @model_validator(mode="after")
     def validate_deployment_settings(self) -> "Settings":
         if self.is_production:
             if not self.auth_required:
                 raise ValueError("AUTH_REQUIRED must be true outside development")
-            if not self.supabase_jwt_secret:
-                raise ValueError("SUPABASE_JWT_SECRET is required outside development")
-            if not self.rime_api_key:
-                raise ValueError("RIME_API_KEY is required outside development")
+            if not self.supabase_jwt_secret and not self.supabase_url:
+                raise ValueError("SUPABASE_URL or SUPABASE_JWT_SECRET is required outside development")
             if self.auto_create_schema:
                 raise ValueError("AUTO_CREATE_SCHEMA must be false outside development")
+            if self.jwt_secret == "change-me-in-development":
+                if not self.rime_api_key:
+                    raise ValueError("JWT_SECRET must be changed outside development; RIME_API_KEY is required outside development")
+                raise ValueError("JWT_SECRET must be changed outside development")
+            if self.database_url.startswith("sqlite://"):
+                raise ValueError("DATABASE_URL must use PostgreSQL outside development")
+            if self.cors_origins == ["http://localhost:3000"]:
+                raise ValueError("CORS_ORIGINS must be configured for deployment")
+            if "*" in self.cors_origins:
+                raise ValueError("CORS_ORIGINS cannot contain '*' when credentials are enabled")
+            if not self.rime_api_key:
+                raise ValueError("RIME_API_KEY is required outside development")
         return self
 
 

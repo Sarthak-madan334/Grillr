@@ -29,6 +29,7 @@ class InterviewCreate(BaseModel):
 
 class QuestionResponse(BaseModel):
     id: UUID
+    parent_question_id: UUID | None = None
     question_number: int
     question_text: str
     question_type: str

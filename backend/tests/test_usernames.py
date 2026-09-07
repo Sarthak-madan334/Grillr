@@ -56,7 +56,7 @@ def test_username_duplicate_is_case_insensitive(client):
     )
 
     assert response.status_code == 409
-    assert response.json()["error"]["code"] == "username_unavailable"
+    assert response.json()["error"]["code"] == "username_taken"
 
 
 def test_username_update_maps_database_collision_to_conflict(client, monkeypatch):

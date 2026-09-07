@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 import app.api.v1.questions as questions_api
 import app.services.interview_service as interview_service
-from app.core.errors import ProviderError
+from app.services.providers import TextToSpeechProviderError
 from app.db.session import SessionLocal
 from app.models import InterviewSummary
 
@@ -149,6 +149,49 @@ def test_question_count_progresses_and_completes(client):
     interview = client.get(f"/api/v1/interviews/{session_id}").json()
     assert interview["status"] == "completed"
     assert interview["current_question_number"] == 2
+
+
+def test_contextual_follow_up_is_persisted_and_limited(client, monkeypatch):
+    class FollowUpAI:
+        def first_question(self, job_role, interview_type):
+            return "Tell me about a project you led."
+
+        def next_question(self, job_role, question_number, history):
+            return f"What else did you contribute as a {job_role}?"
+
+        def decide_follow_up(self, **kwargs):
+            return {
+                "action": "follow_up",
+                "question": "What was your specific contribution?",
+                "reason": "The answer lacked individual evidence.",
+            }
+
+    monkeypatch.setattr(interview_service, "MockAIInterviewer", FollowUpAI)
+    payload = interview_payload()
+    payload["question_count"] = 1
+    created = client.post("/api/v1/interviews", json=payload).json()
+    session_id = created["id"]
+    first_question_id = created["questions"][0]["id"]
+    client.post(f"/api/v1/interviews/{session_id}/start")
+
+    answer = client.post(
+        f"/api/v1/interviews/questions/{first_question_id}/answer",
+        json={"transcript": "We improved the product.", "duration": 8},
+    )
+    assert answer.status_code == 201
+    questions = client.get(f"/api/v1/interviews/{session_id}/questions").json()["items"]
+    assert len(questions) == 2
+    follow_up = questions[1]
+    assert follow_up["is_follow_up"] is True
+    assert follow_up["parent_question_id"] == first_question_id
+    assert follow_up["question_text"] == "What was your specific contribution?"
+
+    follow_up_answer = client.post(
+        f"/api/v1/interviews/questions/{follow_up['id']}/answer",
+        json={"transcript": "I designed and shipped the core change.", "duration": 8},
+    )
+    assert follow_up_answer.status_code == 201
+    assert client.get(f"/api/v1/interviews/{session_id}").json()["status"] == "completed"
 
 
 @pytest.mark.parametrize("question_count", [0, -1, 21])
@@ -416,20 +459,22 @@ def test_get_question_audio(client):
     # Request the audio for the question
     res = client.get(f"/api/v1/questions/{question_id}/audio")
     assert res.status_code == 200
-    assert res.headers["content-type"] == "audio/mpeg"
+    assert res.headers["content-type"] == "audio/wav"
     assert len(res.content) > 0  # ensure we got some bytes
 
 
-def test_get_question_audio_uses_tts_factory(client, monkeypatch):
+def test_get_question_audio_uses_configured_provider(client, monkeypatch):
     created = client.post("/api/v1/interviews", json=interview_payload()).json()
     question_id = created["questions"][0]["id"]
 
     class RecordingTTS:
+        media_type = "audio/mpeg"
+
         def __init__(self):
-            self.calls = []
+            self.text = None
 
         def synthesize(self, text):
-            self.calls.append(text)
+            self.text = text
             return b"rime-audio"
 
     tts = RecordingTTS()
@@ -438,27 +483,24 @@ def test_get_question_audio_uses_tts_factory(client, monkeypatch):
     response = client.get(f"/api/v1/questions/{question_id}/audio")
 
     assert response.status_code == 200
+    assert response.headers["content-type"] == "audio/mpeg"
     assert response.content == b"rime-audio"
-    assert len(tts.calls) == 1
+    assert tts.text == created["questions"][0]["question_text"]
 
 
-def test_get_question_audio_reports_tts_failure(client, monkeypatch):
+def test_get_question_audio_provider_failure_is_retryable(client, monkeypatch):
     created = client.post("/api/v1/interviews", json=interview_payload()).json()
     question_id = created["questions"][0]["id"]
-
-    class FailingTTS:
-        def synthesize(self, text):
-            raise ProviderError("Rime TTS request failed with HTTP 503")
-
-    monkeypatch.setattr(questions_api, "create_text_to_speech", FailingTTS)
+    monkeypatch.setattr(
+        questions_api,
+        "create_text_to_speech",
+        lambda: (_ for _ in ()).throw(TextToSpeechProviderError("provider failed")),
+    )
 
     response = client.get(f"/api/v1/questions/{question_id}/audio")
 
     assert response.status_code == 503
-    assert response.json()["error"] == {
-        "code": "provider_unavailable",
-        "message": "Rime TTS request failed with HTTP 503",
-    }
+    assert response.json()["error"]["code"] == "provider_unavailable"
 
 
 def test_get_question_audio_not_found(client):
