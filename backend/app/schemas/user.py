@@ -1,4 +1,7 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic_core import PydanticCustomError
+
+from app.core.usernames import normalize_username
 
 USERNAME_PATTERN = r"^[a-z0-9]+(?:_[a-z0-9]+)*$"
 
@@ -12,6 +15,7 @@ class UsernameUpdateRequest(BaseModel):
     @classmethod
     def normalize_username(cls, value: str) -> str:
         return value.strip().lower() if isinstance(value, str) else value
+
 
 
 class UserSignupRequest(BaseModel):
@@ -31,6 +35,20 @@ class UserPublic(BaseModel):
     name: str
     username: str | None = None
     username_complete: bool = False
+    username_setup_complete: bool = False
+
+
+class UsernameRequest(BaseModel):
+    username: str
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: str) -> str:
+        try:
+            return normalize_username(value)
+        except ValueError as exc:
+            raise PydanticCustomError("username", str(exc)) from exc
+
 
 
 class UserLoginRequest(BaseModel):

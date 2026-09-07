@@ -43,6 +43,10 @@ class User(Base):
     def username_complete(self) -> bool:
         return self.username is not None
 
+    @property
+    def username_setup_complete(self) -> bool:
+        return self.username_complete
+
 
 class InterviewSession(Base):
     __tablename__ = "interview_sessions"

@@ -24,6 +24,8 @@ For a production-like local stack, set `SUPABASE_JWT_SECRET` and run `docker com
 - `GET /health`
 - `GET /docs`
 - `GET /api/v1/users/me`
+- `GET /api/v1/users/username/availability`
+- `PATCH /api/v1/users/me/username`
 - `POST /api/v1/interviews`
 - `GET /api/v1/interviews`
 - `GET /api/v1/interviews/{id}`

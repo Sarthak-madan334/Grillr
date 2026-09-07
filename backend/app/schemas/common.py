@@ -12,6 +12,7 @@ class UserResponse(BaseModel):
     name: str | None = None
     username: str | None = None
     username_complete: bool = False
+    username_setup_complete: bool = False
 
     model_config = {"from_attributes": True}
 
