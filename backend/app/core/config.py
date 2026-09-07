@@ -56,8 +56,8 @@ class Settings(BaseSettings):
         if self.is_production:
             if not self.auth_required:
                 raise ValueError("AUTH_REQUIRED must be true outside development")
-            if not self.supabase_jwt_secret:
-                raise ValueError("SUPABASE_JWT_SECRET is required outside development")
+            if not self.supabase_jwt_secret and not self.supabase_url:
+                raise ValueError("SUPABASE_URL or SUPABASE_JWT_SECRET is required outside development")
             if self.auto_create_schema:
                 raise ValueError("AUTO_CREATE_SCHEMA must be false outside development")
         return self
