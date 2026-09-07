@@ -10,6 +10,7 @@ def production_settings(**overrides):
         "cors_origins": ["https://app.example.com"],
         "jwt_secret": "production-jwt-secret",
         "supabase_jwt_secret": "production-supabase-secret",
+        "rime_api_key": "test-rime-key",
         "auth_required": True,
         "auto_create_schema": False,
     }

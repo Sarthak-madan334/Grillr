@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import select
 
+import app.services.interview_service as interview_service
 from app.db.session import SessionLocal
 from app.models import Answer, AnswerEvaluation, InterviewSession, Question, SpeechMetrics, User
 
@@ -69,6 +70,17 @@ def test_username_assignment_persists_normalized_state_and_prevents_reassignment
     assert repeated.json()["error"]["code"] == "username_already_set"
 
 
+def test_legacy_put_cannot_bypass_one_time_username_assignment(client):
+    _, headers = create_user()
+
+    assert client.patch("/api/v1/users/me/username", json={"username": "first_name"}, headers=headers).status_code == 200
+
+    response = client.put("/api/v1/users/me/username", json={"username": "second_name"}, headers=headers)
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "username_already_set"
+
+
 def test_username_assignment_rejects_duplicate_and_availability_hides_account_details(client):
     first_id, first_headers = create_user(email="first@example.com")
     second_id, second_headers = create_user(email="second@example.com")
@@ -86,7 +98,12 @@ def test_username_assignment_rejects_duplicate_and_availability_hides_account_de
     assert first_id != second_id
 
 
-def test_user_without_username_can_complete_setup_without_changing_interview_history(client):
+def test_user_without_username_can_complete_setup_without_changing_interview_history(client, monkeypatch):
+    monkeypatch.setattr(
+        interview_service,
+        "create_text_to_speech",
+        lambda: type("TestTTS", (), {"synthesize": lambda self, text: b"test-audio"})(),
+    )
     user_id, headers = create_user()
     payload = {
         "interview_type": "behavioral",

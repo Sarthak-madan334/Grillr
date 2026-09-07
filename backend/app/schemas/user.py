@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic_core import PydanticCustomError
 
 from app.core.usernames import normalize_username
 
@@ -46,7 +47,7 @@ class UsernameRequest(BaseModel):
         try:
             return normalize_username(value)
         except ValueError as exc:
-            raise ValueError(str(exc)) from exc
+            raise PydanticCustomError("username", str(exc)) from exc
 
 
 

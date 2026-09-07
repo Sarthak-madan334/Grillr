@@ -18,7 +18,7 @@ from app.core.config import get_settings
 from app.db.session import get_db
 from app.models import User
 from app.schemas.common import UserResponse
-from app.schemas.user import UserLoginRequest, UserLoginResponse, UserPublic, UserSignupRequest, UserSignupResponse, UsernameRequest, UsernameUpdateRequest
+from app.schemas.user import UserLoginRequest, UserLoginResponse, UserPublic, UserSignupRequest, UserSignupResponse, UsernameRequest
 
 router = APIRouter()
 bearer = HTTPBearer(auto_error=False)
@@ -134,20 +134,21 @@ def set_username(payload: UsernameRequest, identity: CurrentUser = Depends(get_c
 
 
 @router.put("/me/username", response_model=UserResponse)
-def update_username(payload: UsernameUpdateRequest, identity: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
-    username = payload.username.lower()
+def update_username(payload: UsernameRequest, identity: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
     user = db.get(User, identity.id)
     if user is None:
         raise HTTPException(status_code=404, detail={"code": "not_found", "message": "User not found"})
-    duplicate = db.scalar(select(User.id).where(func.lower(User.username) == username, User.id != identity.id))
+    if user.username is not None:
+        raise HTTPException(status_code=409, detail={"code": "username_already_set", "message": "Username has already been set"})
+    duplicate = db.scalar(select(User.id).where(func.lower(User.username) == payload.username, User.id != identity.id))
     if duplicate is not None:
-        raise HTTPException(status_code=409, detail={"code": "username_unavailable", "message": "Username is already unavailable"})
-    user.username = username
+        raise HTTPException(status_code=409, detail={"code": "username_taken", "message": "Username is already taken"})
+    user.username = payload.username
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail={"code": "username_unavailable", "message": "Username is already unavailable"}) from None
+        raise HTTPException(status_code=409, detail={"code": "username_taken", "message": "Username is already taken"}) from None
     db.refresh(user)
     return user
 
