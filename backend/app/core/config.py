@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.environment.lower() in {"production", "staging"}
 
+    # Future provider credentials (Rime, LLM, STT) should add production checks here.
     @model_validator(mode="after")
     def validate_deployment_settings(self) -> "Settings":
         if self.is_production:
@@ -46,6 +47,14 @@ class Settings(BaseSettings):
                 raise ValueError("SUPABASE_JWT_SECRET is required outside development")
             if self.auto_create_schema:
                 raise ValueError("AUTO_CREATE_SCHEMA must be false outside development")
+            if self.database_url.startswith("sqlite://"):
+                raise ValueError("DATABASE_URL must use PostgreSQL outside development")
+            if self.jwt_secret == "change-me-in-development":
+                raise ValueError("JWT_SECRET must be changed outside development")
+            if self.cors_origins == ["http://localhost:3000"]:
+                raise ValueError("CORS_ORIGINS must be configured for deployment")
+            if "*" in self.cors_origins:
+                raise ValueError("CORS_ORIGINS cannot contain '*' when credentials are enabled")
         return self
 
 
