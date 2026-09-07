@@ -5,7 +5,6 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.auth import CurrentUser, get_current_user
-from app.core.errors import InvalidStateError
 from app.core.rate_limit import answer_rate_limit, interview_creation_rate_limit
 from app.db.session import get_db
 from app.models import Answer, AnswerEvaluation, InterviewSession, Question, SessionStatus
@@ -15,7 +14,6 @@ from app.schemas.interview import DashboardStatsResponse, InterviewCreate, Inter
 from app.services.interview_service import InterviewService
 
 router = APIRouter()
-_pending_retries: set[UUID] = set()
 
 
 def service(db: Session = Depends(get_db)) -> InterviewService:
@@ -123,23 +121,12 @@ def get_feedback(session_id: UUID, identity: CurrentUser = Depends(get_current_u
 
 @router.post("/questions/{question_id}/answer", response_model=AnswerResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(answer_rate_limit)])
 def submit_answer(question_id: UUID, data: AnswerCreate, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
-    is_retry = question_id in _pending_retries
-    answer = interviews.answer(question_id, identity.id, data, is_retry=is_retry)
-    if is_retry:
-        _pending_retries.discard(question_id)
-    return answer
+    return interviews.answer(question_id, identity.id, data)
 
 
-@router.post("/questions/{question_id}/retry", dependencies=[Depends(answer_rate_limit)])
+@router.post("/questions/{question_id}/retry", response_model=RetryResponse, dependencies=[Depends(answer_rate_limit)])
 def retry_answer(question_id: UUID, request: RetryRequest, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
-    if request.transcript is None or request.duration is None:
-        question = interviews.get_question(question_id, identity.id)
-        latest = max(question.answers, key=lambda item: item.attempt_number, default=None)
-        if latest is None:
-            raise InvalidStateError("Retries require an existing answer")
-        _pending_retries.add(question_id)
-        return {"question_id": question_id, "attempt_number": latest.attempt_number + 1, "status": "ready"}
-    answer = interviews.answer(question_id, identity.id, AnswerCreate(transcript=request.transcript, duration=request.duration), is_retry=True)
+    answer = interviews.retry(question_id, identity.id, request.transcript, request.duration)
     attempts, score_delta = interviews.attempts(question_id, identity.id)
     return {"question_id": question_id, "answer_id": answer.id, "attempt_number": answer.attempt_number, "status": "submitted", "score_delta": score_delta}
 
