@@ -75,7 +75,7 @@ def test_username_update_maps_database_collision_to_conflict(client, monkeypatch
     response = client.put("/api/v1/users/me/username", json={"username": "race_name"})
 
     assert response.status_code == 409
-    assert response.json()["error"]["code"] == "username_unavailable"
+    assert response.json()["error"]["code"] == "username_taken"
 
 
 def test_username_validation_returns_structured_errors(client):
