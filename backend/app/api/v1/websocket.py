@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 from uuid import UUID
@@ -7,10 +6,9 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
 from app.core.auth import authenticate_token
-from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.services.interview_service import InterviewService
-from app.services.providers import SpeechToText, create_speech_to_text
+from app.services.providers import SpeechToTextService, TranscriptionError, TranscriptionTimeoutError, create_speech_to_text
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -38,7 +36,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             await websocket.close(code=1008, reason="Unauthorized or session not found")
             return
         turn_state = "listening"
-        speech_to_text: SpeechToText = create_speech_to_text()
+        speech_to_text = SpeechToTextService(create_speech_to_text())
         audio_buffer = bytearray()
         recording = False
 
@@ -63,15 +61,17 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             current_question = next((item for item in session.questions if not item.answered_at), None)
             await websocket.send_json({"type": "turn.state_changed", "data": {"state": turn_state, "question_id": str(current_question.id) if current_question else None}})
             try:
-                transcript = await asyncio.to_thread(speech_to_text.transcribe, audio)
-            except Exception:
-                logger.exception("WebSocket transcription failed", extra={"session_id": str(session_id), "audio_length": len(audio)})
+                result = await speech_to_text.transcribe(audio, session_id=session_id, question_id=current_question.id if current_question else None)
+            except TranscriptionTimeoutError:
+                await send_error("transcription_timeout", "Transcription took too long. Please try again.")
+                return
+            except TranscriptionError:
                 await send_error("stt_failed", "We could not transcribe that answer. Please try again.")
                 return
-            normalized = transcript.strip()
-            if not normalized:
+            if not result.has_speech:
                 await send_error("no_speech_detected", "No speech was detected. Please try again.")
                 return
+            normalized = result.transcript
             current_question = next((item for item in session.questions if not item.answered_at), None)
             await websocket.send_json({"type": "transcript.final", "data": {"text": normalized, "question_id": str(current_question.id) if current_question else None}})
             turn_state = "listening"

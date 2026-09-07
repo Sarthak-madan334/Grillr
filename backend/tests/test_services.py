@@ -6,7 +6,52 @@ import pytest
 
 import app.services.providers as providers
 from app.services.interview_service import InterviewService
-from app.services.providers import LLMAnswerEvaluator, MockSpeechAnalyzer, MockAnswerEvaluator, MockAIInterviewer, MockTextToSpeech, RimeTextToSpeech, create_text_to_speech
+from app.services.providers import LLMAnswerEvaluator, MockSpeechAnalyzer, MockAnswerEvaluator, MockAIInterviewer, MockTextToSpeech, RimeTextToSpeech, SpeechToTextService, TranscriptionError, TranscriptionTimeoutError, create_text_to_speech
+
+
+class FailingSpeechToText:
+    def transcribe(self, audio: bytes) -> str:
+        raise RuntimeError("provider unavailable")
+
+
+class SlowSpeechToText:
+    def transcribe(self, audio: bytes) -> str:
+        import time
+        time.sleep(0.05)
+        return "too late"
+
+
+class SilentSpeechToText:
+    def transcribe(self, audio: bytes) -> str:
+        return "  "
+
+
+@pytest.mark.asyncio
+async def test_stt_provider_failure_becomes_defined_error(caplog):
+    service = SpeechToTextService(FailingSpeechToText(), timeout_seconds=1)
+
+    with pytest.raises(TranscriptionError, match="Speech transcription failed"):
+        await service.transcribe(b"private-audio", session_id=uuid4(), question_id=uuid4())
+
+    assert "private-audio" not in caplog.text
+    assert "Speech transcription failed" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_stt_timeout_becomes_defined_timeout_error():
+    service = SpeechToTextService(SlowSpeechToText(), timeout_seconds=0.01)
+
+    with pytest.raises(TranscriptionTimeoutError, match="exceeded"):
+        await service.transcribe(b"audio")
+
+
+@pytest.mark.asyncio
+async def test_stt_empty_transcript_is_no_speech_outcome():
+    result = await SpeechToTextService(SilentSpeechToText()).transcribe(b"silent-audio")
+
+    assert result.code == "no_speech_detected"
+    assert result.transcript == ""
+    assert result.has_speech is False
 
 
 class FakeHttpClient:

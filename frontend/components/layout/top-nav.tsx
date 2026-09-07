@@ -121,6 +121,12 @@ export function TopNav() {
           >
             History
           </Link>
+          <Link
+            href="/ai-core"
+            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
+          >
+            AI Core
+          </Link>
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -183,6 +189,9 @@ export function TopNav() {
                 </Link>
                 <Link href="/history" onClick={closeMenu} className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none">
                   History
+                </Link>
+                <Link href="/ai-core" onClick={closeMenu} className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none">
+                  AI Core
                 </Link>
               </div>
               <div className="my-3 border-t border-[#e7d8c5]" />
