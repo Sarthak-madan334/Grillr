@@ -1,4 +1,6 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+from app.core.usernames import normalize_username
 
 
 class UserSignupRequest(BaseModel):
@@ -16,6 +18,20 @@ class UserPublic(BaseModel):
     first_name: str
     last_name: str
     name: str
+    username: str | None = None
+    username_setup_complete: bool
+
+
+class UsernameRequest(BaseModel):
+    username: str
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: str) -> str:
+        try:
+            return normalize_username(value)
+        except ValueError as exc:
+            raise ValueError(str(exc)) from exc
 
 
 class UserLoginRequest(BaseModel):
