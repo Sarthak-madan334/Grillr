@@ -7,10 +7,10 @@ describe("QuestionAudioPlayer", () => {
 
   it("loads the question audio endpoint and exposes playback when ready", async () => {
     vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
-    render(<QuestionAudioPlayer sessionId="session 1" questionId="question/1" />);
+    render(<QuestionAudioPlayer questionId="question/1" />);
 
     const audio = screen.getByLabelText("Question audio");
-    expect(audio).toHaveAttribute("src", expect.stringContaining("/api/interviews/session%201/questions/question%2F1/audio"));
+    expect(audio).toHaveAttribute("src", expect.stringContaining("/api/questions/question%2F1/audio"));
     expect(screen.getByLabelText("Loading question audio")).toBeInTheDocument();
 
     fireEvent.canPlay(audio);
@@ -19,7 +19,7 @@ describe("QuestionAudioPlayer", () => {
   });
 
   it("falls back to the text prompt when audio is unavailable", async () => {
-    render(<QuestionAudioPlayer sessionId="session-1" questionId="question-1" />);
+    render(<QuestionAudioPlayer questionId="question-1" />);
 
     fireEvent.error(screen.getByLabelText("Question audio"));
 
