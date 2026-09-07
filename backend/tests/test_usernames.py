@@ -5,6 +5,8 @@ from uuid import UUID, uuid4
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.core.auth import DEV_USER_ID
 from app.core.config import get_settings
@@ -55,6 +57,25 @@ def test_username_duplicate_is_case_insensitive(client):
 
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "username_taken"
+
+
+def test_username_update_maps_database_collision_to_conflict(client, monkeypatch):
+    original_commit = Session.commit
+    commit_calls = 0
+
+    def commit_with_collision(self):
+        nonlocal commit_calls
+        commit_calls += 1
+        if commit_calls == 2:
+            raise IntegrityError("duplicate", {}, Exception("duplicate"))
+        return original_commit(self)
+
+    monkeypatch.setattr(Session, "commit", commit_with_collision)
+
+    response = client.put("/api/v1/users/me/username", json={"username": "race_name"})
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "username_unavailable"
 
 
 def test_username_validation_returns_structured_errors(client):
