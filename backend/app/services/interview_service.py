@@ -78,6 +78,17 @@ class InterviewService:
     def questions(self, session_id: UUID, user_id: UUID) -> list[Question]:
         return self.get(session_id, user_id).questions
 
+    def get_question(self, question_id: UUID, user_id: UUID) -> Question:
+        question = self.db.scalar(
+            select(Question)
+            .join(InterviewSession)
+            .where(Question.id == question_id, InterviewSession.user_id == user_id)
+            .options(selectinload(Question.answers))
+        )
+        if question is None:
+            raise NotFoundError("Question")
+        return question
+
     def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate, is_retry: bool = False) -> Answer:
         question = self.db.scalar(select(Question).join(InterviewSession).where(Question.id == question_id, InterviewSession.user_id == user_id).options(selectinload(Question.session)))
         if question is None:
