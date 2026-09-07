@@ -9,6 +9,7 @@ import httpx
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.auth import CurrentUser, get_current_user
@@ -114,7 +115,11 @@ def update_username(payload: UsernameUpdateRequest, identity: CurrentUser = Depe
     if duplicate is not None:
         raise HTTPException(status_code=409, detail={"code": "username_unavailable", "message": "Username is already unavailable"})
     user.username = username
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"code": "username_unavailable", "message": "Username is already unavailable"}) from None
     db.refresh(user)
     return user
 
