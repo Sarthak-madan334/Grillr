@@ -1,7 +1,9 @@
+import asyncio
 import json
 import logging
 from dataclasses import dataclass
 from typing import Protocol
+from uuid import UUID
 
 import httpx
 
@@ -17,6 +19,69 @@ class AIInterviewer(Protocol):
 
 class SpeechToText(Protocol):
     def transcribe(self, audio: bytes) -> str: ...
+
+
+class TranscriptionError(RuntimeError):
+    """A provider failed while converting audio to text."""
+
+
+class TranscriptionTimeoutError(TranscriptionError):
+    """A provider did not finish transcription within the configured limit."""
+
+
+@dataclass(frozen=True)
+class TranscriptionResult:
+    transcript: str
+    code: str
+
+    @property
+    def has_speech(self) -> bool:
+        return self.code == "transcribed"
+
+
+class SpeechToTextService:
+    """Protect the interview flow from provider failures and blocking calls."""
+
+    def __init__(self, provider: SpeechToText, timeout_seconds: float | None = None):
+        configured_timeout = timeout_seconds if timeout_seconds is not None else get_settings().stt_timeout_seconds
+        if configured_timeout <= 0:
+            raise ValueError("STT timeout must be greater than zero")
+        self.provider = provider
+        self.timeout_seconds = configured_timeout
+
+    async def transcribe(
+        self,
+        audio: bytes,
+        *,
+        session_id: UUID | str | None = None,
+        question_id: UUID | str | None = None,
+    ) -> TranscriptionResult:
+        audio_length = len(audio)
+        context = {
+            "session_id": str(session_id) if session_id is not None else None,
+            "question_id": str(question_id) if question_id is not None else None,
+            "audio_length": audio_length,
+        }
+        try:
+            transcript = await asyncio.wait_for(
+                asyncio.to_thread(self.provider.transcribe, audio),
+                timeout=self.timeout_seconds,
+            )
+        except asyncio.TimeoutError as exc:
+            logger.warning("Speech transcription timed out", extra=context)
+            raise TranscriptionTimeoutError(
+                f"Speech transcription exceeded {self.timeout_seconds:g} seconds"
+            ) from exc
+        except Exception as exc:
+            logger.exception("Speech transcription failed", extra=context)
+            raise TranscriptionError("Speech transcription failed") from exc
+
+        normalized_transcript = transcript.strip()
+        if not normalized_transcript:
+            logger.info("No speech detected in audio", extra=context)
+            return TranscriptionResult(transcript="", code="no_speech_detected")
+
+        return TranscriptionResult(transcript=normalized_transcript, code="transcribed")
 
 
 class TextToSpeech(Protocol):
