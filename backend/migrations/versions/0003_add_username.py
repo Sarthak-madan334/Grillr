@@ -1,4 +1,4 @@
-"""add nullable usernames to users
+"""add nullable unique usernames to users
 
 Revision ID: 0003_add_username
 Revises: 0002_add_question_count

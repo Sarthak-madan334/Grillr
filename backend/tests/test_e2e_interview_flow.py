@@ -2,11 +2,17 @@ from uuid import UUID
 
 from sqlalchemy import select
 
+import app.services.interview_service as interview_service
 from app.db.session import SessionLocal
 from app.models import Answer, AnswerEvaluation, InterviewSession, InterviewSummary, Question, SessionStatus, SpeechMetrics
 
 
-def test_typed_interview_flow_completes_with_retry_and_feedback(client):
+def test_typed_interview_flow_completes_with_retry_and_feedback(client, monkeypatch):
+    monkeypatch.setattr(
+        interview_service,
+        "create_text_to_speech",
+        lambda: type("TestTTS", (), {"synthesize": lambda self, text: b"test-audio"})(),
+    )
     question_count = 3
     payload = {
         "interview_type": "behavioral",
@@ -91,28 +97,21 @@ def test_typed_interview_flow_completes_with_retry_and_feedback(client):
             assert db.scalar(select(SpeechMetrics).where(SpeechMetrics.answer_id == answer_id)) is not None
 
         if question_number == 1:
-            retry_response = client.post(f"/api/v1/interviews/questions/{question_id}/retry", json={})
-            assert retry_response.status_code == 200
-            assert retry_response.json() == {
-                "question_id": str(question_id),
-                "attempt_number": 2,
-                "status": "ready",
-            }
-
-            retry_answer_response = client.post(
-                f"/api/v1/interviews/questions/{question_id}/answer",
+            retry_response = client.post(
+                f"/api/v1/interviews/questions/{question_id}/retry",
                 json={
-                    "transcript": "I improved that initial answer with a clearer result and concrete evidence.",
+                    "transcript": "I improved the initial answer with a clearer result and concrete evidence.",
                     "duration": 10,
                 },
             )
-            assert retry_answer_response.status_code == 201
-            retry_answer = retry_answer_response.json()
-            retry_answer_id = UUID(retry_answer["id"])
-            assert retry_answer["question_id"] == str(question_id)
-            assert retry_answer["attempt_number"] == 2
-            assert retry_answer["speech_metrics"] is not None
-            assert retry_answer["evaluation"] is not None
+            assert retry_response.status_code == 200
+            retry = retry_response.json()
+            assert retry["question_id"] == str(question_id)
+            assert retry["attempt_number"] == 2
+            assert retry["status"] == "submitted"
+            assert retry["answer_id"]
+            assert retry["score_delta"] == 0
+            retry_answer_id = UUID(retry["answer_id"])
             total_answers += 1
 
             with SessionLocal() as db:

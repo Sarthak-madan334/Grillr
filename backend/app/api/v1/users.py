@@ -6,9 +6,10 @@ from uuid import UUID
 import logging
 
 import httpx
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.auth import CurrentUser, get_current_user
@@ -17,7 +18,7 @@ from app.core.config import get_settings
 from app.db.session import get_db
 from app.models import User
 from app.schemas.common import UserResponse
-from app.schemas.user import UserLoginRequest, UserLoginResponse, UserPublic, UserSignupRequest, UserSignupResponse, UsernameUpdateRequest
+from app.schemas.user import UserLoginRequest, UserLoginResponse, UserPublic, UserSignupRequest, UserSignupResponse, UsernameRequest
 
 router = APIRouter()
 bearer = HTTPBearer(auto_error=False)
@@ -104,17 +105,50 @@ def current_user(identity: CurrentUser = Depends(get_current_user), db: Session 
     return db.get(User, identity.id)
 
 
-@router.put("/me/username", response_model=UserResponse)
-def update_username(payload: UsernameUpdateRequest, identity: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
-    username = payload.username.lower()
+@router.get("/username/availability")
+def username_availability(username: str = Query(...), db: Session = Depends(get_db)) -> dict[str, bool]:
+    try:
+        normalized_username = UsernameRequest(username=username).username
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail={"code": "validation_error", "message": str(exc)}) from exc
+    taken = db.scalar(select(User.id).where(func.lower(User.username) == normalized_username)) is not None
+    return {"available": not taken}
+
+
+@router.patch("/me/username", response_model=UserResponse)
+def set_username(payload: UsernameRequest, identity: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
     user = db.get(User, identity.id)
     if user is None:
         raise HTTPException(status_code=404, detail={"code": "not_found", "message": "User not found"})
-    duplicate = db.scalar(select(User.id).where(func.lower(User.username) == username, User.id != identity.id))
+    if user.username is not None:
+        raise HTTPException(status_code=409, detail={"code": "username_already_set", "message": "Username has already been set"})
+
+    user.username = payload.username
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"code": "username_taken", "message": "Username is already taken"}) from None
+    db.refresh(user)
+    return user
+
+
+@router.put("/me/username", response_model=UserResponse)
+def update_username(payload: UsernameRequest, identity: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
+    user = db.get(User, identity.id)
+    if user is None:
+        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "User not found"})
+    if user.username is not None:
+        raise HTTPException(status_code=409, detail={"code": "username_already_set", "message": "Username has already been set"})
+    duplicate = db.scalar(select(User.id).where(func.lower(User.username) == payload.username, User.id != identity.id))
     if duplicate is not None:
-        raise HTTPException(status_code=409, detail={"code": "username_unavailable", "message": "Username is already unavailable"})
-    user.username = username
-    db.commit()
+        raise HTTPException(status_code=409, detail={"code": "username_taken", "message": "Username is already taken"})
+    user.username = payload.username
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"code": "username_taken", "message": "Username is already taken"}) from None
     db.refresh(user)
     return user
 
@@ -153,7 +187,16 @@ async def signup_user(payload: UserSignupRequest, db: Session = Depends(get_db))
     session = auth_result.get("session") or {}
     access_token = session.get("access_token")
     return UserSignupResponse(
-        user=UserPublic(id=str(user.id), email=user.email, first_name=first_name, last_name=last_name, name=full_name, username=user.username, username_complete=user.username_complete),
+        user=UserPublic(
+            id=str(user.id),
+            email=user.email,
+            first_name=first_name,
+            last_name=last_name,
+            name=full_name,
+            username=user.username,
+            username_complete=user.username_complete,
+            username_setup_complete=user.username_setup_complete,
+        ),
         access_token=access_token,
         refresh_token=session.get("refresh_token"),
         requires_email_confirmation=not bool(access_token),
@@ -199,6 +242,7 @@ async def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)) -
             name=user_name,
             username=user.username,
             username_complete=user.username_complete,
+            username_setup_complete=user.username_setup_complete,
         ),
         access_token=auth_result.get("access_token"),
         refresh_token=auth_result.get("refresh_token"),
