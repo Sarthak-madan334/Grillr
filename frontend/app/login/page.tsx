@@ -1,14 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { OAuthButtons } from "@/components/OAuthButtons";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { normalizeLoginValues, validateLoginForm, type LoginFormErrors, type LoginFormValues } from "@/lib/auth";
-
-const initialValues: LoginFormValues = { email: "", password: "" };
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 function oauthErrorMessage(code: string | null) {
   const messages: Record<string, string> = {
@@ -23,108 +17,47 @@ function oauthErrorMessage(code: string | null) {
 }
 
 function LoginContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const [values, setValues] = useState(initialValues);
-  const [errors, setErrors] = useState<LoginFormErrors>({});
-  const [message, setMessage] = useState(() => oauthErrorMessage(searchParams.get("oauth_error")));
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const message = oauthErrorMessage(searchParams.get("oauth_error"));
   const requestedNext = searchParams.get("next");
   const nextPath = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/dashboard";
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalized = normalizeLoginValues(values);
-    const nextErrors = validateLoginForm(normalized);
-    setErrors(nextErrors);
-    setMessage("");
-
-    if (Object.values(nextErrors).some(Boolean)) return;
-
-    setIsSubmitting(true);
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalized.email, password: normalized.password }),
-      });
-      const data = (await response.json()) as { error?: { message?: string }; detail?: { message?: string } };
-
-      if (!response.ok) {
-        setMessage(data.error?.message ?? data.detail?.message ?? "Invalid email or password.");
-        return;
-      }
-
-      const next = new URLSearchParams(window.location.search).get("next");
-      router.push(next?.startsWith("/") ? next : "/dashboard");
-      router.refresh();
-    } catch {
-      setMessage("We could not reach the authentication service. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.05),_transparent_45%),linear-gradient(180deg,#f8fafc_0%,#eef2f7_100%)] px-4 py-12">
-      <div className="w-full max-w-md rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-base font-semibold text-white">
-            G
+    <main className="login-page min-h-screen bg-[#f8f5f1] px-3 py-3 text-[#2d241d] sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+      <div className="login-surface mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-7xl overflow-hidden rounded-[30px] border border-[#d8cfc6] bg-white shadow-[0_28px_100px_rgba(45,36,29,0.12)] sm:min-h-[calc(100vh-3rem)] lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="relative hidden overflow-hidden bg-[#2d241d] px-6 py-10 text-[#f9f5f1] sm:px-10 sm:py-12 lg:block lg:px-12 lg:py-10">
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-[#cda67f]/20" />
+          <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full border border-[#cda67f]/15" />
+          <div className="relative flex h-full flex-col">
+            <div className="flex items-center gap-3 text-sm font-semibold tracking-[0.18em] text-[#e9c8a6]">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#cda67f]/40 bg-[#4a392d] text-xl font-semibold text-[#f9f5f1]">G</span>
+              GRILLR
+            </div>
+            <div className="my-auto max-w-md py-8 lg:py-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d5a77d]">Interview practice, with a pulse</p>
+              <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Practice interviews that talk back.</h1>
+              <p className="mt-4 max-w-sm text-base leading-7 text-[#d9c9bb]">Build the clarity, confidence, and composure to make your next answer count.</p>
+            </div>
+            <p className="text-xs text-[#aa9582]">A calmer way to get interview-ready.</p>
           </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">Grillr</p>
-            <h1 className="text-xl font-semibold text-slate-900">Welcome back</h1>
+        </section>
+
+        <section className="login-auth-panel relative flex min-h-full items-center justify-center overflow-hidden px-6 py-12 sm:px-12 sm:py-14 lg:px-14 lg:py-8">
+          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full border border-[#cda67f]/20" />
+          <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full border border-[#cda67f]/15" />
+          <div className="relative w-full max-w-md text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-[#d8c1aa] bg-[#f5ebe1] text-2xl font-semibold text-[#6b503d] shadow-[0_10px_24px_rgba(107,80,61,0.12)]">G</div>
+            <p className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-[#9a7658]">Welcome back</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#2d241d] sm:text-4xl">Your next answer starts here.</h1>
+            <p className="mx-auto mt-4 max-w-sm text-sm leading-6 text-[#6e6259]">Use your existing Google or GitHub account to continue practicing.</p>
+
+            {message ? <div role="alert" className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-left text-sm text-rose-700">{message}</div> : null}
+
+            <div className="mx-auto mt-8 w-full max-w-sm"><OAuthButtons next={nextPath} /></div>
+            <p className="mx-auto mt-6 max-w-sm text-xs leading-5 text-[#806f62]">New to Grillr? Just sign in. We&apos;ll set up your account automatically.</p>
+            <p className="mt-10 text-[11px] leading-5 text-[#a08d7e]">By continuing, you agree to our Terms and Privacy Policy.</p>
           </div>
-        </div>
-
-        {message ? (
-          <div role="alert" className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {message}
-          </div>
-        ) : null}
-
-        <OAuthButtons next={nextPath} />
-        <div className="my-5 flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" /><span>or continue with email</span><span className="h-px flex-1 bg-slate-200" /></div>
-
-        <form className="space-y-5" onSubmit={handleSubmit} noValidate aria-busy={isSubmitting}>
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-slate-700">
-              Email
-            </label>
-            <Input id="email" type="email" placeholder="you@example.com" value={values.email} onChange={(event) => setValues({ ...values, email: event.target.value })} disabled={isSubmitting} aria-invalid={Boolean(errors.email)} />
-            {errors.email ? <p className="text-sm text-rose-600">{errors.email}</p> : null}
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-slate-700">
-              Password
-            </label>
-            <Input id="password" type="password" placeholder="••••••••" value={values.password} onChange={(event) => setValues({ ...values, password: event.target.value })} disabled={isSubmitting} aria-invalid={Boolean(errors.password)} />
-            {errors.password ? <p className="text-sm text-rose-600">{errors.password}</p> : null}
-          </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 text-slate-600">
-              <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-slate-900" />
-              Remember me
-            </label>
-            <Link href="/" className="text-slate-700 hover:text-slate-950">
-              Forgot password?
-            </Link>
-          </div>
-
-          <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
-            {isSubmitting ? "Signing in..." : "Sign in"}
-          </Button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-slate-600">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-semibold text-slate-900">
-            Create one
-          </Link>
-        </p>
+        </section>
       </div>
     </main>
   );

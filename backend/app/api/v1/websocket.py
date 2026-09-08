@@ -46,8 +46,9 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
         if not isinstance(auth_event, dict) or auth_event.get("type") != "auth" or not isinstance(auth_event.get("token"), str) or not auth_event["token"]:
             await websocket.close(code=1008, reason="Authentication is required")
             return
+        token = auth_event["token"]
         try:
-            identity = authenticate_token(auth_event["token"], db)
+            identity = authenticate_token(token, db)
         except Exception:
             await websocket.close(code=1008, reason="Unauthorized or session not found")
             return

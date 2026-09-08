@@ -139,8 +139,6 @@ def update_username(payload: UsernameRequest, identity: CurrentUser = Depends(ge
     user = db.get(User, identity.id)
     if user is None:
         raise HTTPException(status_code=404, detail={"code": "not_found", "message": "User not found"})
-    if user.username is not None:
-        raise HTTPException(status_code=409, detail={"code": "username_already_set", "message": "Username has already been set"})
     duplicate = db.scalar(select(User.id).where(func.lower(User.username) == payload.username, User.id != identity.id))
     if duplicate is not None:
         raise HTTPException(status_code=409, detail={"code": "username_taken", "message": "Username is already taken"})

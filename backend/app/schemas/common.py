@@ -29,5 +29,5 @@ class ErrorResponse(BaseModel):
 
 
 class RetryRequest(BaseModel):
-    transcript: str | None = Field(default=None, min_length=1, max_length=50000)
-    duration: float | None = Field(default=None, gt=0, le=3600)
+    transcript: str = Field(min_length=1, max_length=50000)
+    duration: float = Field(gt=0, le=3600)

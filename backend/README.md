@@ -36,7 +36,6 @@ For a production-like local stack, set `SUPABASE_URL` and run `docker compose up
 - `POST /api/v1/interviews/questions/{question_id}/answer`
 - `POST /api/v1/interviews/questions/{question_id}/retry`
 - `POST /api/v1/questions/{question_id}/answer`
-- `POST /api/v1/questions/{question_id}/retry`
 - `GET /api/v1/answers/{id}/feedback`
 - `GET /api/v1/interviews/{id}/feedback`
 
