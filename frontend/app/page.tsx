@@ -1,7 +1,4 @@
-"use client";
-
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { HomeCTA } from "@/components/HomeCTA";
 import { TopNav } from "@/components/layout/top-nav";
 import { useAuth } from "@/lib/auth-client";
 
@@ -50,24 +47,7 @@ export default function HomePage() {
               Grillr helps candidates sharpen answers, improve delivery, and build confidence with focused mock interviews and structured feedback.
             </p>
 
-            <div className="mt-9 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center">
-              {isAuthenticated ? (
-                <Link href="/dashboard" className="w-full sm:w-auto">
-                  <Button className="w-full" size="lg">Go to dashboard</Button>
-                </Link>
-              ) : (
-                <>
-                  <Link href="/signup" className="w-full sm:w-auto">
-                    <Button className="w-full" size="lg">Create account</Button>
-                  </Link>
-                  <Link href="/dashboard" className="w-full sm:w-auto">
-                    <Button className="w-full" variant="secondary" size="lg">
-                      Explore dashboard
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
+            <HomeCTA />
           </div>
 
           <div className="rounded-[30px] border border-[#d2d2d7] bg-white p-4 shadow-[0_18px_40px_rgba(0,0,0,0.06)] sm:p-5">
