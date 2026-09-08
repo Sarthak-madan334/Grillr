@@ -235,6 +235,43 @@ class InterviewService:
             )
         )
 
+    def recover_progression(self, answer: Answer, user_id: UUID) -> InterviewSession:
+        """Resume question progression for a persisted answer after a retry."""
+        session = self.get(answer.session_id, user_id)
+        if session.status == SessionStatus.COMPLETED:
+            return session
+
+        questions = list(self.db.scalars(
+            select(Question)
+            .where(Question.session_id == session.id)
+            .options(selectinload(Question.answers))
+            .order_by(Question.question_number)
+        ).all())
+        pending = next((item for item in questions if not item.answers and item.id != answer.question_id), None)
+        if pending is not None:
+            return session
+
+        planned = [item for item in questions if not item.is_follow_up]
+        answered_planned = [item for item in planned if item.answers]
+        pending_follow_up = any(item.is_follow_up and not item.answers for item in questions)
+        if pending_follow_up:
+            return session
+        if len(answered_planned) >= session.question_count:
+            return self.complete(session.id, user_id)
+
+        next_question_number = len(planned) + 1
+        next_question_text = self._next_question(
+            session.job_role,
+            next_question_number,
+            self._history(session),
+            session.personality,
+            self._adaptive_difficulty(session),
+        )
+        next_question = self._create_question(session.id, 0, next_question_text, session.interview_type)
+        self._insert_question(session, next_question)
+        self.db.commit()
+        return self.get(session.id, user_id)
+
     def retry(self, question_id: UUID, user_id: UUID, transcript: str, duration: float) -> Answer:
         self.get_question(question_id, user_id)
         duplicate = self.db.scalar(

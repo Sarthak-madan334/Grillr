@@ -163,6 +163,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                     idempotency_key=current_turn_id,
                     session_id=session_id,
                 )
+                service.recover_progression(answer, identity.id)
             except AnswerEvaluationError:
                 await send_error("answer_evaluation_failed", "Your answer was saved, but evaluation is unavailable. Please retry.")
                 return
@@ -225,10 +226,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                         "audio_url": f"/api/v1/questions/{next_question.id}/audio",
                     },
                 })
-                await websocket.send_json({
-                    "type": "audio.ai",
-                    "data": {"question_id": str(next_question.id), "audio_url": f"/api/v1/questions/{next_question.id}/audio"},
-                })
+                await send_question_audio(next_question)
                 turn_state = "listening"
                 await websocket.send_json({"type": "turn.state_changed", "data": {"state": turn_state, "question_id": str(next_question.id) if next_question else None}})
             except Exception:
@@ -267,9 +265,13 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                 session = service.get(session_id, identity.id)
                 await send_resync()
             elif event_type == "speech.start":
+                turn_id = event.get("turn_id")
+                if not isinstance(turn_id, str) or not turn_id.strip() or len(turn_id) > 128:
+                    await send_error("missing_turn_id", "A unique turn_id is required for every answer.")
+                    continue
                 audio_buffer.clear()
                 recording = True
-                current_turn_id = event.get("turn_id") if isinstance(event.get("turn_id"), str) and event.get("turn_id") else None
+                current_turn_id = turn_id.strip()
                 turn_state = "listening"
                 await websocket.send_json({"type": "speech.start.ack", "data": {}})
                 current_question = next((item for item in session.questions if not item.answered_at), None)
