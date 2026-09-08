@@ -72,6 +72,9 @@ def test_production_settings_require_rime_tts():
         Settings(
             environment="production",
             auth_required=True,
+            database_url="postgresql+psycopg://user:password@localhost:5432/grillr",
+            cors_origins=["https://app.example.com"],
+            jwt_secret="test-jwt-secret",
             supabase_jwt_secret="test-secret",
             auto_create_schema=False,
         )

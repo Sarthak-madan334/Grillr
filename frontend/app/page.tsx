@@ -2,7 +2,6 @@
 
 import { HomeCTA } from "@/components/HomeCTA";
 import { TopNav } from "@/components/layout/top-nav";
-import { useAuth } from "@/lib/auth-client";
 
 const flowSteps = [
   { title: "Choose your interview", description: "Select your role, experience level, and interview style.", icon: "compass" },
@@ -28,8 +27,6 @@ function FlowIcon({ icon }: { icon: string }) {
 }
 
 export default function HomePage() {
-  const { isAuthenticated } = useAuth();
-
   return (
     <main className="min-h-screen text-[#241d1a]">
       <TopNav />
