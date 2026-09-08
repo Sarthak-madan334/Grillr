@@ -114,7 +114,12 @@ describe("VoiceAnswerPanel", () => {
         this.listeners.set(event, callback);
         if (event === "open") callback(new MessageEvent("open"));
       }
-      send(value: unknown) { this.sent.push(value); }
+      send(value: unknown) {
+        this.sent.push(value);
+        if (typeof value === "string" && JSON.parse(value).type === "auth") {
+          this.emit(JSON.stringify({ type: "session.connected" }));
+        }
+      }
       close() { this.readyState = 3; }
       emit(data: string) { this.listeners.get("message")?.(new MessageEvent("message", { data })); }
     }

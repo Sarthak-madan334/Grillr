@@ -24,6 +24,8 @@ For a production-like local stack, set `SUPABASE_URL` and run `docker compose up
 - `GET /health`
 - `GET /docs`
 - `GET /api/v1/users/me`
+- `GET /api/v1/users/username/availability`
+- `PATCH /api/v1/users/me/username`
 - `POST /api/v1/interviews`
 - `GET /api/v1/interviews`
 - `GET /api/v1/interviews/{id}`
@@ -34,7 +36,6 @@ For a production-like local stack, set `SUPABASE_URL` and run `docker compose up
 - `POST /api/v1/interviews/questions/{question_id}/answer`
 - `POST /api/v1/interviews/questions/{question_id}/retry`
 - `POST /api/v1/questions/{question_id}/answer`
-- `POST /api/v1/questions/{question_id}/retry`
 - `GET /api/v1/answers/{id}/feedback`
 - `GET /api/v1/interviews/{id}/feedback`
 

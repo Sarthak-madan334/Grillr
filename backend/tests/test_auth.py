@@ -58,4 +58,20 @@ def test_signing_key_token_uses_supabase_jwks(mock_header, mock_decode, mock_get
 
 def test_production_settings_require_authentication():
     with pytest.raises(ValueError, match="AUTH_REQUIRED must be true outside development"):
-        Settings(environment="production", auth_required=False, supabase_jwt_secret="test-secret", auto_create_schema=False)
+        Settings(
+            environment="production",
+            auth_required=False,
+            supabase_jwt_secret="test-secret",
+            auto_create_schema=False,
+            rime_api_key="test-rime-key",
+        )
+
+
+def test_production_settings_require_rime_tts():
+    with pytest.raises(ValueError, match="RIME_API_KEY is required outside development"):
+        Settings(
+            environment="production",
+            auth_required=True,
+            supabase_jwt_secret="test-secret",
+            auto_create_schema=False,
+        )

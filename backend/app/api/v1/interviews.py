@@ -126,7 +126,7 @@ def submit_answer(question_id: UUID, data: AnswerCreate, identity: CurrentUser =
 
 @router.post("/questions/{question_id}/retry", response_model=RetryResponse, dependencies=[Depends(answer_rate_limit)])
 def retry_answer(question_id: UUID, request: RetryRequest, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
-    answer = interviews.answer(question_id, identity.id, AnswerCreate(transcript=request.transcript, duration=request.duration), is_retry=True)
+    answer = interviews.retry(question_id, identity.id, request.transcript, request.duration)
     attempts, score_delta = interviews.attempts(question_id, identity.id)
     return {"question_id": question_id, "answer_id": answer.id, "attempt_number": answer.attempt_number, "status": "submitted", "score_delta": score_delta}
 

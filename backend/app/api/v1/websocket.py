@@ -1,3 +1,5 @@
+import asyncio
+import base64
 import json
 import logging
 from uuid import UUID
@@ -8,7 +10,20 @@ from sqlalchemy.orm import Session
 from app.core.auth import authenticate_token
 from app.db.session import SessionLocal
 from app.services.interview_service import InterviewService
-from app.services.providers import SpeechToTextService, TranscriptionError, TranscriptionTimeoutError, create_speech_to_text
+from app.services.providers import RimeTextToSpeech
+from app.services.speech_controller import SpeechController
+from app.models import SessionStatus
+from app.schemas.answer import AnswerCreate
+from app.services.interview_service import AnswerEvaluationError, InterviewService
+from app.services.providers import (
+    SpeechToTextService,
+    TextToSpeechConfigurationError,
+    TextToSpeechProviderError,
+    TranscriptionError,
+    TranscriptionTimeoutError,
+    create_speech_to_text,
+    create_text_to_speech,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -18,38 +33,100 @@ logger = logging.getLogger(__name__)
 async def interview_socket(websocket: WebSocket, session_id: UUID):
     await websocket.accept()
     db: Session = SessionLocal()
+    speech = SpeechController()
+
+    async def send_error(code: str, message: str) -> None:
+        await websocket.send_json({"type": "error", "data": {"code": code, "message": message}})
+
     try:
-        token = websocket.query_params.get("token")
-        if not token:
-            cookie_header = websocket.headers.get("cookie", "")
-            token = next((part.split("=", 1)[1] for part in cookie_header.split("; ") if part.startswith("grillr_access_token=")), None)
-        if not token and websocket.headers.get("authorization", "").lower().startswith("bearer "):
-            token = websocket.headers["authorization"][7:]
-        if not token:
+        try:
+            auth_frame = await asyncio.wait_for(websocket.receive(), timeout=5)
+        except asyncio.TimeoutError:
+            await websocket.close(code=1008, reason="Authentication timeout")
+            return
+
+        if auth_frame.get("type") == "websocket.disconnect":
+            raise WebSocketDisconnect
+        raw_auth = auth_frame.get("text")
+        if raw_auth is None:
             await websocket.close(code=1008, reason="Authentication is required")
             return
         try:
+            auth_event = json.loads(raw_auth)
+        except json.JSONDecodeError:
+            await websocket.close(code=1008, reason="Invalid authentication payload")
+            return
+        if not isinstance(auth_event, dict) or auth_event.get("type") != "auth" or not isinstance(auth_event.get("token"), str) or not auth_event["token"]:
+            await websocket.close(code=1008, reason="Authentication is required")
+            return
+        token = auth_event["token"]
+        try:
             identity = authenticate_token(token, db)
-            service = InterviewService(db)
-            session = service.get(session_id, identity.id)
         except Exception:
             await websocket.close(code=1008, reason="Unauthorized or session not found")
             return
+        session = service.get(session_id, identity.id)
+        await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id)}})
+        await websocket.send_json({
+            "type": "session.state",
+            "data": {
+                "session_id": str(session_id),
+                "speech_state": session.speech_state,
+                "generation_id": str(session.speech_generation_id) if session.speech_generation_id else None,
+                "question_id": str(session.speech_question_id) if session.speech_question_id else None,
+                "interrupted_generation_id": str(session.interrupted_generation_id) if session.interrupted_generation_id else None,
+                "interrupted_at": session.interrupted_at.isoformat() if session.interrupted_at else None,
+            },
+        })
+        if session.speech_state == "ai_speaking" and session.speech_generation_id is not None:
+            await speech.restore_ai_speech(session.speech_generation_id)
+        try:
+            service = InterviewService(db)
+            session = service.get(session_id, identity.id)
+            if session.status == SessionStatus.CREATED:
+                session = service.transition(session_id, identity.id, SessionStatus.ACTIVE)
+        except Exception:
+            logger.exception("Failed to initialize websocket interview pipeline", extra={"session_id": str(session_id)})
+            await send_error("pipeline_initialization_failed", "The interview pipeline is temporarily unavailable. Please try again.")
+            return
+        await websocket.send_json({"type": "auth.ok", "data": {}})
         turn_state = "listening"
         speech_to_text = SpeechToTextService(create_speech_to_text())
+        text_to_speech = None
         audio_buffer = bytearray()
         recording = False
+        current_turn_id: str | None = None
 
         async def send_resync() -> None:
             current_question = next((item for item in session.questions if not item.answered_at), None)
             await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id), "status": session.status.value, "current_question_number": session.current_question_number, "question_id": str(current_question.id) if current_question else None, "turn_state": turn_state}})
 
         await send_resync()
-        async def send_error(code: str, message: str) -> None:
-            await websocket.send_json({"type": "error", "data": {"code": code, "message": message}})
-
+        async def send_question_audio(question) -> None:
+            nonlocal text_to_speech
+            if question is None:
+                return
+            try:
+                if text_to_speech is None:
+                    text_to_speech = create_text_to_speech()
+                audio = await asyncio.to_thread(text_to_speech.synthesize, question.question_text)
+                media_type = getattr(text_to_speech, "media_type", "audio/mpeg")
+                if not audio:
+                    raise TextToSpeechProviderError("TTS returned empty audio")
+            except (TextToSpeechConfigurationError, TextToSpeechProviderError, ValueError):
+                await send_error("tts_unavailable", "Question audio is temporarily unavailable.")
+                return
+            await websocket.send_json({
+                "type": "audio.ai",
+                "data": {
+                    "question_id": str(question.id),
+                    "question_number": question.question_number,
+                    "media_type": media_type,
+                    "audio_base64": base64.b64encode(audio).decode("ascii"),
+                },
+            })
         async def transcribe_buffer() -> None:
-            nonlocal audio_buffer, recording, turn_state, session
+            nonlocal audio_buffer, recording, turn_state, session, current_turn_id
             if not audio_buffer:
                 recording = False
                 await send_error("empty_audio", "No audio was received for this answer.")
@@ -71,11 +148,93 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             if not result.has_speech:
                 await send_error("no_speech_detected", "No speech was detected. Please try again.")
                 return
+
             normalized = result.transcript
-            current_question = next((item for item in session.questions if not item.answered_at), None)
-            await websocket.send_json({"type": "transcript.final", "data": {"text": normalized, "question_id": str(current_question.id) if current_question else None}})
-            turn_state = "listening"
-            await websocket.send_json({"type": "turn.state_changed", "data": {"state": turn_state, "question_id": str(current_question.id) if current_question else None}})
+            answer = service.get_idempotent_answer(session_id, identity.id, current_turn_id) if current_turn_id else None
+            answer_question = answer.question if answer is not None else current_question
+            if answer is None and answer_question is None:
+                await send_error("missing_question", "The active question could not be found for this answer.")
+                return
+            try:
+                answer = service.answer(
+                    answer_question.id,
+                    identity.id,
+                    AnswerCreate(transcript=normalized, duration=max(len(audio) / (2 * 16000), 1.0)),
+                    idempotency_key=current_turn_id,
+                    session_id=session_id,
+                )
+            except AnswerEvaluationError:
+                await send_error("answer_evaluation_failed", "Your answer was saved, but evaluation is unavailable. Please retry.")
+                return
+            except Exception:
+                logger.exception("Failed to persist websocket answer", extra={"session_id": str(session_id), "question_id": str(answer_question.id)})
+                await send_error("answer_persistence_failed", "We could not save your answer. Please try again.")
+                return
+
+            try:
+                db.expire_all()
+                updated_session = service.get(session_id, identity.id)
+                if answer.evaluation is None:
+                    await send_error("answer_evaluation_failed", "Your answer was saved, but evaluation is unavailable. Please retry.")
+                    return
+
+                await websocket.send_json({
+                    "type": "transcript.final",
+                    "data": {
+                        "answer_id": str(answer.id),
+                        "question_id": str(answer.question_id),
+                        "text": answer.transcript,
+                        "turn_id": current_turn_id,
+                    },
+                })
+                await websocket.send_json({
+                    "type": "answer.evaluated",
+                    "data": {
+                        "answer_id": str(answer.id),
+                        "question_id": str(answer.question_id),
+                        "overall_score": answer.evaluation.overall_score,
+                        "turn_id": current_turn_id,
+                    },
+                })
+                next_question = next(
+                    (
+                        item for item in sorted(updated_session.questions, key=lambda item: item.question_number)
+                        if not item.answers and item.id != answer.question_id
+                    ),
+                    None,
+                )
+                if next_question is None:
+                    if updated_session.status == SessionStatus.COMPLETED:
+                        await websocket.send_json({
+                            "type": "session.completed",
+                            "data": {"session_id": str(session_id), "answer_id": str(answer.id), "overall_score": updated_session.summary.overall_score if updated_session.summary else 0},
+                        })
+                    else:
+                        await send_error("question_generation_failed", "We could not prepare the next question. Please try again.")
+                    return
+                question_event_type = "question.follow_up" if next_question.is_follow_up else "question.created"
+                await websocket.send_json({
+                    "type": question_event_type,
+                    "data": {
+                        "session_id": str(session_id),
+                        "question_id": str(next_question.id),
+                        "text": next_question.question_text,
+                        "question_text": next_question.question_text,
+                        "question_number": next_question.question_number,
+                        "is_follow_up": next_question.is_follow_up,
+                        "audio_url": f"/api/v1/questions/{next_question.id}/audio",
+                    },
+                })
+                await websocket.send_json({
+                    "type": "audio.ai",
+                    "data": {"question_id": str(next_question.id), "audio_url": f"/api/v1/questions/{next_question.id}/audio"},
+                })
+                turn_state = "listening"
+                await websocket.send_json({"type": "turn.state_changed", "data": {"state": turn_state, "question_id": str(next_question.id) if next_question else None}})
+            except Exception:
+                logger.exception("Failed to generate next question or emit audio", extra={"session_id": str(session_id), "question_id": str(answer.question_id)})
+                await send_error("question_generation_failed", "We could not prepare the next question. Please try again.")
+                return
 
         while True:
             message = await websocket.receive()
@@ -102,12 +261,15 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             event_type = event.get("type")
             if event_type == "session.start":
                 await websocket.send_json({"type": "session.started", "data": {}})
+                current_question = next((item for item in session.questions if not item.answered_at), None)
+                await send_question_audio(current_question)
             elif event_type == "session.resync":
                 session = service.get(session_id, identity.id)
                 await send_resync()
             elif event_type == "speech.start":
                 audio_buffer.clear()
                 recording = True
+                current_turn_id = event.get("turn_id") if isinstance(event.get("turn_id"), str) and event.get("turn_id") else None
                 turn_state = "listening"
                 await websocket.send_json({"type": "speech.start.ack", "data": {}})
                 current_question = next((item for item in session.questions if not item.answered_at), None)
@@ -122,4 +284,5 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
     except WebSocketDisconnect:
         pass
     finally:
+        await speech.close()
         db.close()
