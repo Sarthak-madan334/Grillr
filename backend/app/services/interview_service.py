@@ -16,6 +16,10 @@ from app.schemas.interview import InterviewCreate
 from app.services.providers import FollowUpDecision, MockAIInterviewer, MockSpeechAnalyzer, TextToSpeech, create_answer_evaluator, create_text_to_speech
 
 
+class AnswerEvaluationError(RuntimeError):
+    """Evaluation failed after the raw answer was durably persisted."""
+
+
 class InterviewService:
     def __init__(self, db: Session, tts: TextToSpeech | None = None, settings: Settings | None = None, ai_interviewer=None):
         self.db = db
@@ -175,6 +179,22 @@ class InterviewService:
             raise NotFoundError("Question")
         return question
 
+    def get_idempotent_answer(self, session_id: UUID, user_id: UUID, idempotency_key: str) -> Answer | None:
+        return self.db.scalar(
+            select(Answer)
+            .join(InterviewSession)
+            .where(
+                Answer.session_id == session_id,
+                InterviewSession.user_id == user_id,
+                Answer.idempotency_key == idempotency_key,
+            )
+            .options(
+                selectinload(Answer.question).selectinload(Question.session),
+                selectinload(Answer.speech_metrics),
+                selectinload(Answer.evaluation),
+            )
+        )
+
     def retry(self, question_id: UUID, user_id: UUID, transcript: str, duration: float) -> Answer:
         self.get_question(question_id, user_id)
         duplicate = self.db.scalar(
@@ -209,24 +229,38 @@ class InterviewService:
                 return duplicate
             raise
 
-    def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate, is_retry: bool = False) -> Answer:
-        question = self.db.scalar(select(Question).join(InterviewSession).where(Question.id == question_id, InterviewSession.user_id == user_id).options(selectinload(Question.session)))
+    def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate, is_retry: bool = False, idempotency_key: str | None = None, session_id: UUID | None = None) -> Answer:
+        existing = self.get_idempotent_answer(session_id, user_id, idempotency_key) if idempotency_key and session_id else None
+        if existing is not None and existing.evaluation is not None:
+            return existing
+
+        question = existing.question if existing is not None else self.db.scalar(select(Question).join(InterviewSession).where(Question.id == question_id, InterviewSession.user_id == user_id).options(selectinload(Question.session)))
         if question is None:
             raise NotFoundError("Question")
         if question.session.status not in {SessionStatus.ACTIVE, SessionStatus.COMPLETED} or (question.session.status == SessionStatus.COMPLETED and not is_retry):
             raise InvalidStateError("Answers can only be submitted for active interviews")
-        attempt = self.db.scalar(select(Answer).where(Answer.question_id == question_id).order_by(Answer.attempt_number.desc()))
-        if attempt is not None and not is_retry:
+        answer = existing
+        attempt = self.db.scalar(select(Answer).where(Answer.question_id == question.id).order_by(Answer.attempt_number.desc())) if answer is None else answer
+        if attempt is not None and not is_retry and answer is None:
             raise InvalidStateError("Question has already been answered; submit a retry instead")
         if is_retry and attempt is None:
             raise InvalidStateError("Retries require an existing answer")
-        attempt_number = (attempt.attempt_number + 1) if attempt else 1
-        answer = Answer(question_id=question.id, session_id=question.session_id, attempt_number=attempt_number, transcript=data.transcript, duration=data.duration, completed_at=datetime.now(timezone.utc))
-        self.db.add(answer)
-        self.db.flush()
-        metrics = self.analyzer.analyze(data.transcript, data.duration)
-        self.db.add(SpeechMetrics(answer_id=answer.id, **metrics))
-        evaluation = self.evaluator.evaluate(data.transcript, question.question_text)
+
+        if answer is None:
+            attempt_number = (attempt.attempt_number + 1) if attempt else 1
+            answer = Answer(question_id=question.id, session_id=question.session_id, attempt_number=attempt_number, transcript=data.transcript, duration=data.duration, completed_at=datetime.now(timezone.utc), idempotency_key=idempotency_key)
+            self.db.add(answer)
+            self.db.flush()
+            metrics = self.analyzer.analyze(data.transcript, data.duration)
+            self.db.add(SpeechMetrics(answer_id=answer.id, **metrics))
+            self.db.commit()
+            self.db.refresh(answer)
+
+        try:
+            evaluation = self.evaluator.evaluate(answer.transcript, question.question_text)
+        except Exception as exc:
+            self.db.rollback()
+            raise AnswerEvaluationError from exc
         self.db.add(AnswerEvaluation(answer_id=answer.id, **evaluation))
         if not is_retry:
             question.answered_at = datetime.now(timezone.utc)
