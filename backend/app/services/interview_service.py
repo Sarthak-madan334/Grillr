@@ -14,6 +14,7 @@ from app.repositories.interview_repository import InterviewRepository
 from app.schemas.answer import AnswerCreate
 from app.schemas.interview import InterviewCreate
 from app.services.providers import FollowUpDecision, MockAIInterviewer, MockSpeechAnalyzer, TextToSpeech, create_answer_evaluator, create_text_to_speech
+from app.services.speech_controller import SpeechState
 
 
 class AnswerEvaluationError(RuntimeError):
@@ -279,23 +280,6 @@ class InterviewService:
             raise NotFoundError("Question")
         if question.session.status not in {SessionStatus.ACTIVE, SessionStatus.COMPLETED} or (question.session.status == SessionStatus.COMPLETED and not is_retry):
             raise InvalidStateError("Answers can only be submitted for active interviews")
-        attempt = self.db.scalar(select(Answer).where(Answer.question_id == question_id).order_by(Answer.attempt_number.desc()))
-        attempt_number = (attempt.attempt_number + 1) if attempt else 1
-        answer = Answer(question_id=question.id, session_id=question.session_id, attempt_number=attempt_number, transcript=data.transcript, duration=data.duration, completed_at=datetime.now(timezone.utc))
-        self.db.add(answer)
-        self.db.flush()
-        metrics = self.analyzer.analyze(data.transcript, data.duration)
-        self.db.add(SpeechMetrics(answer_id=answer.id, **metrics))
-        self.db.add(AnswerEvaluation(answer_id=answer.id, **self.evaluator.evaluate(data.transcript, question.question_text)))
-        question.answered_at = datetime.now(timezone.utc)
-        question.session.current_question_number = question.question_number
-        question.session.speech_state = SpeechState.IDLE.value
-        question.session.speech_generation_id = None
-        if question.question_number < question.session.question_count:
-            next_question_number = question.question_number + 1
-            existing_next = self.db.scalar(select(Question).where(Question.session_id == question.session_id, Question.question_number == next_question_number))
-            if existing_next is None:
-                self.db.add(Question(session_id=question.session_id, question_number=next_question_number, question_text=self.ai.next_question(question.session.job_role, next_question_number), question_type=question.session.interview_type))
         answer = existing
         attempt = self.db.scalar(select(Answer).where(Answer.question_id == question.id).order_by(Answer.attempt_number.desc())) if answer is None else answer
         if attempt is not None and not is_retry and answer is None:
