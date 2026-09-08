@@ -10,11 +10,6 @@ export function TopNav() {
   const router = useRouter();
   const { user, isAuthenticated, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const storedTheme = window.localStorage.getItem("grillr-theme");
-    return storedTheme ? storedTheme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
   const menuRef = useRef<HTMLDivElement>(null);
   const navItems = [
     { href: "/dashboard", label: "Dashboard" },
@@ -28,11 +23,6 @@ export function TopNav() {
   const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "there";
   const greetingName = displayName.length > 12 ? `${displayName.slice(0, 12).trimEnd()}…` : displayName;
   const greetingInitial = (displayName?.[0] ?? "G").toUpperCase();
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = isDarkMode ? "dark" : "light";
-    window.localStorage.setItem("grillr-theme", isDarkMode ? "dark" : "light");
-  }, [isDarkMode]);
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -59,10 +49,6 @@ export function TopNav() {
 
   function closeMenu() {
     setIsMenuOpen(false);
-  }
-
-  function toggleTheme() {
-    setIsDarkMode((dark) => !dark);
   }
 
   async function handleSignOut() {
@@ -159,47 +145,39 @@ export function TopNav() {
           )}
         </div>
 
-        <div ref={menuRef} className="grillr-mobile-nav-wrap md:hidden">
-          <div className="grillr-mobile-pill">
-            <span className="grillr-mobile-greeting">
-              {isAuthenticated && user ? greetingName : "Grillr"}<span aria-hidden="true">.</span>
-            </span>
-            <div className="grillr-mobile-actions">
-              <button
-                type="button"
-                aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-                aria-pressed={isDarkMode}
-                onClick={toggleTheme}
-                className="grillr-mobile-icon-button"
-              >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20.5 15.2A8.5 8.5 0 0 1 8.8 3.5 8.5 8.5 0 1 0 20.5 15.2Z" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-                aria-expanded={isMenuOpen}
-                aria-controls="mobile-navigation-menu"
-                onClick={() => setIsMenuOpen((open) => !open)}
-                className="grillr-mobile-icon-button"
-              >
-                <span className="sr-only">{isMenuOpen ? "Close menu" : "Open menu"}</span>
-                {isMenuOpen ? (
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                    <path d="m6 6 12 12M18 6 6 18" />
-                  </svg>
-                ) : (
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                    <path d="M4 7h16M4 12h16M4 17h16" />
-                  </svg>
-                )}
-              </button>
+        <div ref={menuRef} className="relative flex items-center gap-2 md:hidden">
+          {isAuthenticated && user ? (
+            <div className="flex max-w-[8rem] min-w-0 items-center gap-1.5 rounded-full border border-[#d7e0ee] bg-white/80 px-2 py-1 shadow-[0_2px_10px_rgba(16,35,63,0.03)]">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#edf4ff] text-[9px] font-bold text-[#365bb4]">
+                {greetingInitial}
+              </span>
+              <span className="min-w-0 truncate text-[10px] font-semibold text-[#4b5d77]">
+                {greetingName}
+              </span>
             </div>
-          </div>
+          ) : null}
+          <button
+            type="button"
+            aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={isMenuOpen}
+            aria-controls="mobile-navigation-menu"
+            onClick={() => setIsMenuOpen((open) => !open)}
+            className="grillr-menu-button"
+          >
+            <span className="sr-only">{isMenuOpen ? "Close menu" : "Open menu"}</span>
+            {isMenuOpen ? (
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="m6 6 12 12M18 6 6 18" />
+              </svg>
+            ) : (
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            )}
+          </button>
 
           {isMenuOpen ? (
-            <nav id="mobile-navigation-menu" aria-label="Mobile navigation" className="grillr-mobile-menu">
+            <nav id="mobile-navigation-menu" aria-label="Mobile navigation" className="grillr-mobile-menu absolute right-0 top-[calc(100%+0.75rem)] w-[min(18rem,calc(100vw-2rem))]">
               <div className="space-y-1">
                 {navItems.map((item) => (
                   <Link key={item.href} href={item.href} onClick={closeMenu} className={`grillr-mobile-link ${isActive(item.href) ? "is-active" : ""}`}>
