@@ -5,7 +5,7 @@ export const POST = (request: Request) => forwardRequest(request, "");
 
 async function forwardRequest(request: Request, path: string) {
   try {
-    const apiUrl = process.env.GRILLR_API_URL ?? "http://localhost:8000";
+    const apiUrl = process.env.GRILLR_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
     const incoming = new URL(request.url);
     const target = `${apiUrl}/api/v1/interviews${path}${incoming.search}`;
     const cookie = request.headers.get("cookie") ?? "";

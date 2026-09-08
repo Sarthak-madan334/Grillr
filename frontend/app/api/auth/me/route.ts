@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
-  const apiUrl = process.env.GRILLR_API_URL ?? "http://localhost:8000";
+  const apiUrl = process.env.GRILLR_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
   try {
     const response = await fetch(`${apiUrl}/api/v1/users/me`, {
       headers: { Cookie: request.headers.get("cookie") ?? "" },
