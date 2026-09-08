@@ -45,14 +45,9 @@ export default function HomePage() {
               Grillr helps candidates sharpen answers, improve delivery, and build confidence with focused mock interviews and structured feedback.
             </p>
 
-            <div className="mt-9 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="mt-9 flex justify-center sm:mt-8 sm:justify-start">
               <Link href="/signup" className="w-full sm:w-auto">
-                <Button className="w-full" size="lg">Create account</Button>
-              </Link>
-              <Link href="/dashboard" className="w-full sm:w-auto">
-                <Button className="w-full" variant="secondary" size="lg">
-                  Explore dashboard
-                </Button>
+                <Button className="w-full" size="lg">Continue</Button>
               </Link>
             </div>
           </div>
