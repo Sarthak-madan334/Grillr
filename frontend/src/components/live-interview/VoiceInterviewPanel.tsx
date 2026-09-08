@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AudioVisualizer } from "@/components/live-interview/AudioVisualizer";
 import { TranscriptPanel } from "@/components/live-interview/TranscriptPanel";
+import { AudioPlaybackController, type PlaybackSnapshot } from "@/lib/audio-playback";
 import { MockRealtimeClient, type RealtimeEvent, type TranscriptEntry } from "@/lib/realtime";
+import { microphoneService } from "@/services/audio/MicrophoneService";
 import {
   applyVoiceEvent,
   initialVoiceState,
@@ -16,7 +18,12 @@ const demoQuestion = "Tell me about yourself and why this role fits your backgro
 
 export function VoiceInterviewPanel() {
   const realtime = useMemo(() => new MockRealtimeClient(), []);
+  const playback = useMemo(() => new AudioPlaybackController(), []);
   const intervalRef = useRef<number | null>(null);
+  const voiceStageRef = useRef<VoiceState["stage"]>(initialVoiceState.stage);
+  const playbackSnapshotRef = useRef<PlaybackSnapshot>(playback.snapshot());
+  const invalidatedGenerationsRef = useRef(new Set<string>());
+  const questionRef = useRef(demoQuestion);
   const [voiceState, setVoiceState] = useState<VoiceState>(initialVoiceState);
   const [question, setQuestion] = useState(demoQuestion);
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([
@@ -25,6 +32,7 @@ export function VoiceInterviewPanel() {
   const [isMicOn, setIsMicOn] = useState(false);
   const [audioLevel, setAudioLevel] = useState(42);
   const [errorMessage, setErrorMessage] = useState("");
+  const [playbackSnapshot, setPlaybackSnapshot] = useState<PlaybackSnapshot>(() => playback.snapshot());
 
   const currentStatus =
     voiceState.stage === "ai_speaking"
@@ -42,6 +50,11 @@ export function VoiceInterviewPanel() {
   useEffect(() => {
     const unsubscribe = realtime.subscribe((event: RealtimeEvent) => {
       const data = (event.data ?? {}) as Record<string, unknown>;
+      const generationId = typeof data.generation_id === "string" ? data.generation_id : null;
+      if (event.type === "session.state" && typeof data.interrupted_generation_id === "string") {
+        invalidatedGenerationsRef.current.add(data.interrupted_generation_id);
+      }
+      if (generationId && invalidatedGenerationsRef.current.has(generationId)) return;
       const voiceEventMap: Record<string, VoiceStateMachineEvent> = {
         "ai.question": { type: "NEXT_QUESTION_RECEIVED" },
         "ai.speech.start": { type: "AI_STARTED_SPEAKING" },
@@ -54,6 +67,15 @@ export function VoiceInterviewPanel() {
           message: typeof data.message === "string" ? data.message : "Connection error",
         },
       };
+
+      if (event.type === "session.state") {
+        const stateEvent = data.speech_state === "ai_speaking"
+          ? ({ type: "AI_STARTED_SPEAKING" } as const)
+          : data.speech_state === "user_speaking"
+            ? ({ type: "USER_STARTED_SPEAKING" } as const)
+            : null;
+        if (stateEvent) setVoiceState((previous) => applyVoiceEvent(previous, stateEvent));
+      }
 
       const voiceEvent = voiceEventMap[event.type];
       if (voiceEvent) {
@@ -88,11 +110,29 @@ export function VoiceInterviewPanel() {
       }
 
       if (event.type === "user.speech.start") {
+        if (playbackSnapshotRef.current.generationId) {
+          invalidatedGenerationsRef.current.add(playbackSnapshotRef.current.generationId);
+          playback.stop(playbackSnapshotRef.current.generationId);
+          realtime.send("interview.interrupt", { generation_id: playbackSnapshotRef.current.generationId });
+        }
         setAudioLevel(70);
       }
 
       if (event.type === "ai.speech.start") {
+        if (!generationId) {
+          realtime.send("ai.speech.start", { question_id: data.id, text: questionRef.current });
+        } else if (typeof data.audio_url === "string") {
+          void playback.play(data.audio_url, generationId).catch(() => {
+            setErrorMessage("The question audio could not be played.");
+          });
+        }
         setAudioLevel(58);
+      }
+
+      if (event.type === "audio.chunk" && generationId && typeof data.audio_base64 === "string") {
+        void playback.play(`data:${typeof data.content_type === "string" ? data.content_type : "audio/mpeg"};base64,${data.audio_base64}`, generationId).catch(() => {
+          setErrorMessage("The question audio could not be played.");
+        });
       }
 
       if (event.type === "answer.processing") {
@@ -100,11 +140,15 @@ export function VoiceInterviewPanel() {
       }
     });
 
+    const unsubscribePlaybackRef = playback.subscribe((snapshot) => {
+      playbackSnapshotRef.current = snapshot;
+      setPlaybackSnapshot(snapshot);
+    });
     realtime.startMockInterview();
 
     intervalRef.current = window.setInterval(() => {
       setAudioLevel((previous) => {
-        if (voiceState.stage === "user_speaking" || voiceState.stage === "ai_speaking") {
+        if (voiceStageRef.current === "user_speaking" || voiceStageRef.current === "ai_speaking") {
           return Math.max(18, Math.min(92, previous + (Math.random() > 0.5 ? 6 : -6)));
         }
         return Math.max(12, previous - 2);
@@ -113,12 +157,23 @@ export function VoiceInterviewPanel() {
 
     return () => {
       unsubscribe();
+      unsubscribePlaybackRef();
       realtime.disconnect();
+      playback.dispose();
+      microphoneService.releaseMicrophone();
       if (intervalRef.current !== null) {
         window.clearInterval(intervalRef.current);
       }
     };
-  }, [realtime, voiceState.stage]);
+  }, [playback, realtime]);
+
+  useEffect(() => {
+    voiceStageRef.current = voiceState.stage;
+  }, [voiceState.stage]);
+
+  useEffect(() => {
+    questionRef.current = question;
+  }, [question]);
 
   const requestMicAccess = async () => {
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
@@ -128,8 +183,25 @@ export function VoiceInterviewPanel() {
     }
 
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      setIsMicOn((previous) => !previous);
+      if (isMicOn) {
+        microphoneService.stopRecording();
+        microphoneService.releaseMicrophone();
+        setIsMicOn(false);
+        realtime.send("speech.stop");
+        return;
+      }
+      const enabled = await microphoneService.requestPermission();
+      if (!enabled) throw new Error("permission denied");
+      microphoneService.startRecording(() => undefined);
+      microphoneService.startVoiceDetection(() => {
+        if (playbackSnapshotRef.current.generationId) {
+          playback.stop(playbackSnapshotRef.current.generationId);
+          realtime.send("interview.interrupt", { generation_id: playbackSnapshotRef.current.generationId });
+        }
+        realtime.send("speech.start");
+        setVoiceState((previous) => applyVoiceEvent(previous, { type: "USER_STARTED_SPEAKING" }));
+      }, () => realtime.send("speech.stop"));
+      setIsMicOn(true);
       setErrorMessage("");
       setVoiceState((previous) => applyVoiceEvent(previous, { type: "USER_STARTED_SPEAKING" }));
     } catch {
@@ -139,6 +211,12 @@ export function VoiceInterviewPanel() {
   };
 
   const handleInterrupt = () => {
+    const generationId = playbackSnapshotRef.current.generationId;
+    if (generationId) {
+      invalidatedGenerationsRef.current.add(generationId);
+      playback.stop(generationId);
+    }
+    realtime.send("interview.interrupt", { generation_id: generationId });
     setVoiceState((previous) => applyVoiceEvent(previous, { type: "USER_INTERRUPTED_AI" }));
     setAudioLevel(32);
   };
@@ -225,6 +303,9 @@ export function VoiceInterviewPanel() {
                   <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />
                   {currentStatus}
                 </div>
+                <div className="sr-only" aria-live="polite">
+                  {voiceState.stage === "listening" ? "Listening for your answer" : currentStatus}
+                </div>
               </div>
 
               <div className="mt-6 rounded-[22px] border border-slate-200 bg-slate-50 p-4 md:p-5">
@@ -244,6 +325,20 @@ export function VoiceInterviewPanel() {
                     active={voiceState.stage === "user_speaking" || voiceState.stage === "ai_speaking"}
                     label={voiceState.stage === "user_speaking" ? "User speaking" : "AI speaking"}
                   />
+                </div>
+                <div className="mt-4 flex items-center gap-3" aria-label="AI audio playback">
+                  <button
+                    type="button"
+                    aria-label={playbackSnapshot.state === "playing" ? "Pause AI question" : "Resume AI question"}
+                    disabled={!playbackSnapshot.generationId}
+                    onClick={() => playbackSnapshot.state === "playing" ? playback.pause() : undefined}
+                    className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {playbackSnapshot.state === "playing" ? "Pause" : "AI audio idle"}
+                  </button>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label="AI audio progress" aria-valuemin={0} aria-valuemax={playbackSnapshot.duration || 1} aria-valuenow={playbackSnapshot.currentTime}>
+                    <div className="h-full bg-indigo-500 transition-[width] duration-150 motion-reduce:transition-none" style={{ width: `${playbackSnapshot.duration ? (playbackSnapshot.currentTime / playbackSnapshot.duration) * 100 : 0}%` }} />
+                  </div>
                 </div>
               </div>
             </div>

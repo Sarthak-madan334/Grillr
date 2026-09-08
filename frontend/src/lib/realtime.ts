@@ -10,8 +10,25 @@ export type RealtimeEventType =
   | "answer.processing"
   | "next.question"
   | "interview.complete"
+  | "session.state"
+  | "ai.speech.started"
+  | "audio.chunk"
   | "connection.error"
   | "connection.reconnect";
+
+export interface SpeechGenerationData {
+  session_id?: string;
+  generation_id?: string | null;
+  question_id?: string | null;
+  speech_state?: "idle" | "ai_speaking" | "user_speaking";
+  interrupted_generation_id?: string | null;
+}
+
+export interface RealtimeTransport {
+  subscribe(listener: (event: RealtimeEvent) => void): () => void;
+  send(type: string, data?: Record<string, unknown>): void;
+  disconnect(): void;
+}
 
 export interface RealtimeEvent<T = unknown> {
   type: RealtimeEventType;
@@ -33,6 +50,7 @@ export interface InterviewQuestion {
 export class MockRealtimeClient {
   private listeners = new Set<(event: RealtimeEvent) => void>();
   private timers: ReturnType<typeof setTimeout>[] = [];
+  readonly sentEvents: Array<{ type: string; data: Record<string, unknown> }> = [];
 
   subscribe(listener: (event: RealtimeEvent) => void) {
     this.listeners.add(listener);
@@ -40,6 +58,10 @@ export class MockRealtimeClient {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  send(type: string, data: Record<string, unknown> = {}) {
+    this.sentEvents.push({ type, data });
   }
 
   startMockInterview() {
@@ -103,5 +125,43 @@ export class MockRealtimeClient {
   private clearTimers() {
     this.timers.forEach((timer) => clearTimeout(timer));
     this.timers = [];
+  }
+}
+
+export class BrowserRealtimeClient implements RealtimeTransport {
+  private readonly socket: WebSocket;
+  private listeners = new Set<(event: RealtimeEvent) => void>();
+
+  constructor(url: string, socketFactory: (url: string) => WebSocket = (socketUrl) => new WebSocket(socketUrl)) {
+    this.socket = socketFactory(url);
+    this.socket.addEventListener("message", (message) => {
+      try {
+        const event = JSON.parse(String(message.data)) as { type: string; data?: unknown };
+        const type = event.type === "ai.speech.started" ? "ai.speech.start" : event.type;
+        this.emit({ type: type as RealtimeEventType, data: event.data ?? {}, timestamp: Date.now() });
+      } catch {
+        this.emit({ type: "connection.error", data: { message: "Received an invalid realtime event." }, timestamp: Date.now() });
+      }
+    });
+    this.socket.addEventListener("close", () => this.emit({ type: "connection.reconnect", data: {}, timestamp: Date.now() }));
+    this.socket.addEventListener("error", () => this.emit({ type: "connection.error", data: { message: "Realtime connection failed." }, timestamp: Date.now() }));
+  }
+
+  subscribe(listener: (event: RealtimeEvent) => void) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  send(type: string, data: Record<string, unknown> = {}) {
+    if (this.socket.readyState === 1) this.socket.send(JSON.stringify({ type, data }));
+  }
+
+  disconnect() {
+    this.socket.close();
+    this.listeners.clear();
+  }
+
+  private emit(event: RealtimeEvent) {
+    this.listeners.forEach((listener) => listener(event));
   }
 }

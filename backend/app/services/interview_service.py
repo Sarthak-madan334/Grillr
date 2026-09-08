@@ -12,6 +12,7 @@ from app.repositories.interview_repository import InterviewRepository
 from app.schemas.answer import AnswerCreate
 from app.schemas.interview import InterviewCreate
 from app.services.providers import MockAIInterviewer, MockAnswerEvaluator, MockSpeechAnalyzer
+from app.services.speech_controller import SpeechState
 
 
 class InterviewService:
@@ -55,6 +56,44 @@ class InterviewService:
     def questions(self, session_id: UUID, user_id: UUID) -> list[Question]:
         return self.get(session_id, user_id).questions
 
+    def mark_speech_started(self, session_id: UUID, user_id: UUID, generation_id: UUID, question_id: UUID | None) -> InterviewSession:
+        session = self.get(session_id, user_id)
+        if question_id is not None:
+            valid_question = self.db.scalar(select(Question.id).where(Question.id == question_id, Question.session_id == session_id))
+            question_id = valid_question
+        session.speech_state = SpeechState.AI_SPEAKING.value
+        session.speech_generation_id = generation_id
+        session.speech_question_id = question_id
+        session.interrupted_generation_id = None
+        session.interrupted_at = None
+        self.db.commit()
+        return self.get(session_id, user_id)
+
+    def mark_speech_interrupted(self, session_id: UUID, user_id: UUID, generation_id: UUID) -> InterviewSession:
+        session = self.get(session_id, user_id)
+        if session.speech_generation_id == generation_id and session.speech_state == SpeechState.AI_SPEAKING.value:
+            session.speech_state = SpeechState.USER_SPEAKING.value
+            session.speech_generation_id = None
+            session.interrupted_generation_id = generation_id
+            session.interrupted_at = datetime.now(timezone.utc)
+            self.db.commit()
+        return self.get(session_id, user_id)
+
+    def mark_user_speaking(self, session_id: UUID, user_id: UUID) -> InterviewSession:
+        session = self.get(session_id, user_id)
+        if session.speech_state != SpeechState.AI_SPEAKING.value:
+            session.speech_state = SpeechState.USER_SPEAKING.value
+            self.db.commit()
+        return self.get(session_id, user_id)
+
+    def mark_speech_finished(self, session_id: UUID, user_id: UUID, generation_id: UUID) -> InterviewSession:
+        session = self.get(session_id, user_id)
+        if session.speech_generation_id == generation_id and session.speech_state == SpeechState.AI_SPEAKING.value:
+            session.speech_state = SpeechState.IDLE.value
+            session.speech_generation_id = None
+            self.db.commit()
+        return self.get(session_id, user_id)
+
     def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate) -> Answer:
         question = self.db.scalar(select(Question).join(InterviewSession).where(Question.id == question_id, InterviewSession.user_id == user_id).options(selectinload(Question.session)))
         if question is None:
@@ -71,6 +110,8 @@ class InterviewService:
         self.db.add(AnswerEvaluation(answer_id=answer.id, **self.evaluator.evaluate(data.transcript, question.question_text)))
         question.answered_at = datetime.now(timezone.utc)
         question.session.current_question_number = question.question_number
+        question.session.speech_state = SpeechState.IDLE.value
+        question.session.speech_generation_id = None
         if question.question_number < question.session.question_count:
             next_question_number = question.question_number + 1
             existing_next = self.db.scalar(select(Question).where(Question.session_id == question.session_id, Question.question_number == next_question_number))

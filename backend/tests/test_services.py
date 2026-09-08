@@ -27,6 +27,22 @@ class FakeHttpClient:
         return self.response
 
 
+class FakeAsyncHttpClient:
+    def __init__(self, response=None):
+        self.response = response
+        self.request = None
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        return False
+
+    async def post(self, url, **kwargs):
+        self.request = (url, kwargs)
+        return self.response
+
+
 def test_speech_analyzer_metrics():
     analyzer = MockSpeechAnalyzer()
     transcript = "Um I think uh like we should we should optimize this query"
@@ -108,6 +124,19 @@ def test_rime_tts_requires_api_key(monkeypatch):
 
     with pytest.raises(RuntimeError, match="RIME_API_KEY is missing"):
         RimeTextToSpeech().synthesize("Hello there")
+
+
+@pytest.mark.asyncio
+async def test_rime_tts_async_returns_audio_and_propagates_cancellation(monkeypatch):
+    response = httpx.Response(200, content=b"audio-bytes", headers={"content-type": "audio/mpeg"})
+    client = FakeAsyncHttpClient(response=response)
+    monkeypatch.setattr(providers.httpx, "AsyncClient", lambda timeout: client)
+
+    assert await RimeTextToSpeech(api_key="test-rime-key").synthesize_async("Hello there") == b"audio-bytes"
+    assert client.request[1]["json"]["text"] == "Hello there"
+
+    with pytest.raises(RuntimeError, match="empty text"):
+        await RimeTextToSpeech(api_key="test-rime-key").synthesize_async(" ")
 
 
 def test_unknown_interview_is_not_accessible(client):
