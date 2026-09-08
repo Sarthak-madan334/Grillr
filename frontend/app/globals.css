@@ -9,17 +9,6 @@
   --accent-strong: #1d4ed8;
 }
 
-html[data-theme="dark"] {
-  --background: #111827;
-  --foreground: #f3f4f6;
-  --card: rgba(31, 41, 55, 0.78);
-  --card-strong: #1f2937;
-}
-
-html[data-theme="dark"] body {
-  background: var(--background);
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -163,44 +152,6 @@ textarea {
   backdrop-filter: blur(18px);
 }
 
-.grillr-mobile-nav-wrap { position: relative; width: min(100%, 23rem); }
-.grillr-mobile-pill {
-  position: relative;
-  display: flex;
-  min-height: 58px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  overflow: hidden;
-  border-radius: 999px;
-  padding: 7px 8px 7px 18px;
-  background: linear-gradient(112deg, rgba(239, 245, 255, .95), rgba(255, 255, 255, .98) 42%, rgba(248, 244, 255, .95));
-  box-shadow: 0 12px 28px rgba(40, 58, 93, .13), 0 2px 7px rgba(40, 58, 93, .06);
-}
-.grillr-mobile-pill::before { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: linear-gradient(90deg, rgba(133, 168, 255, .16), transparent 30%, transparent 70%, rgba(190, 164, 255, .13)); content: ""; }
-.grillr-mobile-greeting { position: relative; min-width: 0; overflow: hidden; color: #26354d; font-size: 15px; font-weight: 600; letter-spacing: -.01em; text-overflow: ellipsis; white-space: nowrap; }
-.grillr-mobile-greeting span { color: #7b61d1; }
-.grillr-mobile-actions { position: relative; display: flex; flex-shrink: 0; gap: 6px; }
-.grillr-mobile-icon-button { display: inline-grid; width: 42px; height: 42px; place-items: center; border: 0; border-radius: 50%; color: #52627b; background: rgba(239, 242, 247, .92); cursor: pointer; transition: color .2s ease, background .2s ease, transform .2s ease; }
-.grillr-mobile-icon-button:hover { color: #263d72; background: #e6ecf6; transform: translateY(-1px); }
-.grillr-mobile-icon-button:focus-visible { outline: 2px solid #7b9ee8; outline-offset: 3px; }
-.grillr-mobile-menu { position: absolute; top: calc(100% + 10px); right: 0; left: 0; z-index: 2; padding: 10px; border-radius: 24px; background: linear-gradient(115deg, rgba(244, 248, 255, .98), rgba(255, 255, 255, .98) 48%, rgba(250, 247, 255, .98)); box-shadow: 0 18px 38px rgba(40, 58, 93, .14), 0 3px 10px rgba(40, 58, 93, .06); animation: grillr-menu-in .2s ease both; }
-.grillr-mobile-menu .grillr-mobile-link { border-radius: 16px; }
-.grillr-mobile-menu .border-t { border-color: rgba(215, 224, 238, .72); }
-
-html[data-theme="dark"] .grillr-nav-shell { --nav-ink: #f3f4f6; border-bottom-color: rgba(75, 85, 99, .45); background: rgba(17, 24, 39, .86); }
-html[data-theme="dark"] .grillr-mobile-pill { background: linear-gradient(112deg, rgba(31, 41, 55, .98), rgba(25, 34, 49, .98) 45%, rgba(39, 32, 58, .98)); box-shadow: 0 12px 28px rgba(0, 0, 0, .24), 0 2px 7px rgba(0, 0, 0, .18); }
-html[data-theme="dark"] .grillr-mobile-greeting { color: #f3f4f6; }
-html[data-theme="dark"] .grillr-mobile-icon-button { color: #cbd5e1; background: rgba(55, 65, 81, .86); }
-html[data-theme="dark"] .grillr-mobile-icon-button:hover { color: #fff; background: #4b5563; }
-html[data-theme="dark"] .grillr-mobile-menu { background: linear-gradient(115deg, rgba(31, 41, 55, .99), rgba(17, 24, 39, .99)); }
-html[data-theme="dark"] .grillr-mobile-link { color: #cbd5e1; }
-html[data-theme="dark"] .grillr-mobile-link:hover, html[data-theme="dark"] .grillr-mobile-link.is-active { color: #fff; background: rgba(59, 130, 246, .18); }
-html[data-theme="dark"] .grillr-mobile-menu .border-t { border-color: rgba(75, 85, 99, .7); }
-
-@media (min-width: 768px) { .grillr-mobile-nav-wrap { display: none; } }
-@media (max-width: 380px) { .grillr-mobile-pill { padding-left: 14px; }.grillr-mobile-greeting { font-size: 14px; }.grillr-mobile-icon-button { width: 39px; height: 39px; } }
-
 .grillr-nav { min-height: 68px; }
 .grillr-brand { color: var(--nav-ink); text-decoration: none; }
 .grillr-brand-mark { background: linear-gradient(145deg, #10233f, #2b5fc9); box-shadow: 0 9px 22px rgba(37, 82, 159, .24); transition: transform .24s ease, box-shadow .24s ease; }
@@ -222,19 +173,12 @@ html[data-theme="dark"] .grillr-mobile-menu .border-t { border-color: rgba(75, 8
 .grillr-nav-signin:hover { color: var(--nav-ink); }
 .grillr-menu-button { display: flex; height: 40px; width: 40px; align-items: center; justify-content: center; border: 1px solid #d7e0ee; border-radius: 10px; color: var(--nav-ink); background: #fff; box-shadow: 0 5px 14px rgba(35, 65, 108, .08); transition: transform .2s ease, border-color .2s ease, background .2s ease; }
 .grillr-menu-button:hover { border-color: #9eb5d8; background: #f4f7fc; transform: translateY(-1px); }
-.grillr-mobile-menu { padding: 10px; border: 0; border-radius: 24px; background: linear-gradient(115deg, rgba(244, 248, 255, .98), rgba(255, 255, 255, .98) 48%, rgba(250, 247, 255, .98)); box-shadow: 0 18px 38px rgba(40, 58, 93, .14), 0 3px 10px rgba(40, 58, 93, .06); animation: grillr-menu-in .2s ease both; }
-.grillr-mobile-link { display: flex; min-height: 42px; align-items: center; border-radius: 16px; padding: 0 12px; color: #526986; font-size: 13px; font-weight: 650; text-decoration: none; transition: color .18s ease, background .18s ease, transform .18s ease; }
+.grillr-mobile-menu { padding: 10px; border: 1px solid #d7e0ee; border-radius: 14px; background: rgba(255,255,255,.96); box-shadow: 0 18px 42px rgba(16, 35, 63, .16); animation: grillr-menu-in .2s ease both; }
+.grillr-mobile-link { display: flex; min-height: 42px; align-items: center; border-radius: 9px; padding: 0 12px; color: #526986; font-size: 13px; font-weight: 650; text-decoration: none; transition: color .18s ease, background .18s ease, transform .18s ease; }
 .grillr-mobile-link:hover, .grillr-mobile-link.is-active { color: var(--nav-ink); background: #eef4ff; transform: translateX(2px); }
 .grillr-nav-shell .border-t { border-color: #e1e8f2; }
 @keyframes grillr-menu-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @media (prefers-reduced-motion: reduce) { .grillr-brand-mark, .grillr-nav-link::after, .grillr-nav-action, .grillr-menu-button, .grillr-mobile-link, .grillr-mobile-menu { animation: none; transition: none; } }
-
-@media (max-width: 767px) {
-  .grillr-nav-shell { border-bottom: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
-  .grillr-nav { justify-content: center; padding-top: 10px; padding-bottom: 10px; }
-  .grillr-brand { display: none; }
-  .grillr-mobile-nav-wrap { width: 100%; }
-}
 
 .ai-core-shell { background: var(--background); color: var(--foreground); }
 .ai-back-button { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; margin-bottom: 22px; padding: 6px 12px; border: 1px solid transparent; border-radius: 999px; color: var(--ai-mint); background: transparent; cursor: pointer; font-size: 12px; font-weight: 600; }
