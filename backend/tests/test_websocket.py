@@ -20,8 +20,8 @@ def test_websocket_lifecycle_and_events(client):
     }, headers={"Authorization": f"Bearer {user_token}"})
     session_id = create_res.json()["id"]
 
-    # Connect with matching dev token in the cookie jar.
-    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}", headers={"Cookie": f"grillr_access_token={user_token}"}) as ws:
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
+        ws.send_json({"type": "auth", "token": user_token})
         # Connected event
         conn_msg = ws.receive_json()
         assert conn_msg["type"] == "session.connected"
@@ -54,6 +54,14 @@ def test_websocket_rejects_unauthenticated(client):
         assert exc_info.value.code == 1008
 
 
+def test_websocket_rejects_malformed_authentication(client):
+    with client.websocket_connect(f"/api/v1/ws/interviews/{uuid4()}") as ws:
+        ws.send_json({"type": "speech.start"})
+        with pytest.raises(WebSocketDisconnect) as exc_info:
+            ws.receive_json()
+        assert exc_info.value.code == 1008
+
+
 def _create_interview(client):
     token = f"dev:{DEV_USER_ID}:developer@localhost:Development User"
     response = client.post("/api/v1/interviews", json={
@@ -78,7 +86,8 @@ def test_websocket_buffers_binary_audio_and_returns_final_transcript(client, mon
     monkeypatch.setattr(websocket_module, "create_speech_to_text", lambda: FakeSpeechToText())
     session_id, token = _create_interview(client)
 
-    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}", headers={"Cookie": f"grillr_access_token={token}"}) as ws:
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
+        ws.send_json({"type": "auth", "token": token})
         ws.receive_json()
         ws.send_json({"type": "speech.start"})
         assert ws.receive_json()["type"] == "speech.start.ack"
@@ -99,7 +108,8 @@ def test_websocket_buffers_binary_audio_and_returns_final_transcript(client, mon
 def test_websocket_rejects_out_of_state_and_empty_audio(client):
     session_id, token = _create_interview(client)
 
-    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}", headers={"Cookie": f"grillr_access_token={token}"}) as ws:
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
+        ws.send_json({"type": "auth", "token": token})
         ws.receive_json()
         ws.send_bytes(b"audio-before-start")
         assert ws.receive_json()["data"]["code"] == "audio_out_of_state"
@@ -132,7 +142,8 @@ def test_websocket_continues_pipeline_after_transcript(client, monkeypatch):
 
     session_id, token = _create_interview(client)
 
-    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}", headers={"Cookie": f"grillr_access_token={token}"}) as ws:
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
+        ws.send_json({"type": "auth", "token": token})
         ws.receive_json()
         ws.send_json({"type": "speech.start"})
         ws.receive_json()
@@ -175,7 +186,8 @@ def test_websocket_provider_failure_returns_error_event(client, monkeypatch):
     monkeypatch.setattr(websocket_module, "create_speech_to_text", lambda: FailingSpeechToText())
     session_id, token = _create_interview(client)
 
-    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}", headers={"Cookie": f"grillr_access_token={token}"}) as ws:
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
+        ws.send_json({"type": "auth", "token": token})
         ws.receive_json()
         ws.send_json({"type": "speech.start"})
         ws.receive_json()
