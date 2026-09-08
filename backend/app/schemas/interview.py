@@ -51,6 +51,11 @@ class InterviewResponse(BaseModel):
     duration: int
     question_count: int
     current_question_number: int
+    speech_state: str
+    speech_generation_id: UUID | None
+    speech_question_id: UUID | None
+    interrupted_generation_id: UUID | None
+    interrupted_at: datetime | None
     created_at: datetime
     started_at: datetime | None
     completed_at: datetime | None
