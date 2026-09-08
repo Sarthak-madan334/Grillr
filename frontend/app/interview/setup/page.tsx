@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { JobTitleAutocomplete } from "@/components/interview/JobTitleAutocomplete";
 import { Select } from "@/components/ui/select";
 import { TopNav } from "@/components/layout/top-nav";
 import { createInterview } from "@/lib/interview-api";
@@ -97,7 +97,7 @@ export default function InterviewSetupPage() {
 
             <div className="space-y-2">
               <label htmlFor="jobTitle" className="text-sm font-medium text-[#5e4d40]">Job title</label>
-              <Input id="jobTitle" name="jobTitle" value={formState.jobTitle} onChange={(event) => updateField("jobTitle", event.target.value)} placeholder="Software Engineer" />
+              <JobTitleAutocomplete value={formState.jobTitle} onChange={(value) => updateField("jobTitle", value)} />
             </div>
 
             <div className="space-y-2">
