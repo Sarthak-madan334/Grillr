@@ -70,15 +70,16 @@ def test_username_assignment_persists_normalized_state_and_prevents_reassignment
     assert repeated.json()["error"]["code"] == "username_already_set"
 
 
-def test_legacy_put_cannot_bypass_one_time_username_assignment(client):
+def test_put_updates_username_without_changing_authenticated_ownership(client):
     _, headers = create_user()
 
     assert client.patch("/api/v1/users/me/username", json={"username": "first_name"}, headers=headers).status_code == 200
 
     response = client.put("/api/v1/users/me/username", json={"username": "second_name"}, headers=headers)
 
-    assert response.status_code == 409
-    assert response.json()["error"]["code"] == "username_already_set"
+    assert response.status_code == 200
+    assert response.json()["username"] == "second_name"
+    assert client.get("/api/v1/users/me", headers=headers).json()["username"] == "second_name"
 
 
 def test_username_assignment_rejects_duplicate_and_availability_hides_account_details(client):
