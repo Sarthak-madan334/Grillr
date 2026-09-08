@@ -1,3 +1,5 @@
+"use client";
+
 import { HomeCTA } from "@/components/HomeCTA";
 import { TopNav } from "@/components/layout/top-nav";
 import { useAuth } from "@/lib/auth-client";
