@@ -4,8 +4,8 @@ export const maxDuration = 60;
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 
-const RENDER_WAKE_UP_RETRIES = 3;
-const RENDER_WAKE_UP_DELAY_MS = 12_000;
+const RENDER_WAKE_UP_RETRIES = 5;
+const RENDER_WAKE_UP_DELAY_MS = 8_000;
 const RETRYABLE_STATUSES = new Set([502, 503, 504]);
 
 const delay = (milliseconds: number) =>
@@ -24,6 +24,7 @@ async function forwardRequest(request: Request, context: RouteContext) {
   for (let attempt = 0; attempt <= RENDER_WAKE_UP_RETRIES; attempt += 1) {
     try {
       const response = await fetch(target, {
+        method: request.method,
         headers: {
           "Content-Type": "application/json",
           ...(accessToken ? { Authorization: `Bearer ${decodeURIComponent(accessToken)}` } : {}),
@@ -33,7 +34,10 @@ async function forwardRequest(request: Request, context: RouteContext) {
       });
 
       if (!RETRYABLE_STATUSES.has(response.status) || attempt === RENDER_WAKE_UP_RETRIES) {
-        return NextResponse.json(await response.json(), { status: response.status });
+        const responseBody = await response.json().catch(() => ({
+          error: { code: "provider_unavailable", message: "Interview service is unavailable." },
+        }));
+        return NextResponse.json(responseBody, { status: response.status });
       }
     } catch {
       if (attempt === RENDER_WAKE_UP_RETRIES) {
