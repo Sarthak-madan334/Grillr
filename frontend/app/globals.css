@@ -46,6 +46,19 @@ textarea {
   transition: background 180ms ease-out;
 }
 
+.login-page {
+  background: radial-gradient(circle 280px at 8% 12%, rgba(205, 166, 127, 0.14), transparent 72%), radial-gradient(circle 320px at 92% 86%, rgba(226, 220, 211, 0.34), transparent 74%), #f8f5f1;
+}
+
+.login-surface { transition: transform 220ms ease, box-shadow 220ms ease; }
+.login-surface:hover { transform: translateY(-2px); box-shadow: 0 32px 110px rgba(63, 52, 43, 0.15); }
+.login-auth-panel { background: radial-gradient(circle 240px at 88% 12%, rgba(205, 166, 127, 0.1), transparent 72%), #fffdfb; }
+
+@media (prefers-reduced-motion: reduce) {
+  .login-surface { transition: none; }
+  .login-surface:hover { transform: none; }
+}
+
 .signup-surface { transition: transform 220ms ease, box-shadow 220ms ease; }
 .signup-surface:hover { transform: translateY(-2px); box-shadow: 0 32px 110px rgba(63, 52, 43, 0.13); }
 
