@@ -10,6 +10,14 @@ export function TopNav() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const navItems = [
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/interview/setup", label: "Practice" },
+    { href: "/history", label: "History" },
+    { href: "/ai-core", label: "AI Core" },
+  ];
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   useEffect(() => {
     let active = true;
@@ -62,10 +70,10 @@ export function TopNav() {
   }
 
   return (
-    <header className="relative sticky top-0 z-30 border-b border-[#eadcc8]/80 bg-[rgba(255,250,244,0.58)] backdrop-blur-2xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" aria-label="Grillr home" className="group flex min-w-0 items-center gap-3">
-          <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-[#e7d8c5] bg-[linear-gradient(135deg,rgba(255,255,255,0.7),rgba(236,220,204,0.82))] shadow-[0_10px_22px_rgba(80,59,43,0.12)] transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_14px_26px_rgba(80,59,43,0.16)]">
+    <header className="grillr-nav-shell sticky top-0 z-30">
+      <div className="grillr-nav mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <Link href="/" aria-label="Grillr home" className="grillr-brand group flex min-w-0 items-center gap-2.5">
+          <div className="grillr-brand-mark relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-[11px]">
             <span className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_transparent_55%)]" />
             <svg
               viewBox="0 0 56 56"
@@ -75,12 +83,12 @@ export function TopNav() {
             >
               <defs>
                 <linearGradient id="grillr-g-glow" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#3b2d27" />
-                  <stop offset="100%" stopColor="#695547" />
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="100%" stopColor="#b8d1ff" />
                 </linearGradient>
               </defs>
 
-              <rect x="4" y="4" width="48" height="48" rx="14" fill="rgba(255,255,255,0.15)" stroke="rgba(117,93,74,0.35)" />
+              <rect x="4" y="4" width="48" height="48" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.24)" />
 
               <path
                 d="M37 13.5c-4.1-3.2-9.4-4.2-14.5-3.2-7 1.4-12.7 7.2-13.8 14.3-1.2 8.4 3.4 16.3 11.2 18.8 5.8 1.8 12.1.7 16.5-3.2"
@@ -92,35 +100,23 @@ export function TopNav() {
 
               <path d="M30 28h11" stroke="url(#grillr-g-glow)" strokeWidth="3.7" strokeLinecap="round" />
 
-              <path d="M17 24v8M22 20v16M27 17v22" stroke="#d6a97b" strokeWidth="2.4" strokeLinecap="round" opacity="0.9" />
+              <path d="M17 24v8M22 20v16M27 17v22" stroke="#f4b860" strokeWidth="2.4" strokeLinecap="round" opacity="0.95" />
 
-              <circle cx="39" cy="28" r="2.4" fill="#d6a97b" />
+              <circle cx="39" cy="28" r="2.4" fill="#f4b860" />
             </svg>
           </div>
           <div className="max-[359px]:hidden">
-            <div className="text-[11px] font-semibold tracking-[0.2em] text-[#755d4a]">GRILLR</div>
+            <div className="grillr-brand-name">GRILLR</div>
+            <div className="grillr-brand-tagline">INTERVIEW COACH</div>
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-2 text-sm text-[#5e4d40] md:flex">
-          <Link
-            href="/dashboard"
-            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/interview/setup"
-            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
-          >
-            Interview Setup
-          </Link>
-          <Link
-            href="/history"
-            className="rounded-lg px-3 py-2 transition-colors duration-200 ease-out hover:bg-[#f2e5d7]/70 hover:text-[#201a17] focus-visible:bg-[#f2e5d7]/70 focus-visible:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c7d5d]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none"
-          >
-            History
-          </Link>
+        <nav className="grillr-nav-links hidden items-center md:flex" aria-label="Primary navigation">
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href} className={`grillr-nav-link ${isActive(item.href) ? "is-active" : ""}`}>
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -128,24 +124,23 @@ export function TopNav() {
             <button
               type="button"
               onClick={handleSignOut}
-              className="rounded-full border border-[#1d1d1f] bg-white px-3 py-2 text-xs font-medium text-[#1d1d1f] transition hover:bg-[#f5f5f7] sm:px-4 sm:text-sm"
+              className="grillr-nav-action grillr-nav-action-muted"
             >
-              Sign out
+              Log out
             </button>
           ) : (
             <>
               <Link
                 href="/login"
-                className="hidden rounded-full px-2 py-2 text-sm font-medium text-[#424245] transition hover:bg-[#f5f5f7] sm:inline-flex sm:px-4"
+                className="grillr-nav-signin hidden sm:inline-flex"
               >
                 Sign in
               </Link>
               <Link
                 href="/signup"
-                className="rounded-full border border-[#1d1d1f] bg-[#1d1d1f] px-3 py-2 text-xs font-medium text-white shadow-[0_12px_24px_rgba(0,0,0,0.14)] transition duration-200 hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_16px_28px_rgba(0,0,0,0.18)] sm:px-4 sm:text-sm"
+                className="grillr-nav-signin hidden sm:inline-flex"
               >
-                <span className="sm:hidden">Join</span>
-                <span className="hidden sm:inline">Create account</span>
+                Create account
               </Link>
             </>
           )}
@@ -158,7 +153,7 @@ export function TopNav() {
             aria-expanded={isMenuOpen}
             aria-controls="mobile-navigation-menu"
             onClick={() => setIsMenuOpen((open) => !open)}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#e7d8c5] bg-[rgba(255,255,255,0.62)] text-[#473a2d] shadow-[0_8px_20px_rgba(80,59,43,0.08)] transition duration-200 hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100"
+            className="grillr-menu-button"
           >
             <span className="sr-only">{isMenuOpen ? "Close menu" : "Open menu"}</span>
             {isMenuOpen ? (
@@ -173,24 +168,23 @@ export function TopNav() {
           </button>
 
           {isMenuOpen ? (
-            <nav id="mobile-navigation-menu" aria-label="Mobile navigation" className="absolute right-0 top-[calc(100%+0.75rem)] w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-[#e7d8c5] bg-[#fffaf4] p-3 shadow-[0_18px_45px_rgba(80,59,43,0.16)] motion-reduce:transition-none">
+            <nav id="mobile-navigation-menu" aria-label="Mobile navigation" className="grillr-mobile-menu absolute right-0 top-[calc(100%+0.75rem)] w-[min(18rem,calc(100vw-2rem))]">
               <div className="space-y-1">
-                <Link href="/dashboard" onClick={closeMenu} className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none">
-                  Dashboard
-                </Link>
-                <Link href="/interview/setup" onClick={closeMenu} className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none">
-                  Interview Setup
-                </Link>
-                <Link href="/history" onClick={closeMenu} className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none">
-                  History
-                </Link>
+                {navItems.map((item) => (
+                  <Link key={item.href} href={item.href} onClick={closeMenu} className={`grillr-mobile-link ${isActive(item.href) ? "is-active" : ""}`}>
+                    {item.label}
+                  </Link>
+                ))}
               </div>
               <div className="my-3 border-t border-[#e7d8c5]" />
               <div className="space-y-1">
                 {isAuthenticated ? (
                   <button
                     type="button"
-                    onClick={handleSignOut}
+                    onClick={() => {
+                      closeMenu();
+                      void handleSignOut();
+                    }}
                     className="flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e7d8c5] bg-white px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none"
                   >
                     Sign out

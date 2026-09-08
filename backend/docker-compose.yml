@@ -8,8 +8,12 @@ services:
       DATABASE_URL: postgresql+psycopg://grillr:grillr@db:5432/grillr
       AUTH_REQUIRED: "true"
       AUTO_CREATE_SCHEMA: "false"
-      CORS_ORIGINS: http://localhost:3000
-      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:?Set SUPABASE_JWT_SECRET}
+      CORS_ORIGINS: '["http://localhost:3000"]'
+      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL}
+      SUPABASE_JWKS_URL: ${SUPABASE_JWKS_URL:-}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      RIME_API_KEY: ${RIME_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy
