@@ -108,6 +108,46 @@ class InterviewService:
     def questions(self, session_id: UUID, user_id: UUID) -> list[Question]:
         return self.get(session_id, user_id).questions
 
+    def mark_speech_started(self, session_id: UUID, user_id: UUID, generation_id: UUID, question_id: UUID | None) -> InterviewSession:
+        session = self.get(session_id, user_id)
+        if question_id is not None:
+            valid_question = self.db.scalar(select(Question.id).where(Question.id == question_id, Question.session_id == session_id))
+            question_id = valid_question
+        session.speech_state = SpeechState.AI_SPEAKING.value
+        session.speech_generation_id = generation_id
+        session.speech_question_id = question_id
+        session.interrupted_generation_id = None
+        session.interrupted_at = None
+        self.db.commit()
+        return self.get(session_id, user_id)
+
+    def mark_speech_interrupted(self, session_id: UUID, user_id: UUID, generation_id: UUID) -> InterviewSession:
+        session = self.get(session_id, user_id)
+        if session.speech_generation_id == generation_id and session.speech_state == SpeechState.AI_SPEAKING.value:
+            session.speech_state = SpeechState.USER_SPEAKING.value
+            session.speech_generation_id = None
+            session.interrupted_generation_id = generation_id
+            session.interrupted_at = datetime.now(timezone.utc)
+            self.db.commit()
+        return self.get(session_id, user_id)
+
+    def mark_user_speaking(self, session_id: UUID, user_id: UUID) -> InterviewSession:
+        session = self.get(session_id, user_id)
+        if session.speech_state != SpeechState.AI_SPEAKING.value:
+            session.speech_state = SpeechState.USER_SPEAKING.value
+            self.db.commit()
+        return self.get(session_id, user_id)
+
+    def mark_speech_finished(self, session_id: UUID, user_id: UUID, generation_id: UUID) -> InterviewSession:
+        session = self.get(session_id, user_id)
+        if session.speech_generation_id == generation_id and session.speech_state == SpeechState.AI_SPEAKING.value:
+            session.speech_state = SpeechState.IDLE.value
+            session.speech_generation_id = None
+            self.db.commit()
+        return self.get(session_id, user_id)
+
+    def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate) -> Answer:
+        question = self.db.scalar(select(Question).join(InterviewSession).where(Question.id == question_id, InterviewSession.user_id == user_id).options(selectinload(Question.session)))
     def _history(self, session: InterviewSession) -> list[dict[str, str]]:
         history: list[dict[str, str]] = []
         for item in sorted(session.questions, key=lambda value: value.question_number):
@@ -239,6 +279,23 @@ class InterviewService:
             raise NotFoundError("Question")
         if question.session.status not in {SessionStatus.ACTIVE, SessionStatus.COMPLETED} or (question.session.status == SessionStatus.COMPLETED and not is_retry):
             raise InvalidStateError("Answers can only be submitted for active interviews")
+        attempt = self.db.scalar(select(Answer).where(Answer.question_id == question_id).order_by(Answer.attempt_number.desc()))
+        attempt_number = (attempt.attempt_number + 1) if attempt else 1
+        answer = Answer(question_id=question.id, session_id=question.session_id, attempt_number=attempt_number, transcript=data.transcript, duration=data.duration, completed_at=datetime.now(timezone.utc))
+        self.db.add(answer)
+        self.db.flush()
+        metrics = self.analyzer.analyze(data.transcript, data.duration)
+        self.db.add(SpeechMetrics(answer_id=answer.id, **metrics))
+        self.db.add(AnswerEvaluation(answer_id=answer.id, **self.evaluator.evaluate(data.transcript, question.question_text)))
+        question.answered_at = datetime.now(timezone.utc)
+        question.session.current_question_number = question.question_number
+        question.session.speech_state = SpeechState.IDLE.value
+        question.session.speech_generation_id = None
+        if question.question_number < question.session.question_count:
+            next_question_number = question.question_number + 1
+            existing_next = self.db.scalar(select(Question).where(Question.session_id == question.session_id, Question.question_number == next_question_number))
+            if existing_next is None:
+                self.db.add(Question(session_id=question.session_id, question_number=next_question_number, question_text=self.ai.next_question(question.session.job_role, next_question_number), question_type=question.session.interview_type))
         answer = existing
         attempt = self.db.scalar(select(Answer).where(Answer.question_id == question.id).order_by(Answer.attempt_number.desc())) if answer is None else answer
         if attempt is not None and not is_retry and answer is None:

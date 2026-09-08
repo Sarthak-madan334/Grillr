@@ -9,6 +9,9 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import authenticate_token
 from app.db.session import SessionLocal
+from app.services.interview_service import InterviewService
+from app.services.providers import RimeTextToSpeech
+from app.services.speech_controller import SpeechController
 from app.models import SessionStatus
 from app.schemas.answer import AnswerCreate
 from app.services.interview_service import AnswerEvaluationError, InterviewService
@@ -30,6 +33,7 @@ logger = logging.getLogger(__name__)
 async def interview_socket(websocket: WebSocket, session_id: UUID):
     await websocket.accept()
     db: Session = SessionLocal()
+    speech = SpeechController()
 
     async def send_error(code: str, message: str) -> None:
         await websocket.send_json({"type": "error", "data": {"code": code, "message": message}})
@@ -61,6 +65,21 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
         except Exception:
             await websocket.close(code=1008, reason="Unauthorized or session not found")
             return
+        session = service.get(session_id, identity.id)
+        await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id)}})
+        await websocket.send_json({
+            "type": "session.state",
+            "data": {
+                "session_id": str(session_id),
+                "speech_state": session.speech_state,
+                "generation_id": str(session.speech_generation_id) if session.speech_generation_id else None,
+                "question_id": str(session.speech_question_id) if session.speech_question_id else None,
+                "interrupted_generation_id": str(session.interrupted_generation_id) if session.interrupted_generation_id else None,
+                "interrupted_at": session.interrupted_at.isoformat() if session.interrupted_at else None,
+            },
+        })
+        if session.speech_state == "ai_speaking" and session.speech_generation_id is not None:
+            await speech.restore_ai_speech(session.speech_generation_id)
         try:
             service = InterviewService(db)
             session = service.get(session_id, identity.id)
@@ -265,4 +284,5 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
     except WebSocketDisconnect:
         pass
     finally:
+        await speech.close()
         db.close()

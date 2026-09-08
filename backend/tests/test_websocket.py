@@ -1,3 +1,6 @@
+import asyncio
+import threading
+from uuid import uuid4
 from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import select
@@ -27,6 +30,8 @@ def test_websocket_lifecycle_and_events(client):
         conn_msg = ws.receive_json()
         assert conn_msg["type"] == "session.connected"
         assert conn_msg["data"]["session_id"] == session_id
+        state_msg = ws.receive_json()
+        assert state_msg["type"] == "session.state"
         assert conn_msg["data"]["turn_state"] == "listening"
 
         # Send session.start
