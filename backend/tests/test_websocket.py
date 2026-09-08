@@ -36,7 +36,7 @@ def test_websocket_lifecycle_and_events(client):
         assert ws.receive_json()["type"] == "audio.ai"
 
         # Send speech.start
-        ws.send_json({"type": "speech.start"})
+        ws.send_json({"type": "speech.start", "turn_id": "turn-lifecycle"})
         speech_msg = ws.receive_json()
         assert speech_msg["type"] == "speech.start.ack"
         assert ws.receive_json()["data"]["state"] == "listening"
@@ -51,7 +51,7 @@ def test_websocket_lifecycle_and_events(client):
 def test_websocket_rejects_unauthenticated(client):
     fake_session_id = uuid4()
     with client.websocket_connect(f"/api/v1/ws/interviews/{fake_session_id}") as ws:
-        ws.send_json({"type": "speech.start"})
+        ws.send_json({"type": "speech.start", "turn_id": "turn-buffer"})
         with pytest.raises(WebSocketDisconnect) as exc_info:
             ws.receive_json()
         assert exc_info.value.code == 1008
@@ -71,6 +71,19 @@ def test_websocket_rejects_invalid_auth_token(client):
         with pytest.raises(WebSocketDisconnect) as exc_info:
             ws.receive_json()
         assert exc_info.value.code == 1008
+
+
+def test_websocket_rejects_answer_without_turn_id(client):
+    session_id, token = _create_interview(client)
+
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
+        ws.send_json({"type": "auth", "token": token})
+        assert ws.receive_json()["type"] == "auth.ok"
+        assert ws.receive_json()["type"] == "session.connected"
+        ws.send_json({"type": "speech.start"})
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["data"]["code"] == "missing_turn_id"
 
 
 def test_websocket_reconnect_requires_first_message_auth(client, caplog):
@@ -124,7 +137,7 @@ def test_websocket_buffers_binary_audio_and_returns_final_transcript(client, mon
         ws.send_json({"type": "auth", "token": token})
         assert ws.receive_json()["type"] == "auth.ok"
         ws.receive_json()
-        ws.send_json({"type": "speech.start"})
+        ws.send_json({"type": "speech.start", "turn_id": "turn-empty"})
         assert ws.receive_json()["type"] == "speech.start.ack"
         ws.receive_json()
         ws.send_bytes(b"first-")
@@ -178,7 +191,7 @@ def test_websocket_rejects_out_of_state_and_empty_audio(client):
         ws.send_text("not-json")
         assert ws.receive_json()["data"]["code"] == "invalid_event"
 
-        ws.send_json({"type": "speech.start"})
+        ws.send_json({"type": "speech.start", "turn_id": "turn-pipeline"})
         ws.receive_json()
         ws.receive_json()
         ws.send_json({"type": "speech.stop"})
@@ -207,7 +220,7 @@ def test_websocket_continues_pipeline_after_transcript(client, monkeypatch):
         ws.send_json({"type": "auth", "token": token})
         assert ws.receive_json()["type"] == "auth.ok"
         ws.receive_json()
-        ws.send_json({"type": "speech.start"})
+        ws.send_json({"type": "speech.start", "turn_id": "turn-stt-failure"})
         ws.receive_json()
         ws.receive_json()
         ws.send_bytes(b"audio-bytes")
@@ -252,7 +265,7 @@ def test_websocket_provider_failure_returns_error_event(client, monkeypatch):
         ws.send_json({"type": "auth", "token": token})
         assert ws.receive_json()["type"] == "auth.ok"
         ws.receive_json()
-        ws.send_json({"type": "speech.start"})
+        ws.send_json({"type": "speech.start", "turn_id": "turn-stt-failure"})
         ws.receive_json()
         ws.receive_json()
         ws.send_bytes(b"audio")
