@@ -12,14 +12,16 @@ export class MicrophoneService {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       return true;
     } catch (error) {
-      console.error('Microphone permission denied or error:', error);
+      console.error("Microphone permission denied or error:", error);
       return false;
     }
   }
 
   startRecording(onDataAvailable: (data: Blob) => void) {
     if (!this.stream) {
-      console.error('Microphone stream not available. Call requestPermission first.');
+      console.error(
+        "Microphone stream not available. Call requestPermission first.",
+      );
       return;
     }
 
@@ -65,7 +67,7 @@ export class MicrophoneService {
   }
 
   stopRecording() {
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+    if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
       this.mediaRecorder.stop();
     }
     // Note: this doesn't release the microphone, just stops recording.
@@ -80,13 +82,13 @@ export class MicrophoneService {
     this.analyser = null;
     this.speechActive = false;
     if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
+      this.stream.getTracks().forEach((track) => track.stop());
       this.stream = null;
     }
   }
 
   isRecording(): boolean {
-    return this.mediaRecorder?.state === 'recording';
+    return this.mediaRecorder?.state === "recording";
   }
 }
 
