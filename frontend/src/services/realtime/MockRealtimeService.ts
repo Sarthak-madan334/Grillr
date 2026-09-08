@@ -70,13 +70,16 @@ export class MockRealtimeService {
   simulateFinalUserSpeech(finalText: string) {
     this.emit({
       type: "transcript.final",
-      data: { text: finalText, answer_id: "mock-uuid" },
+      data: { text: finalText, answer_id: "mock-uuid", question_id: "mock-question-uuid" },
     });
     this.setState("processing");
     this.emit({ type: "speech.stop", data: {} });
     // Simulate processing -> new question
     setTimeout(() => {
-      this.emit({ type: "answer.evaluated", data: {} });
+      this.emit({
+        type: "answer.evaluated",
+        data: { answer_id: "mock-uuid", question_id: "mock-question-uuid", overall_score: 80 },
+      });
       setTimeout(() => {
         this.simulateAIQuestion(
           "That makes sense. Can you dive deeper into a time you faced a difficult challenge?",

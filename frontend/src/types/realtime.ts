@@ -24,15 +24,41 @@ export interface FinalTranscriptEvent extends BaseEvent {
   type: "transcript.final";
   data: {
     answer_id: string;
+    question_id: string;
     text: string;
+    turn_id?: string | null;
+  };
+}
+
+export interface AnswerEvaluatedEvent extends BaseEvent {
+  type: "answer.evaluated";
+  data: {
+    answer_id: string;
+    question_id: string;
+    overall_score: number;
+    turn_id?: string | null;
   };
 }
 
 export interface AIQuestionEvent extends BaseEvent {
-  type: "question.created";
+  type: "question.created" | "question.follow_up";
   data: {
+    session_id?: string;
+    question_id?: string;
     text: string;
+    question_text?: string;
+    question_number?: number;
+    is_follow_up?: boolean;
     audio_url?: string;
+  };
+}
+
+export interface SessionCompletedEvent extends BaseEvent {
+  type: "session.completed";
+  data: {
+    session_id: string;
+    answer_id: string;
+    overall_score: number;
   };
 }
 
@@ -53,7 +79,6 @@ export type RealtimeEvent =
   | { type: "speech.stop"; data: EmptyEventData }
   | { type: "interview.interrupt"; data: EmptyEventData }
   | { type: "audio.ai"; data: EmptyEventData }
-  | { type: "answer.evaluated"; data: EmptyEventData }
-  | { type: "question.follow_up"; data: EmptyEventData }
-  | { type: "session.completed"; data: EmptyEventData }
+  | AnswerEvaluatedEvent
+  | SessionCompletedEvent
   | { type: "session.ready"; data: EmptyEventData };

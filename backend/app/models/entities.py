@@ -100,13 +100,14 @@ class Question(Base):
 
 class Answer(Base):
     __tablename__ = "answers"
-    __table_args__ = (UniqueConstraint("question_id", "attempt_number"), Index("ix_answers_session", "session_id"))
+    __table_args__ = (UniqueConstraint("question_id", "attempt_number"), UniqueConstraint("session_id", "idempotency_key"), Index("ix_answers_session", "session_id"))
     id: Mapped[uuid.UUID] = uuid_column()
     question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("questions.id", ondelete="CASCADE"), index=True)
     session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("interview_sessions.id", ondelete="CASCADE"))
     attempt_number: Mapped[int] = mapped_column(Integer)
     transcript: Mapped[str] = mapped_column(Text)
     duration: Mapped[float] = mapped_column()
+    idempotency_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     question: Mapped[Question] = relationship(back_populates="answers")

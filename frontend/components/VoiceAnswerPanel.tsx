@@ -57,6 +57,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
   const streamRef = useRef<MediaStream | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const socketAuthenticatedRef = useRef(false);
+  const turnIdRef = useRef<string | null>(null);
   const pendingChunksRef = useRef<Blob[]>([]);
   const { isSpeaking, level } = useVoiceActivityDetection(activeStream);
 
@@ -147,7 +148,10 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
             const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; state?: TurnState; message?: string } };
             if (message.type === "auth.ok") {
               socketAuthenticatedRef.current = true;
-              socket.send(JSON.stringify({ type: "speech.start" }));
+              turnIdRef.current = typeof crypto !== "undefined" && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+              socket.send(JSON.stringify({ type: "speech.start", turn_id: turnIdRef.current }));
               pendingChunksRef.current.forEach((chunk) => socket.send(chunk));
             }
             if (message.type === "turn.state_changed" && message.data?.state) {
@@ -204,7 +208,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
       if (typeof WebSocket !== "undefined" && socketRef.current?.readyState === WebSocket.OPEN) {
         setIsProcessing(true);
         onTurnStateChange?.("processing");
-        if (socketAuthenticatedRef.current) socketRef.current.send(JSON.stringify({ type: "speech.stop" }));
+        if (socketAuthenticatedRef.current) socketRef.current.send(JSON.stringify({ type: "speech.stop", turn_id: turnIdRef.current }));
       } else {
         stopStream();
       }
