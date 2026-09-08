@@ -4,16 +4,7 @@ FastAPI backend foundation for the Interview Coach. It includes SQLAlchemy model
 
 ## Run locally
 
-Requires Python 3.11+.
-
-```powershell
-cd backend
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -e ".[test]"
-Copy-Item .env.example .env
-uvicorn app.main:app --reload
-```
+Follow the repository-level [local development guide](../docs/local-development.md) for the verified Python, environment, migration, startup, and test commands.
 
 The default database is local SQLite. Set `DATABASE_URL` to a PostgreSQL URL for deployment. Set `AUTH_REQUIRED=true` and provide either `SUPABASE_URL` (for Supabase JWKS signing keys) or `SUPABASE_JWT_SECRET` (for legacy HS256 tokens) in environments where authentication must be mandatory. In development, requests without a token use a local development user; a deterministic token can also be supplied as `Bearer dev:<uuid>:<email>:<name>`.
 

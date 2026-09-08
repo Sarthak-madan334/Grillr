@@ -2,6 +2,26 @@
 
 AI-powered mock interviews with real-time voice interaction, adaptive questioning, and structured feedback.
 
+## Local development
+
+The verified setup, environment variables, database migrations, startup commands, health check, frontend-backend connectivity check, tests, and CI commands are documented in [docs/local-development.md](docs/local-development.md).
+
+Quick start on Windows:
+
+```powershell
+Set-Location .\backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[test]"
+Copy-Item .env.example .env
+
+Set-Location ..\frontend
+npm ci
+Copy-Item .env.example .env.local
+```
+
+Run the backend with `python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000` and the frontend with `npm run dev -- --hostname 127.0.0.1 --port 3000` from their respective directories.
+
 ## Overview
 
 The Interview Coach simulates realistic job interviews using voice. It asks questions, listens to answers, analyzes response quality and communication, asks follow-up questions, and provides actionable feedback.
