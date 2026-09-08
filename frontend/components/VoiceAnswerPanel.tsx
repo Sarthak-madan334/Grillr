@@ -129,13 +129,9 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
       if (typeof WebSocket !== "undefined" && socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(chunk);
       };
       if (sessionId && typeof WebSocket !== "undefined" && typeof MediaRecorder !== "undefined") {
-        const tokenResponse = await fetch("/api/auth/realtime-token", { cache: "no-store" });
-        if (!tokenResponse.ok) throw new Error("Realtime authentication failed");
-        const { token } = (await tokenResponse.json()) as { token?: string };
-        if (!token) throw new Error("Realtime authentication failed");
         const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? window.location.origin;
         const socketUrl = apiUrl.replace(/^http/, "ws");
-        const socket = new WebSocket(`${socketUrl}/api/v1/ws/interviews/${sessionId}?token=${encodeURIComponent(token)}`);
+        const socket = new WebSocket(`${socketUrl}/api/v1/ws/interviews/${sessionId}`);
         socketRef.current = socket;
         socket.addEventListener("open", () => {
           socket.send(JSON.stringify({ type: "speech.start" }));
