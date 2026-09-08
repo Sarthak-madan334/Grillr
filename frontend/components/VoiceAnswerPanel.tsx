@@ -99,7 +99,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
         if (!tokenResponse.ok) throw new Error("Realtime authentication failed");
         const { token } = (await tokenResponse.json()) as { token?: string };
         if (!token || cancelled) throw new Error("Realtime authentication failed");
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? window.location.origin;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "https://grillr-acev.onrender.com";
         socket = new WebSocket(`${apiUrl.replace(/^http/, "ws")}/api/v1/ws/interviews/${sessionId}`);
         socketRef.current = socket;
         socket.addEventListener("open", () => socket?.send(JSON.stringify({ type: "auth", token })));

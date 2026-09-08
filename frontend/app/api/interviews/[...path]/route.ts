@@ -6,7 +6,7 @@ async function forwardRequest(request: Request, context: RouteContext) {
   const { path } = await context.params;
   const suffix = `/${path.join("/")}`;
   try {
-    const apiUrl = process.env.GRILLR_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    const apiUrl = process.env.GRILLR_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "https://grillr-acev.onrender.com";
     const incoming = new URL(request.url);
     const cookie = request.headers.get("cookie") ?? "";
     const accessToken = cookie.match(/(?:^|;\s*)grillr_access_token=([^;]+)/)?.[1];
