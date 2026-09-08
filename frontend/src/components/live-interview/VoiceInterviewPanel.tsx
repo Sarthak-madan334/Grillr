@@ -8,11 +8,6 @@ import { AudioPlaybackController, type PlaybackSnapshot } from "@/lib/audio-play
 import { MockRealtimeClient, type RealtimeEvent, type TranscriptEntry } from "@/lib/realtime";
 import { microphoneService } from "@/services/audio/MicrophoneService";
 import {
-  MockRealtimeClient,
-  type RealtimeEvent,
-  type TranscriptEntry,
-} from "@/lib/realtime";
-import {
   applyVoiceEvent,
   initialVoiceState,
   type VoiceState,
@@ -170,6 +165,7 @@ export function VoiceInterviewPanel() {
       setAudioLevel((previous) => {
         if (voiceStageRef.current === "user_speaking" || voiceStageRef.current === "ai_speaking") {
           return Math.max(18, Math.min(92, previous + (Math.random() > 0.5 ? 6 : -6)));
+        }
         if (
           voiceState.stage === "user_speaking" ||
           voiceState.stage === "ai_speaking"
