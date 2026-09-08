@@ -34,6 +34,8 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
     await websocket.accept()
     db: Session = SessionLocal()
     speech = SpeechController()
+    service = None
+    identity = None
 
     async def send_error(code: str, message: str) -> None:
         await websocket.send_json({"type": "error", "data": {"code": code, "message": message}})
@@ -65,21 +67,6 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
         except Exception:
             await websocket.close(code=1008, reason="Unauthorized or session not found")
             return
-        session = service.get(session_id, identity.id)
-        await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id)}})
-        await websocket.send_json({
-            "type": "session.state",
-            "data": {
-                "session_id": str(session_id),
-                "speech_state": session.speech_state,
-                "generation_id": str(session.speech_generation_id) if session.speech_generation_id else None,
-                "question_id": str(session.speech_question_id) if session.speech_question_id else None,
-                "interrupted_generation_id": str(session.interrupted_generation_id) if session.interrupted_generation_id else None,
-                "interrupted_at": session.interrupted_at.isoformat() if session.interrupted_at else None,
-            },
-        })
-        if session.speech_state == "ai_speaking" and session.speech_generation_id is not None:
-            await speech.restore_ai_speech(session.speech_generation_id)
         try:
             service = InterviewService(db)
             session = service.get(session_id, identity.id)
@@ -91,17 +78,20 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             return
         await websocket.send_json({"type": "auth.ok", "data": {}})
         turn_state = "listening"
-        speech_to_text = SpeechToTextService(create_speech_to_text())
-        text_to_speech = None
-        audio_buffer = bytearray()
-        recording = False
-        current_turn_id: str | None = None
 
         async def send_resync() -> None:
             current_question = next((item for item in session.questions if not item.answered_at), None)
             await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id), "status": session.status.value, "current_question_number": session.current_question_number, "question_id": str(current_question.id) if current_question else None, "turn_state": turn_state}})
 
         await send_resync()
+        if session.speech_state == "ai_speaking" and session.speech_generation_id is not None:
+            await speech.restore_ai_speech(session.speech_generation_id)
+        speech_to_text = SpeechToTextService(create_speech_to_text())
+        text_to_speech = None
+        audio_buffer = bytearray()
+        recording = False
+        current_turn_id: str | None = None
+
         async def send_question_audio(question) -> None:
             nonlocal text_to_speech
             if question is None:
