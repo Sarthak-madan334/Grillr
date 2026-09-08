@@ -73,6 +73,22 @@ class FakeHttpClient:
         return self.response
 
 
+class FakeAsyncHttpClient:
+    def __init__(self, response=None):
+        self.response = response
+        self.request = None
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        return False
+
+    async def post(self, url, **kwargs):
+        self.request = (url, kwargs)
+        return self.response
+
+
 def test_speech_analyzer_metrics():
     analyzer = MockSpeechAnalyzer()
     transcript = "Um I think uh like we should we should optimize this query"

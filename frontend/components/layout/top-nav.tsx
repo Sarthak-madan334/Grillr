@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/lib/auth-client";
 
 export function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, isAuthenticated, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navItems = [
@@ -19,20 +20,9 @@ export function TopNav() {
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
-  useEffect(() => {
-    let active = true;
-    fetch("/api/auth/session", { cache: "no-store" })
-      .then((response) => response.json() as Promise<{ authenticated?: boolean }>)
-      .then((data) => {
-        if (active) setIsAuthenticated(Boolean(data.authenticated));
-      })
-      .catch(() => {
-        if (active) setIsAuthenticated(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [pathname]);
+  const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "there";
+  const greetingName = displayName.length > 12 ? `${displayName.slice(0, 12).trimEnd()}…` : displayName;
+  const greetingInitial = (displayName?.[0] ?? "G").toUpperCase();
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -62,8 +52,7 @@ export function TopNav() {
   }
 
   async function handleSignOut() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setIsAuthenticated(false);
+    await signOut();
     setIsMenuOpen(false);
     router.push("/login");
     router.refresh();
@@ -120,6 +109,16 @@ export function TopNav() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
+          {isAuthenticated && user ? (
+            <div className="flex min-w-0 max-w-[12rem] items-center gap-2 rounded-full border border-[#d7e0ee] bg-white/80 px-2.5 py-1.5 shadow-[0_2px_10px_rgba(16,35,63,0.03)]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#edf4ff] text-[10px] font-bold text-[#365bb4]">
+                {greetingInitial}
+              </span>
+              <span className="min-w-0 truncate text-[11px] font-semibold text-[#4b5d77]">
+                Welcome back, {greetingName}
+              </span>
+            </div>
+          ) : null}
           {isAuthenticated ? (
             <button
               type="button"
@@ -146,7 +145,17 @@ export function TopNav() {
           )}
         </div>
 
-        <div ref={menuRef} className="relative md:hidden">
+        <div ref={menuRef} className="relative flex items-center gap-2 md:hidden">
+          {isAuthenticated && user ? (
+            <div className="flex max-w-[8rem] min-w-0 items-center gap-1.5 rounded-full border border-[#d7e0ee] bg-white/80 px-2 py-1 shadow-[0_2px_10px_rgba(16,35,63,0.03)]">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#edf4ff] text-[9px] font-bold text-[#365bb4]">
+                {greetingInitial}
+              </span>
+              <span className="min-w-0 truncate text-[10px] font-semibold text-[#4b5d77]">
+                {greetingName}
+              </span>
+            </div>
+          ) : null}
           <button
             type="button"
             aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}

@@ -9,6 +9,9 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import authenticate_token
 from app.db.session import SessionLocal
+from app.services.interview_service import InterviewService
+from app.services.providers import RimeTextToSpeech
+from app.services.speech_controller import SpeechController
 from app.models import SessionStatus
 from app.schemas.answer import AnswerCreate
 from app.services.interview_service import AnswerEvaluationError, InterviewService
@@ -30,6 +33,9 @@ logger = logging.getLogger(__name__)
 async def interview_socket(websocket: WebSocket, session_id: UUID):
     await websocket.accept()
     db: Session = SessionLocal()
+    speech = SpeechController()
+    service = None
+    identity = None
 
     async def send_error(code: str, message: str) -> None:
         await websocket.send_json({"type": "error", "data": {"code": code, "message": message}})
@@ -72,17 +78,20 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             return
         await websocket.send_json({"type": "auth.ok", "data": {}})
         turn_state = "listening"
-        speech_to_text = SpeechToTextService(create_speech_to_text())
-        text_to_speech = None
-        audio_buffer = bytearray()
-        recording = False
-        current_turn_id: str | None = None
 
         async def send_resync() -> None:
             current_question = next((item for item in session.questions if not item.answered_at), None)
             await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id), "status": session.status.value, "current_question_number": session.current_question_number, "question_id": str(current_question.id) if current_question else None, "turn_state": turn_state}})
 
         await send_resync()
+        if session.speech_state == "ai_speaking" and session.speech_generation_id is not None:
+            await speech.restore_ai_speech(session.speech_generation_id)
+        speech_to_text = SpeechToTextService(create_speech_to_text())
+        text_to_speech = None
+        audio_buffer = bytearray()
+        recording = False
+        current_turn_id: str | None = None
+
         async def send_question_audio(question) -> None:
             nonlocal text_to_speech
             if question is None:
@@ -267,4 +276,5 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
     except WebSocketDisconnect:
         pass
     finally:
+        await speech.close()
         db.close()

@@ -345,10 +345,64 @@ export default function InterviewSessionPage() {
     await loadSession();
   }
 
+  const handleVoiceAnswerEvaluated = useCallback(async () => {
+    try {
+      const latest = await getLatestAnswer(sessionId);
+      if (latest.evaluation) {
+        setAnswer(latest);
+        setFeedback(latest.evaluation);
+        setState("feedback");
+      }
+    } catch (caught: unknown) {
+      setError(caught instanceof Error ? caught.message : "We could not load answer feedback.");
+      setState("error");
+    }
+  }, [sessionId]);
+
+  const handleVoiceCompleted = useCallback(async () => {
+    try {
+      setSummary(await getSummary(sessionId));
+      setTurnState("completed");
+      setState("completed");
+    } catch (caught: unknown) {
+      setError(caught instanceof Error ? caught.message : "We could not load interview results.");
+      setState("error");
+    }
+  }, [sessionId]);
+
+  const handleVoiceQuestionReady = useCallback(
+    (nextQuestion: { id: string; text: string; questionNumber: number; isFollowUp: boolean }) => {
+      setQuestion({
+        id: nextQuestion.id,
+        question_number: nextQuestion.questionNumber,
+        question_text: nextQuestion.text,
+        question_type: session?.interview_type ?? "behavioral",
+        is_follow_up: nextQuestion.isFollowUp,
+        answered_at: null,
+      });
+      setDraft("");
+      questionStartedAt.current = Date.now();
+      setTurnState("listening");
+    },
+    [session?.interview_type],
+  );
+
   return (
     <main className="min-h-screen text-[#241d1a]">
       <TopNav />
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        {session ? (
+          <VoiceAnswerPanel
+            sessionId={session.id}
+            hidden={state !== "ready"}
+            disabled={state !== "ready" || turnState === "asking" || turnState === "processing"}
+            onTranscript={setDraft}
+            onTurnStateChange={setTurnState}
+            onAnswerEvaluated={handleVoiceAnswerEvaluated}
+            onQuestionReady={handleVoiceQuestionReady}
+            onCompleted={handleVoiceCompleted}
+          />
+        ) : null}
         {state === "loading" ? (
           <LoadingState />
         ) : state === "completed" && summary ? (
@@ -428,12 +482,6 @@ export default function InterviewSessionPage() {
                 <ConversationTurnBanner state={turnState} />
                 <QuestionAudioPlayer key={question.id} questionId={question.id} shouldStop={state === "submitting"} />
                 <div className="mt-10">
-                  <VoiceAnswerPanel
-                    sessionId={session.id}
-                    disabled={state === "submitting" || turnState === "asking" || turnState === "processing"}
-                    onTranscript={setDraft}
-                    onTurnStateChange={setTurnState}
-                  />
                   <label
                     htmlFor="answer"
                     className="text-sm font-semibold text-[#3d3028]"

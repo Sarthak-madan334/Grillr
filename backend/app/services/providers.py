@@ -1,4 +1,7 @@
 import asyncio
+from dataclasses import dataclass
+from typing import Any
+from typing import Protocol
 import io
 import json
 import logging
@@ -9,8 +12,6 @@ from typing import Any, Callable, ClassVar, Literal, Protocol
 from uuid import UUID
 
 import httpx
-from openai import OpenAI
-
 from app.core.config import get_settings
 from app.core.errors import ProviderError
 
@@ -299,6 +300,8 @@ class OpenAISpeechToText:
     """Speech-to-text adapter for recorded browser audio."""
 
     def __init__(self, api_key: str | None = None, model: str = "gpt-4o-mini-transcribe"):
+        from openai import OpenAI
+
         self.client = OpenAI(api_key=api_key or get_settings().openai_api_key)
         self.model = model
 
@@ -312,7 +315,9 @@ class OpenAISpeechToText:
 
 def create_speech_to_text() -> SpeechToText:
     settings = get_settings()
-    return OpenAISpeechToText(api_key=settings.openai_api_key) if settings.openai_api_key else MockSpeechToText()
+    if settings.openai_api_key:
+        return OpenAISpeechToText(api_key=settings.openai_api_key)
+    return WhisperSpeechToText()
 
 
 class MockTextToSpeech:
@@ -339,7 +344,12 @@ def create_text_to_speech() -> TextToSpeech:
 
 
 class RimeTextToSpeech:
-    """Synchronous adapter for Rime's audio-byte TTS endpoint."""
+    """Adapters for Rime's audio-byte TTS endpoint.
+
+    Rime does not expose a request cancellation API. The async adapter relies
+    on cancelling the local HTTP task, which closes the request and prevents
+    its result from being used by the caller.
+    """
 
     endpoint = "https://users.rime.ai/v1/rime-tts"
     media_type = "audio/mpeg"
@@ -375,6 +385,38 @@ class RimeTextToSpeech:
             raise TextToSpeechProviderError("Rime TTS returned an empty audio response")
         self.media_type = content_type.split(";", 1)[0].strip()
         return response.content
+
+    async def synthesize_async(self, text: str) -> bytes:
+        if not self.api_key:
+            raise RuntimeError("Rime TTS is not configured: RIME_API_KEY is missing")
+        if not text.strip():
+            raise RuntimeError("Rime TTS cannot synthesize empty text")
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    self.endpoint,
+                    headers={"Accept": "audio/mpeg", "Authorization": f"Bearer {self.api_key}"},
+                    json={"text": text, "speaker": self.speaker, "modelId": self.model_id},
+                )
+        except asyncio.CancelledError:
+            raise
+        except httpx.HTTPError as exc:
+            raise RuntimeError(f"Rime TTS network request failed: {exc}") from exc
+
+        self._validate_response(response)
+        return response.content
+
+    @staticmethod
+    def _validate_response(response: Any) -> None:
+        if response.status_code >= 400:
+            detail = response.text.strip().replace("\n", " ")[:200]
+            raise RuntimeError(f"Rime TTS request failed with HTTP {response.status_code}: {detail}")
+        content_type = response.headers.get("content-type", "").lower()
+        if "json" in content_type:
+            raise RuntimeError("Rime TTS returned an API response instead of audio")
+        if not response.content:
+            raise RuntimeError("Rime TTS returned an empty audio response")
 
 
 class MockSpeechAnalyzer:
