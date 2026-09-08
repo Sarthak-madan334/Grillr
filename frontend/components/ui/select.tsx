@@ -17,10 +17,18 @@ type SelectProps = {
 
 export function Select({ id, name, value, options, onChange }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(() => Math.max(0, options.findIndex((option) => option.value === value)));
+  const [activeIndex, setActiveIndex] = useState(() =>
+    Math.max(
+      0,
+      options.findIndex((option) => option.value === value),
+    ),
+  );
   const listboxId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
-  const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === value),
+  );
   const selectedOption = options[selectedIndex];
 
   useEffect(() => {
@@ -53,7 +61,10 @@ export function Select({ id, name, value, options, onChange }: SelectProps) {
         return;
       }
       const direction = event.key === "ArrowDown" ? 1 : -1;
-      setActiveIndex((currentIndex) => (currentIndex + direction + options.length) % options.length);
+      setActiveIndex(
+        (currentIndex) =>
+          (currentIndex + direction + options.length) % options.length,
+      );
       return;
     }
 
@@ -90,7 +101,10 @@ export function Select({ id, name, value, options, onChange }: SelectProps) {
         className="flex w-full items-center justify-between rounded-2xl border border-[#e7d8c5] bg-[rgba(255,255,255,0.62)] px-3.5 py-3 text-left text-sm text-[#201a17] outline-none backdrop-blur-sm transition focus:border-[#b8916d] focus:ring-2 focus:ring-[#b8916d]/20"
       >
         <span>{selectedOption.label}</span>
-        <span aria-hidden="true" className={`ml-3 text-xs text-[#7a5f48] transition-transform ${isOpen ? "rotate-180" : ""}`}>
+        <span
+          aria-hidden="true"
+          className={`ml-3 text-xs text-[#7a5f48] transition-transform ${isOpen ? "rotate-180" : ""}`}
+        >
           &#9662;
         </span>
       </button>

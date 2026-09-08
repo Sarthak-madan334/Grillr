@@ -5,9 +5,10 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.auth import CurrentUser, get_current_user
+from app.core.rate_limit import answer_rate_limit, interview_creation_rate_limit
 from app.db.session import get_db
 from app.models import Answer, AnswerEvaluation, InterviewSession, Question, SessionStatus
-from app.schemas.answer import AnswerCreate, AnswerResponse
+from app.schemas.answer import AnswerCreate, AnswerResponse, AttemptsResponse
 from app.schemas.common import RetryRequest
 from app.schemas.interview import DashboardStatsResponse, InterviewCreate, InterviewListResponse, InterviewResponse, QuestionsResponse, RetryResponse, SummaryResponse
 from app.services.interview_service import InterviewService
@@ -19,7 +20,7 @@ def service(db: Session = Depends(get_db)) -> InterviewService:
     return InterviewService(db)
 
 
-@router.post("", response_model=InterviewResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=InterviewResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(interview_creation_rate_limit)])
 def create_interview(data: InterviewCreate, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
     return interviews.create(identity.id, data)
 
@@ -118,16 +119,19 @@ def get_feedback(session_id: UUID, identity: CurrentUser = Depends(get_current_u
     return interview.summary
 
 
-@router.post("/questions/{question_id}/answer", response_model=AnswerResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/questions/{question_id}/answer", response_model=AnswerResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(answer_rate_limit)])
 def submit_answer(question_id: UUID, data: AnswerCreate, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
     return interviews.answer(question_id, identity.id, data)
 
 
-@router.post("/questions/{question_id}/retry", response_model=RetryResponse)
+@router.post("/questions/{question_id}/retry", response_model=RetryResponse, dependencies=[Depends(answer_rate_limit)])
 def retry_answer(question_id: UUID, request: RetryRequest, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
-    question = interviews.db.scalar(select(Question).where(Question.id == question_id, Question.session.has(user_id=identity.id)))
-    if question is None:
-        from app.core.errors import NotFoundError
-        raise NotFoundError("Question")
-    attempt = interviews.db.scalar(select(func.max(Answer.attempt_number)).where(Answer.question_id == question_id)) or 0
-    return {"question_id": question_id, "attempt_number": attempt + 1, "status": "ready"}
+    answer = interviews.retry(question_id, identity.id, request.transcript, request.duration)
+    attempts, score_delta = interviews.attempts(question_id, identity.id)
+    return {"question_id": question_id, "answer_id": answer.id, "attempt_number": answer.attempt_number, "status": "submitted", "score_delta": score_delta}
+
+
+@router.get("/questions/{question_id}/attempts", response_model=AttemptsResponse)
+def question_attempts(question_id: UUID, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
+    attempts, score_delta = interviews.attempts(question_id, identity.id)
+    return {"items": attempts, "score_delta": score_delta}

@@ -15,7 +15,9 @@ export type LoginFormErrors = Partial<Record<keyof LoginFormValues, string>>;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function normalizeSignupValues(values: SignupFormValues): SignupFormValues {
+export function normalizeSignupValues(
+  values: SignupFormValues,
+): SignupFormValues {
   return {
     firstName: values.firstName.trim().replace(/\s+/g, " "),
     lastName: values.lastName.trim().replace(/\s+/g, " "),
@@ -33,11 +35,17 @@ export function normalizeLoginValues(values: LoginFormValues): LoginFormValues {
 
 export function validateSignupForm(values: SignupFormValues): SignupFormErrors {
   const normalized = normalizeSignupValues(values);
-  const errors: SignupFormErrors = { firstName: "", lastName: "", email: "", password: "" };
+  const errors: SignupFormErrors = {
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+  };
   if (!normalized.firstName) errors.firstName = "First name is required.";
   if (!normalized.lastName) errors.lastName = "Last name is required.";
   if (!normalized.email) errors.email = "Email is required.";
-  else if (!EMAIL_PATTERN.test(normalized.email)) errors.email = "Enter a valid email address.";
+  else if (!EMAIL_PATTERN.test(normalized.email))
+    errors.email = "Enter a valid email address.";
   if (!normalized.password || normalized.password.length < 8) {
     errors.password = "Password must be at least 8 characters.";
   }
