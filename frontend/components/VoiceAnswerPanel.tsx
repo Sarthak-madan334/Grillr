@@ -10,9 +10,13 @@ export type TurnState = "asking" | "listening" | "processing" | "completed";
 type VoiceAnswerPanelProps = {
   sessionId?: string;
   disabled?: boolean;
+  hidden?: boolean;
   onRecordingChange?: (recording: boolean) => void;
   onTranscript?: (transcript: string) => void;
   onTurnStateChange?: (state: TurnState) => void;
+  onAnswerEvaluated?: () => void;
+  onQuestionReady?: (question: { id: string; text: string; questionNumber: number; isFollowUp: boolean }) => void;
+  onCompleted?: () => void;
 };
 
 function MicrophoneIcon() {
@@ -42,7 +46,7 @@ function statusCopy(status: VoiceStatus) {
   }
 }
 
-export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChange, onTranscript, onTurnStateChange }: VoiceAnswerPanelProps) {
+export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, onRecordingChange, onTranscript, onTurnStateChange, onAnswerEvaluated, onQuestionReady, onCompleted }: VoiceAnswerPanelProps) {
   const [status, setStatus] = useState<VoiceStatus>(() =>
     typeof navigator !== "undefined" &&
     typeof navigator.mediaDevices?.getUserMedia === "function"
@@ -65,9 +69,6 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
 
   const stopStream = useCallback(() => {
     microphoneService.releaseMicrophone();
-    socketRef.current?.close();
-    socketRef.current = null;
-    socketAuthenticatedRef.current = false;
     aiAudioRef.current?.pause();
     aiAudioRef.current = null;
     if (aiAudioUrlRef.current) URL.revokeObjectURL(aiAudioUrlRef.current);
@@ -86,6 +87,96 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
   useEffect(() => {
     return stopStream;
   }, [stopStream]);
+
+  useEffect(() => {
+    if (!sessionId || typeof WebSocket === "undefined") return;
+    let cancelled = false;
+    let socket: WebSocket | null = null;
+
+    async function connect() {
+      try {
+        const tokenResponse = await fetch("/api/auth/realtime-token", { cache: "no-store", credentials: "include" });
+        if (!tokenResponse.ok) throw new Error("Realtime authentication failed");
+        const { token } = (await tokenResponse.json()) as { token?: string };
+        if (!token || cancelled) throw new Error("Realtime authentication failed");
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? window.location.origin;
+        socket = new WebSocket(`${apiUrl.replace(/^http/, "ws")}/api/v1/ws/interviews/${sessionId}`);
+        socketRef.current = socket;
+        socket.addEventListener("open", () => socket?.send(JSON.stringify({ type: "auth", token })));
+        socket.addEventListener("message", (event) => {
+          try {
+            const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; state?: TurnState; message?: string; audio_base64?: string; media_type?: string; question_id?: string; question_number?: number; is_follow_up?: boolean } };
+            if (message.type === "auth.ok") {
+              socketAuthenticatedRef.current = true;
+              socket?.send(JSON.stringify({ type: "session.start" }));
+            }
+            if (message.type === "audio.ai" && message.data?.audio_base64) {
+              const bytes = Uint8Array.from(atob(message.data.audio_base64), (character) => character.charCodeAt(0));
+              const audioUrl = URL.createObjectURL(new Blob([bytes], { type: message.data.media_type ?? "audio/mpeg" }));
+              aiAudioRef.current?.pause();
+              if (aiAudioUrlRef.current) URL.revokeObjectURL(aiAudioUrlRef.current);
+              const audio = new Audio(audioUrl);
+              aiAudioRef.current = audio;
+              aiAudioUrlRef.current = audioUrl;
+              audio.onended = () => {
+                if (aiAudioRef.current === audio) {
+                  aiAudioRef.current = null;
+                  URL.revokeObjectURL(audioUrl);
+                  aiAudioUrlRef.current = null;
+                }
+              };
+              void audio.play().catch(() => setSocketError("Question audio could not be played. Continue with the text prompt."));
+            }
+            if (message.type === "turn.state_changed" && message.data?.state) {
+              setIsProcessing(message.data.state === "processing");
+              onTurnStateChange?.(message.data.state);
+            }
+            if (message.type === "transcript.final" && message.data?.text) {
+              onTranscript?.(message.data.text);
+              setIsProcessing(false);
+              onTurnStateChange?.("listening");
+              stopStream();
+              setStatus("ready");
+            }
+            if (message.type === "answer.evaluated") onAnswerEvaluated?.();
+            if ((message.type === "question.created" || message.type === "question.follow_up") && message.data?.question_id && message.data.text) {
+              onQuestionReady?.({
+                id: message.data.question_id,
+                text: message.data.text,
+                questionNumber: message.data.question_number ?? 0,
+                isFollowUp: Boolean(message.data.is_follow_up),
+              });
+            }
+            if (message.type === "session.completed") {
+              setIsProcessing(false);
+              onTurnStateChange?.("completed");
+              onCompleted?.();
+            }
+            if (message.type === "error") {
+              setIsProcessing(false);
+              onTurnStateChange?.("listening");
+              setSocketError(message.data?.message ?? "The live interview connection returned an error.");
+              stopStream();
+              setStatus("ready");
+            }
+          } catch {
+            setSocketError("Live interview returned an unreadable response.");
+          }
+        });
+        socket.addEventListener("error", () => setSocketError("The live interview connection failed. You can retry or answer by typing."), { once: true });
+      } catch (error) {
+        if (!cancelled) setSocketError(error instanceof Error ? error.message : "Realtime authentication failed");
+      }
+    }
+
+    void connect();
+    return () => {
+      cancelled = true;
+      socketAuthenticatedRef.current = false;
+      socket?.close();
+      socketRef.current = null;
+    };
+  }, [onAnswerEvaluated, onCompleted, onQuestionReady, onTranscript, onTurnStateChange, sessionId, stopStream]);
 
   const recordingUrl = useMemo(() => {
     if (!recordingBlob || typeof URL.createObjectURL !== "function") return "";
@@ -139,80 +230,8 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
       const handleAudioChunk = (chunk: Blob) => {
         pendingChunksRef.current.push(chunk);
         setRecordingBlob(new Blob([...pendingChunksRef.current], { type: chunk.type || "audio/webm" }));
-      if (socketAuthenticatedRef.current && typeof WebSocket !== "undefined" && socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(chunk);
+        if (socketAuthenticatedRef.current && typeof WebSocket !== "undefined" && socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(chunk);
       };
-      if (sessionId && typeof WebSocket !== "undefined" && typeof MediaRecorder !== "undefined") {
-        const tokenResponse = await fetch("/api/auth/realtime-token", { cache: "no-store", credentials: "include" });
-        if (!tokenResponse.ok) throw new Error("Realtime authentication failed");
-        const { token } = (await tokenResponse.json()) as { token?: string };
-        if (!token) throw new Error("Realtime authentication failed");
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? window.location.origin;
-        const socketUrl = apiUrl.replace(/^http/, "ws");
-        const socket = new WebSocket(`${socketUrl}/api/v1/ws/interviews/${sessionId}`);
-        socketRef.current = socket;
-        socket.addEventListener("open", () => {
-          socket.send(JSON.stringify({ type: "auth", token }));
-        }, { once: true });
-        socket.addEventListener("message", (event) => {
-          try {
-            const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; state?: TurnState; message?: string; audio_base64?: string; media_type?: string } };
-            if (message.type === "auth.ok") {
-              socketAuthenticatedRef.current = true;
-              turnIdRef.current = typeof crypto !== "undefined" && crypto.randomUUID
-                ? crypto.randomUUID()
-                : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-              socket.send(JSON.stringify({ type: "speech.start", turn_id: turnIdRef.current }));
-              pendingChunksRef.current.forEach((chunk) => socket.send(chunk));
-            }
-            if (message.type === "audio.ai" && message.data?.audio_base64) {
-              const bytes = Uint8Array.from(atob(message.data.audio_base64), (character) => character.charCodeAt(0));
-              const audioUrl = URL.createObjectURL(new Blob([bytes], { type: message.data.media_type ?? "audio/mpeg" }));
-              aiAudioRef.current?.pause();
-              if (aiAudioUrlRef.current) URL.revokeObjectURL(aiAudioUrlRef.current);
-              const audio = new Audio(audioUrl);
-              aiAudioRef.current = audio;
-              aiAudioUrlRef.current = audioUrl;
-              audio.onended = () => {
-                if (aiAudioRef.current === audio) {
-                  aiAudioRef.current = null;
-                  URL.revokeObjectURL(audioUrl);
-                  aiAudioUrlRef.current = null;
-                }
-              };
-              void audio.play().catch(() => {
-                setSocketError("Question audio could not be played. Continue with the text prompt.");
-              });
-            }
-            if (message.type === "turn.state_changed" && message.data?.state) {
-              setIsProcessing(message.data.state === "processing");
-              onTurnStateChange?.(message.data.state);
-            }
-            if (message.type === "transcript.final" && message.data?.text) {
-              onTranscript?.(message.data.text);
-              setIsProcessing(false);
-              onTurnStateChange?.("listening");
-              stopStream();
-              setStatus("ready");
-            }
-            if (message.type === "error") {
-              setIsProcessing(false);
-              onTurnStateChange?.("listening");
-              setSocketError(message.data?.message ?? "Transcription is unavailable. Continue by typing your answer.");
-              stopStream();
-              setStatus("ready");
-            }
-          } catch {
-            setSocketError("Live transcription returned an unreadable response.");
-          }
-        });
-        socket.addEventListener("error", () => {
-          setIsProcessing(false);
-          onTurnStateChange?.("listening");
-          setSocketError("Transcription is unavailable. Continue by typing your answer.");
-          stopStream();
-          setStatus("ready");
-        }, { once: true });
-      }
       if (!microphoneService.startRecording(handleAudioChunk)) {
         microphoneService.releaseMicrophone();
         streamRef.current = null;
@@ -220,6 +239,12 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
         return;
       }
       setStatus("recording");
+      turnIdRef.current = typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      if (socketAuthenticatedRef.current && socketRef.current?.readyState === WebSocket.OPEN) {
+        socketRef.current.send(JSON.stringify({ type: "speech.start", turn_id: turnIdRef.current }));
+      }
       onRecordingChange?.(true);
     } catch (error) {
       stopStream();
@@ -250,7 +275,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
   const message = statusCopy(status);
 
   return (
-    <section className="mb-5 rounded-[22px] border border-[#e7d8c5] bg-[rgba(255,255,255,0.5)] p-4" aria-labelledby="voice-answer-heading">
+    <section className={`${hidden ? "hidden" : ""} mb-5 rounded-[22px] border border-[#e7d8c5] bg-[rgba(255,255,255,0.5)] p-4`} aria-labelledby="voice-answer-heading">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
