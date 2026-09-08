@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import logging
 from uuid import UUID
@@ -11,7 +12,15 @@ from app.db.session import SessionLocal
 from app.models import SessionStatus
 from app.schemas.answer import AnswerCreate
 from app.services.interview_service import AnswerEvaluationError, InterviewService
-from app.services.providers import SpeechToTextService, TranscriptionError, TranscriptionTimeoutError, create_speech_to_text
+from app.services.providers import (
+    SpeechToTextService,
+    TextToSpeechConfigurationError,
+    TextToSpeechProviderError,
+    TranscriptionError,
+    TranscriptionTimeoutError,
+    create_speech_to_text,
+    create_text_to_speech,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -64,6 +73,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
         await websocket.send_json({"type": "auth.ok", "data": {}})
         turn_state = "listening"
         speech_to_text = SpeechToTextService(create_speech_to_text())
+        text_to_speech = None
         audio_buffer = bytearray()
         recording = False
         current_turn_id: str | None = None
@@ -73,6 +83,29 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id), "status": session.status.value, "current_question_number": session.current_question_number, "question_id": str(current_question.id) if current_question else None, "turn_state": turn_state}})
 
         await send_resync()
+        async def send_question_audio(question) -> None:
+            nonlocal text_to_speech
+            if question is None:
+                return
+            try:
+                if text_to_speech is None:
+                    text_to_speech = create_text_to_speech()
+                audio = await asyncio.to_thread(text_to_speech.synthesize, question.question_text)
+                media_type = getattr(text_to_speech, "media_type", "audio/mpeg")
+                if not audio:
+                    raise TextToSpeechProviderError("TTS returned empty audio")
+            except (TextToSpeechConfigurationError, TextToSpeechProviderError, ValueError):
+                await send_error("tts_unavailable", "Question audio is temporarily unavailable.")
+                return
+            await websocket.send_json({
+                "type": "audio.ai",
+                "data": {
+                    "question_id": str(question.id),
+                    "question_number": question.question_number,
+                    "media_type": media_type,
+                    "audio_base64": base64.b64encode(audio).decode("ascii"),
+                },
+            })
         async def transcribe_buffer() -> None:
             nonlocal audio_buffer, recording, turn_state, session, current_turn_id
             if not audio_buffer:
@@ -209,6 +242,8 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             event_type = event.get("type")
             if event_type == "session.start":
                 await websocket.send_json({"type": "session.started", "data": {}})
+                current_question = next((item for item in session.questions if not item.answered_at), None)
+                await send_question_audio(current_question)
             elif event_type == "session.resync":
                 session = service.get(session_id, identity.id)
                 await send_resync()

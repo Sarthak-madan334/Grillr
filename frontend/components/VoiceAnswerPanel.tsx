@@ -58,6 +58,8 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
   const socketRef = useRef<WebSocket | null>(null);
   const socketAuthenticatedRef = useRef(false);
   const turnIdRef = useRef<string | null>(null);
+  const aiAudioRef = useRef<HTMLAudioElement | null>(null);
+  const aiAudioUrlRef = useRef<string | null>(null);
   const pendingChunksRef = useRef<Blob[]>([]);
   const { isSpeaking, level } = useVoiceActivityDetection(activeStream);
 
@@ -66,12 +68,20 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
     socketRef.current?.close();
     socketRef.current = null;
     socketAuthenticatedRef.current = false;
+    aiAudioRef.current?.pause();
+    aiAudioRef.current = null;
+    if (aiAudioUrlRef.current) URL.revokeObjectURL(aiAudioUrlRef.current);
+    aiAudioUrlRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     setActiveStream(null);
     pendingChunksRef.current = [];
     onRecordingChange?.(false);
   }, [onRecordingChange]);
+
+  useEffect(() => () => {
+    if (aiAudioUrlRef.current) URL.revokeObjectURL(aiAudioUrlRef.current);
+  }, []);
 
   useEffect(() => {
     return stopStream;
@@ -145,7 +155,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
         }, { once: true });
         socket.addEventListener("message", (event) => {
           try {
-            const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; state?: TurnState; message?: string } };
+            const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; state?: TurnState; message?: string; audio_base64?: string; media_type?: string } };
             if (message.type === "auth.ok") {
               socketAuthenticatedRef.current = true;
               turnIdRef.current = typeof crypto !== "undefined" && crypto.randomUUID
@@ -153,6 +163,25 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
                 : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
               socket.send(JSON.stringify({ type: "speech.start", turn_id: turnIdRef.current }));
               pendingChunksRef.current.forEach((chunk) => socket.send(chunk));
+            }
+            if (message.type === "audio.ai" && message.data?.audio_base64) {
+              const bytes = Uint8Array.from(atob(message.data.audio_base64), (character) => character.charCodeAt(0));
+              const audioUrl = URL.createObjectURL(new Blob([bytes], { type: message.data.media_type ?? "audio/mpeg" }));
+              aiAudioRef.current?.pause();
+              if (aiAudioUrlRef.current) URL.revokeObjectURL(aiAudioUrlRef.current);
+              const audio = new Audio(audioUrl);
+              aiAudioRef.current = audio;
+              aiAudioUrlRef.current = audioUrl;
+              audio.onended = () => {
+                if (aiAudioRef.current === audio) {
+                  aiAudioRef.current = null;
+                  URL.revokeObjectURL(audioUrl);
+                  aiAudioUrlRef.current = null;
+                }
+              };
+              void audio.play().catch(() => {
+                setSocketError("Question audio could not be played. Continue with the text prompt.");
+              });
             }
             if (message.type === "turn.state_changed" && message.data?.state) {
               setIsProcessing(message.data.state === "processing");
