@@ -105,6 +105,29 @@ def test_websocket_buffers_binary_audio_and_returns_final_transcript(client, mon
         assert received == [b"first-chunk"]
 
 
+def test_websocket_emits_question_audio_on_session_start(client, monkeypatch):
+    class FakeTextToSpeech:
+        media_type = "audio/wav"
+
+        def synthesize(self, text: str) -> bytes:
+            assert text
+            return b"question-audio"
+
+    monkeypatch.setattr(websocket_module, "create_text_to_speech", lambda: FakeTextToSpeech())
+    session_id, token = _create_interview(client)
+
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}?token={token}") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "session.start"})
+        assert ws.receive_json()["type"] == "session.started"
+        audio_event = ws.receive_json()
+
+        assert audio_event["type"] == "audio.ai"
+        assert audio_event["data"]["media_type"] == "audio/wav"
+        assert audio_event["data"]["question_id"]
+        assert audio_event["data"]["audio_base64"]
+
+
 def test_websocket_rejects_out_of_state_and_empty_audio(client):
     session_id, token = _create_interview(client)
 
