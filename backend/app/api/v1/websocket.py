@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from uuid import UUID
@@ -20,32 +21,46 @@ logger = logging.getLogger(__name__)
 async def interview_socket(websocket: WebSocket, session_id: UUID):
     await websocket.accept()
     db: Session = SessionLocal()
+
+    async def send_error(code: str, message: str) -> None:
+        await websocket.send_json({"type": "error", "data": {"code": code, "message": message}})
+
     try:
-        token = None
-        cookie_header = websocket.headers.get("cookie", "")
-        if cookie_header:
-            token = next(
-                (
-                    part.split("=", 1)[1]
-                    for part in cookie_header.split(";")
-                    if part.strip().startswith("grillr_access_token=")
-                ),
-                None,
-            )
-        if not token and websocket.headers.get("authorization", "").lower().startswith("bearer "):
-            token = websocket.headers["authorization"][7:]
-        if not token:
+        try:
+            auth_frame = await asyncio.wait_for(websocket.receive(), timeout=5)
+        except asyncio.TimeoutError:
+            await websocket.close(code=1008, reason="Authentication timeout")
+            return
+
+        if auth_frame.get("type") == "websocket.disconnect":
+            raise WebSocketDisconnect
+        raw_auth = auth_frame.get("text")
+        if raw_auth is None:
             await websocket.close(code=1008, reason="Authentication is required")
             return
         try:
-            identity = authenticate_token(token, db)
+            auth_event = json.loads(raw_auth)
+        except json.JSONDecodeError:
+            await websocket.close(code=1008, reason="Invalid authentication payload")
+            return
+        if not isinstance(auth_event, dict) or auth_event.get("type") != "auth" or not isinstance(auth_event.get("token"), str) or not auth_event["token"]:
+            await websocket.close(code=1008, reason="Authentication is required")
+            return
+        try:
+            identity = authenticate_token(auth_event["token"], db)
+        except Exception:
+            await websocket.close(code=1008, reason="Unauthorized or session not found")
+            return
+        try:
             service = InterviewService(db)
             session = service.get(session_id, identity.id)
             if session.status == SessionStatus.CREATED:
                 session = service.transition(session_id, identity.id, SessionStatus.ACTIVE)
         except Exception:
-            await websocket.close(code=1008, reason="Unauthorized or session not found")
+            logger.exception("Failed to initialize websocket interview pipeline", extra={"session_id": str(session_id)})
+            await send_error("pipeline_initialization_failed", "The interview pipeline is temporarily unavailable. Please try again.")
             return
+        await websocket.send_json({"type": "auth.ok", "data": {}})
         turn_state = "listening"
         speech_to_text = SpeechToTextService(create_speech_to_text())
         audio_buffer = bytearray()
@@ -56,9 +71,6 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id), "status": session.status.value, "current_question_number": session.current_question_number, "question_id": str(current_question.id) if current_question else None, "turn_state": turn_state}})
 
         await send_resync()
-        async def send_error(code: str, message: str) -> None:
-            await websocket.send_json({"type": "error", "data": {"code": code, "message": message}})
-
         async def transcribe_buffer() -> None:
             nonlocal audio_buffer, recording, turn_state, session
             if not audio_buffer:
