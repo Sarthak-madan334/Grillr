@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/layout/top-nav";
+import { useAuth } from "@/lib/auth-client";
 
 const flowSteps = [
   { title: "Choose your interview", description: "Select your role, experience level, and interview style.", icon: "compass" },
@@ -26,6 +29,8 @@ function FlowIcon({ icon }: { icon: string }) {
 }
 
 export default function HomePage() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <main className="min-h-screen text-[#241d1a]">
       <TopNav />
@@ -46,14 +51,22 @@ export default function HomePage() {
             </p>
 
             <div className="mt-9 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center">
-              <Link href="/signup" className="w-full sm:w-auto">
-                <Button className="w-full" size="lg">Create account</Button>
-              </Link>
-              <Link href="/dashboard" className="w-full sm:w-auto">
-                <Button className="w-full" variant="secondary" size="lg">
-                  Explore dashboard
-                </Button>
-              </Link>
+              {isAuthenticated ? (
+                <Link href="/dashboard" className="w-full sm:w-auto">
+                  <Button className="w-full" size="lg">Go to dashboard</Button>
+                </Link>
+              ) : (
+                <>
+                  <Link href="/signup" className="w-full sm:w-auto">
+                    <Button className="w-full" size="lg">Create account</Button>
+                  </Link>
+                  <Link href="/dashboard" className="w-full sm:w-auto">
+                    <Button className="w-full" variant="secondary" size="lg">
+                      Explore dashboard
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 
