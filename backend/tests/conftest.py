@@ -35,6 +35,8 @@ def setup_db():
 @pytest.fixture(autouse=True)
 def mock_tts(monkeypatch):
     class TestTextToSpeech:
+        media_type = "audio/wav"
+
         def synthesize(self, text: str) -> bytes:
             return b"test-audio"
 

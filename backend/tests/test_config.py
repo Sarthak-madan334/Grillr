@@ -56,7 +56,7 @@ def test_existing_production_security_validation_is_preserved():
         Settings(**production_settings(auth_required=False))
 
     with pytest.raises(ValueError, match="SUPABASE_JWT_SECRET is required outside development"):
-        Settings(**production_settings(supabase_jwt_secret=None))
+        Settings(**production_settings(supabase_jwt_secret=None, supabase_url=None))
 
     with pytest.raises(ValueError, match="AUTO_CREATE_SCHEMA must be false outside development"):
         Settings(**production_settings(auto_create_schema=True))

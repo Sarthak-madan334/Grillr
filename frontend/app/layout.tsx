@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Footer } from "@/components/layout/footer";
 import { AuthProvider } from "@/lib/auth-client";
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
     "AI-powered mock interviews with adaptive questioning and structured feedback.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"

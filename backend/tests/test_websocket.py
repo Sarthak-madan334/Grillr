@@ -1,6 +1,9 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 import pytest
+from sqlalchemy import select
 from app.core.auth import DEV_USER_ID
+from app.db.session import SessionLocal
+from app.models import Answer, AnswerEvaluation, Question
 import app.api.v1.websocket as websocket_module
 from starlette.websockets import WebSocketDisconnect
 
@@ -17,8 +20,8 @@ def test_websocket_lifecycle_and_events(client):
     }, headers={"Authorization": f"Bearer {user_token}"})
     session_id = create_res.json()["id"]
 
-    # Connect with matching dev token query parameter
-    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}?token={user_token}") as ws:
+    # Connect with matching dev token in the cookie jar.
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}", headers={"Cookie": f"grillr_access_token={user_token}"}) as ws:
         # Connected event
         conn_msg = ws.receive_json()
         assert conn_msg["type"] == "session.connected"
@@ -75,7 +78,7 @@ def test_websocket_buffers_binary_audio_and_returns_final_transcript(client, mon
     monkeypatch.setattr(websocket_module, "create_speech_to_text", lambda: FakeSpeechToText())
     session_id, token = _create_interview(client)
 
-    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}?token={token}") as ws:
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}", headers={"Cookie": f"grillr_access_token={token}"}) as ws:
         ws.receive_json()
         ws.send_json({"type": "speech.start"})
         assert ws.receive_json()["type"] == "speech.start.ack"
@@ -96,7 +99,7 @@ def test_websocket_buffers_binary_audio_and_returns_final_transcript(client, mon
 def test_websocket_rejects_out_of_state_and_empty_audio(client):
     session_id, token = _create_interview(client)
 
-    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}?token={token}") as ws:
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}", headers={"Cookie": f"grillr_access_token={token}"}) as ws:
         ws.receive_json()
         ws.send_bytes(b"audio-before-start")
         assert ws.receive_json()["data"]["code"] == "audio_out_of_state"
@@ -112,6 +115,58 @@ def test_websocket_rejects_out_of_state_and_empty_audio(client):
         assert ws.receive_json()["data"]["code"] == "empty_audio"
 
 
+def test_websocket_continues_pipeline_after_transcript(client, monkeypatch):
+    class FakeSpeechToText:
+        def transcribe(self, audio: bytes) -> str:
+            return "I improved the deployment pipeline."
+
+    class FakeTextToSpeech:
+        media_type = "audio/mpeg"
+
+        def synthesize(self, text: str) -> bytes:
+            assert text
+            return b"next-question-audio"
+
+    monkeypatch.setattr(websocket_module, "create_speech_to_text", lambda: FakeSpeechToText())
+    monkeypatch.setattr("app.services.interview_service.create_text_to_speech", lambda: FakeTextToSpeech())
+
+    session_id, token = _create_interview(client)
+
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}", headers={"Cookie": f"grillr_access_token={token}"}) as ws:
+        ws.receive_json()
+        ws.send_json({"type": "speech.start"})
+        ws.receive_json()
+        ws.receive_json()
+        ws.send_bytes(b"audio-bytes")
+        ws.send_json({"type": "speech.stop"})
+
+        assert ws.receive_json()["type"] == "speech.stop.ack"
+        assert ws.receive_json()["data"]["state"] == "processing"
+        assert ws.receive_json()["type"] == "transcript.final"
+
+        question_created = None
+        for _ in range(5):
+            message = ws.receive_json()
+            if message["type"] == "question.created":
+                question_created = message
+                break
+        assert question_created is not None
+        assert question_created["data"]["text"]
+        assert question_created["data"]["audio_url"].endswith("/audio")
+
+    with SessionLocal() as db:
+        answer_session_id = UUID(session_id)
+        answer = db.scalar(select(Answer).where(Answer.session_id == answer_session_id).order_by(Answer.created_at.desc()))
+        assert answer is not None
+        assert answer.transcript == "I improved the deployment pipeline."
+        assert answer.evaluation is not None
+        assert isinstance(answer.evaluation, AnswerEvaluation)
+        assert answer.evaluation.overall_score >= 0
+
+        next_question = db.scalar(select(Question).where(Question.session_id == answer_session_id, Question.is_follow_up.is_(False), Question.question_number > 1))
+        assert next_question.question_text == question_created["data"]["text"]
+
+
 def test_websocket_provider_failure_returns_error_event(client, monkeypatch):
     class FailingSpeechToText:
         def transcribe(self, audio: bytes) -> str:
@@ -120,7 +175,7 @@ def test_websocket_provider_failure_returns_error_event(client, monkeypatch):
     monkeypatch.setattr(websocket_module, "create_speech_to_text", lambda: FailingSpeechToText())
     session_id, token = _create_interview(client)
 
-    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}?token={token}") as ws:
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}", headers={"Cookie": f"grillr_access_token={token}"}) as ws:
         ws.receive_json()
         ws.send_json({"type": "speech.start"})
         ws.receive_json()

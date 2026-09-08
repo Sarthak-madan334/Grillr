@@ -64,8 +64,6 @@ class Settings(BaseSettings):
             if self.auto_create_schema:
                 raise ValueError("AUTO_CREATE_SCHEMA must be false outside development")
             if self.jwt_secret == "change-me-in-development":
-                if not self.rime_api_key:
-                    raise ValueError("JWT_SECRET must be changed outside development; RIME_API_KEY is required outside development")
                 raise ValueError("JWT_SECRET must be changed outside development")
             if self.database_url.startswith("sqlite://"):
                 raise ValueError("DATABASE_URL must use PostgreSQL outside development")
