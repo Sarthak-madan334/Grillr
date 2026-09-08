@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from uuid import UUID
@@ -21,22 +22,19 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
     await websocket.accept()
     db: Session = SessionLocal()
     try:
-        token = None
-        cookie_header = websocket.headers.get("cookie", "")
-        if cookie_header:
-            token = next(
-                (
-                    part.split("=", 1)[1]
-                    for part in cookie_header.split(";")
-                    if part.strip().startswith("grillr_access_token=")
-                ),
-                None,
-            )
-        if not token and websocket.headers.get("authorization", "").lower().startswith("bearer "):
-            token = websocket.headers["authorization"][7:]
-        if not token:
+        try:
+            auth_frame = await asyncio.wait_for(websocket.receive(), timeout=10)
+            auth_message = auth_frame.get("text")
+            if auth_message is None:
+                raise ValueError("Authentication must be a text message")
+            auth_event = json.loads(auth_message)
+        except (asyncio.TimeoutError, ValueError, json.JSONDecodeError, WebSocketDisconnect):
             await websocket.close(code=1008, reason="Authentication is required")
             return
+        if not isinstance(auth_event, dict) or auth_event.get("type") != "auth" or not isinstance(auth_event.get("token"), str) or not auth_event["token"]:
+            await websocket.close(code=1008, reason="Authentication is required")
+            return
+        token = auth_event["token"]
         try:
             identity = authenticate_token(token, db)
             service = InterviewService(db)
