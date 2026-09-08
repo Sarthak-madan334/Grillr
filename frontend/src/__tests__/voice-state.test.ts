@@ -24,10 +24,14 @@ describe("voice state machine", () => {
     });
     expect(listening.stage).toBe("user_speaking");
 
-    const interrupted = applyVoiceEvent(listening, { type: "USER_INTERRUPTED_AI" });
+    const interrupted = applyVoiceEvent(listening, {
+      type: "USER_INTERRUPTED_AI",
+    });
     expect(interrupted.stage).toBe("listening");
 
-    const processing = applyVoiceEvent(interrupted, { type: "ANSWER_PROCESSING" });
+    const processing = applyVoiceEvent(interrupted, {
+      type: "ANSWER_PROCESSING",
+    });
     expect(processing.stage).toBe("processing");
   });
 });

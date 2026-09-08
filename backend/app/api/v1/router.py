@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1 import users, interviews, answers, questions, websocket
+from app.api.v1 import answers, interviews, questions, users, websocket
 
 api_router = APIRouter()
 api_router.include_router(users.router, prefix="/users", tags=["users"])

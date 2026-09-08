@@ -12,7 +12,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
 import app.db.session as sys_db_session
+import app.api.v1.questions as questions_api
+import app.services.interview_service as interview_service
 from app.db.session import Base, get_db
+from app.core.rate_limit import limiter
 from app.main import app
 
 test_engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
@@ -22,9 +25,23 @@ sys_db_session.SessionLocal.configure(bind=test_engine)
 
 @pytest.fixture(autouse=True)
 def setup_db():
+    limiter.clear()
     Base.metadata.create_all(bind=test_engine)
     yield
     Base.metadata.drop_all(bind=test_engine)
+    limiter.clear()
+
+
+@pytest.fixture(autouse=True)
+def mock_tts(monkeypatch):
+    class TestTextToSpeech:
+        media_type = "audio/wav"
+
+        def synthesize(self, text: str) -> bytes:
+            return b"test-audio"
+
+    monkeypatch.setattr(interview_service, "create_text_to_speech", TestTextToSpeech)
+    monkeypatch.setattr(questions_api, "create_text_to_speech", TestTextToSpeech)
 
 
 @pytest.fixture

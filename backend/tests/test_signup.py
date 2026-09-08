@@ -38,6 +38,8 @@ def test_signup_success_returns_session(mock_async_client):
     assert body["user"]["email"] == "ada@example.com"
     assert body["user"]["first_name"] == "Ada"
     assert body["user"]["last_name"] == "Lovelace"
+    assert body["user"]["username"] is None
+    assert body["user"]["username_complete"] is False
     assert body["access_token"] == "abc"
     assert body["refresh_token"] == "def"
     assert body["requires_email_confirmation"] is False
@@ -144,6 +146,8 @@ def test_login_success_returns_session(mock_async_client):
     assert response.status_code == 200
     body = response.json()
     assert body["user"]["email"] == "login@example.com"
+    assert body["user"]["username"] is None
+    assert body["user"]["username_complete"] is False
     assert body["access_token"] == "login-token"
     assert body["refresh_token"] == "login-refresh"
 
@@ -162,3 +166,34 @@ def test_login_invalid_credentials_returns_401(mock_async_client):
 
     assert response.status_code == 401
     assert response.json()["error"]["message"] == "Invalid email or password."
+
+
+@patch("app.api.v1.users.httpx.AsyncClient")
+def test_login_nonexistent_email_returns_generic_401(mock_async_client):
+    mock_response = AsyncMock()
+    mock_response.status_code = 400
+    mock_response.json.return_value = {"error": "User not found"}
+    mock_async_client.return_value.__aenter__.return_value.post.return_value = mock_response
+
+    response = client.post(
+        "/api/v1/users/login",
+        json={"email": "missing@example.com", "password": "StrongPass1"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["error"]["message"] == "Invalid email or password."
+
+
+@patch("app.api.v1.users.httpx.AsyncClient")
+def test_login_provider_unavailable_returns_503(mock_async_client):
+    mock_response = AsyncMock()
+    mock_response.status_code = 503
+    mock_async_client.return_value.__aenter__.return_value.post.return_value = mock_response
+
+    response = client.post(
+        "/api/v1/users/login",
+        json={"email": "login@example.com", "password": "StrongPass1"},
+    )
+
+    assert response.status_code == 503
+    assert "unavailable" in response.json()["error"]["message"].lower()
