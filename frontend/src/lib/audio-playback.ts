@@ -7,15 +7,16 @@ export interface PlaybackSnapshot {
   duration: number;
 }
 
-type AudioFactory = () => HTMLAudioElement;
+type AudioFactory = () => HTMLAudioElement | null;
 
 export class AudioPlaybackController {
-  private readonly audio: HTMLAudioElement;
+  private readonly audio: HTMLAudioElement | null;
   private generationId: string | null = null;
   private listeners = new Set<(snapshot: PlaybackSnapshot) => void>();
 
-  constructor(createAudio: AudioFactory = () => new Audio()) {
+  constructor(createAudio: AudioFactory = () => (typeof window === "undefined" ? null : new Audio())) {
     this.audio = createAudio();
+    if (!this.audio) return;
     this.audio.preload = "auto";
     this.audio.addEventListener("timeupdate", () => this.emit());
     this.audio.addEventListener("loadedmetadata", () => this.emit());
@@ -33,6 +34,7 @@ export class AudioPlaybackController {
   }
 
   async play(url: string, generationId: string): Promise<void> {
+    if (!this.audio) return;
     this.stop();
     this.generationId = generationId;
     this.audio.src = url;
@@ -41,12 +43,18 @@ export class AudioPlaybackController {
   }
 
   pause() {
+    if (!this.audio) return;
     this.audio.pause();
     this.emit();
   }
 
   stop(generationId?: string) {
     if (generationId && generationId !== this.generationId) return;
+    if (!this.audio) {
+      this.generationId = null;
+      this.emit();
+      return;
+    }
     this.audio.pause();
     this.audio.currentTime = 0;
     this.audio.removeAttribute("src");
@@ -61,10 +69,10 @@ export class AudioPlaybackController {
 
   snapshot(): PlaybackSnapshot {
     return {
-      state: this.generationId === null ? "idle" : this.audio.paused ? "paused" : "playing",
+      state: this.generationId === null ? "idle" : this.audio?.paused ? "paused" : "playing",
       generationId: this.generationId,
-      currentTime: this.audio.currentTime || 0,
-      duration: Number.isFinite(this.audio.duration) ? this.audio.duration : 0,
+      currentTime: this.audio?.currentTime || 0,
+      duration: this.audio && Number.isFinite(this.audio.duration) ? this.audio.duration : 0,
     };
   }
 

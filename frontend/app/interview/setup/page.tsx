@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { JobTitleAutocomplete } from "@/components/interview/JobTitleAutocomplete";
 import { Select } from "@/components/ui/select";
 import { TopNav } from "@/components/layout/top-nav";
