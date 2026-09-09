@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import select
 from app.core.auth import DEV_USER_ID
 from app.db.session import SessionLocal
-from app.models import Answer, InterviewSession, Question, SessionStatus
+from app.models import Answer, AnswerEvaluation, InterviewSession, Question, SessionStatus
 import app.api.v1.websocket as websocket_module
 from starlette.websockets import WebSocketDisconnect
 
@@ -369,19 +369,32 @@ def test_websocket_final_answer_emits_ordered_completion(client, monkeypatch):
         assert session.status == SessionStatus.COMPLETED
 
 
-def test_websocket_answer_save_does_not_require_evaluation(client, monkeypatch):
+def test_websocket_answer_is_saved_when_final_feedback_is_deferred(client, monkeypatch):
     class FakeSpeechToText:
         def transcribe(self, audio: bytes) -> str:
             return "I improved reliability with automated deployment checks."
 
-    class FailingEvaluator:
-        def evaluate(self, transcript: str, question: str) -> dict:
-            raise RuntimeError("evaluation unavailable")
-
     monkeypatch.setattr(websocket_module, "create_speech_to_text", lambda: FakeSpeechToText())
-    monkeypatch.setattr("app.services.interview_service.create_answer_evaluator", lambda settings: FailingEvaluator())
     session_id, token = _create_interview(client)
     turn_id = "turn-retry-1"
+
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
+        ws.send_json({"type": "auth", "token": token})
+        assert ws.receive_json()["type"] == "auth.ok"
+        ws.receive_json()
+        ws.send_json({"type": "speech.start", "turn_id": turn_id})
+        ws.receive_json()
+        ws.receive_json()
+        ws.send_bytes(b"audio")
+        ws.send_json({"type": "speech.stop", "turn_id": turn_id})
+        events = []
+        for _ in range(6):
+            event = ws.receive_json()
+            events.append(event["type"])
+            if event["type"] == "answer.saved":
+                break
+        assert "transcript.final" in events
+        assert "answer.saved" in events
 
     with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
         ws.send_json({"type": "auth", "token": token})

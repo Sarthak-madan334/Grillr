@@ -37,7 +37,7 @@ def get_owned_question(question_id: UUID, identity: CurrentUser, db: Session) ->
 @router.post("/questions/{question_id}/answer", response_model=AnswerResponse, status_code=status.HTTP_201_CREATED)
 def submit_answer(question_id: UUID, data: AnswerCreate, identity: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
     get_owned_question(question_id, identity, db)
-    return InterviewService(db).answer(question_id, identity.id, data)
+    return InterviewService(db).answer(question_id, identity.id, data, defer_evaluation=True)
 
 
 @router.get("/questions/{question_id}/audio", response_class=Response)

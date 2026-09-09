@@ -290,7 +290,7 @@ class InterviewService:
             return duplicate
 
         try:
-            return self.answer(question_id, user_id, AnswerCreate(transcript=transcript, duration=duration), is_retry=True)
+            return self.answer(question_id, user_id, AnswerCreate(transcript=transcript, duration=duration), is_retry=True, defer_evaluation=True)
         except IntegrityError:
             self.db.rollback()
             duplicate = self.db.scalar(

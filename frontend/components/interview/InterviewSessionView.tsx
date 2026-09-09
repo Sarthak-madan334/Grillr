@@ -8,12 +8,9 @@ import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/layout/top-nav";
 import {
   getInterview,
-  getLatestAnswer,
   getQuestions,
   getSummary,
   startInterview,
-  type Answer,
-  type Feedback,
   type InterviewQuestion,
   type InterviewSession,
   type Summary,
@@ -42,36 +39,6 @@ function MicMark({ active }: { active: boolean }) {
         <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" />
       </svg>
     </span>
-  );
-}
-
-function FeedbackPanel({ feedback, answer, isFinal, onContinue }: { feedback: Feedback; answer: Answer; isFinal: boolean; onContinue: () => void }) {
-  return (
-    <section aria-labelledby="feedback-heading" className="space-y-8" aria-live="polite">
-      <div className="flex flex-col justify-between gap-6 border-b border-[#e7d8c5] pb-8 sm:flex-row sm:items-start">
-        <div>
-          <Badge className="border-[#d4eadb] bg-[#e5f6eb] text-[#26724d]">Answer analyzed</Badge>
-          <h2 id="feedback-heading" className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-[#201a17]">A useful signal for your next attempt.</h2>
-          <p className="mt-3 text-sm text-[#7a5f48]">Attempt {answer.attempt_number} · {answer.speech_metrics?.word_count ?? 0} words · {Math.round(answer.duration)} seconds</p>
-        </div>
-        <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-[22px] border border-[#ddc8b2] bg-[#f8eee4] text-center">
-          <span className="text-3xl font-semibold text-[#201a17]">{feedback.overall_score}</span>
-          <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7a5f48]">Overall</span>
-        </div>
-      </div>
-      <div className="grid gap-x-8 gap-y-7 sm:grid-cols-3">
-        <FeedbackList title="What worked" color="green" items={feedback.strengths} />
-        <FeedbackList title="Next focus" color="orange" items={feedback.weaknesses.length ? feedback.weaknesses : feedback.suggestions} />
-        <div>
-          <h3 className="text-sm font-semibold text-[#7a5f48]">Try this next</h3>
-          <p className="mt-3 text-sm leading-6 text-[#5e4d40]">{feedback.suggestions[0] ?? "Review your answer and choose one specific improvement."}</p>
-        </div>
-      </div>
-      <Button size="lg" onClick={onContinue}>
-        {isFinal ? "View interview results" : "Continue to next question"}
-        <span aria-hidden="true" className="ml-2">→</span>
-      </Button>
-    </section>
   );
 }
 
@@ -128,14 +95,12 @@ export default function InterviewSessionView() {
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [question, setQuestion] = useState<InterviewQuestion | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [answer, setAnswer] = useState<Answer | null>(null);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "submitting" | "feedback" | "completed" | "error">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "submitting" | "completed" | "error">("loading");
   const [error, setError] = useState("");
   const questionStartedAt = useRef<number | null>(null);
 
   const loadSession = useCallback(
-    async (signal?: AbortSignal, restoreLatestFeedback = false) => {
+    async (signal?: AbortSignal) => {
       setState("loading");
       setError("");
 
@@ -151,23 +116,6 @@ export default function InterviewSessionView() {
 
       const questionData = await getQuestions(sessionId, signal);
 
-      if (restoreLatestFeedback) {
-        try {
-          const latest = await getLatestAnswer(sessionId, signal);
-          const answeredQuestion = questionData.items.find((item) => item.id === latest.question_id);
-          if (answeredQuestion && latest.evaluation) {
-            setQuestion(answeredQuestion);
-            setAnswer(latest);
-            setFeedback(latest.evaluation);
-            setState("feedback");
-            return;
-          }
-        } catch (caught: unknown) {
-          if (caught instanceof DOMException && caught.name === "AbortError") throw caught;
-          if (!(caught instanceof Error && "status" in caught && (caught as { status?: number }).status === 404)) throw caught;
-        }
-      }
-
       const unanswered = questionData.items.find((item) => !item.answered_at);
       if (!unanswered) throw new Error("This interview has no unanswered question.");
 
@@ -181,7 +129,7 @@ export default function InterviewSessionView() {
   useEffect(() => {
     const controller = new AbortController();
     void Promise.resolve()
-      .then(() => loadSession(controller.signal, true))
+      .then(() => loadSession(controller.signal))
       .catch((caught: unknown) => {
         if (caught instanceof DOMException && caught.name === "AbortError") return;
         setError(caught instanceof Error ? caught.message : "We could not load this interview.");
@@ -192,19 +140,6 @@ export default function InterviewSessionView() {
   }, [loadSession]);
 
   const progress = session && question ? Math.min(100, (question.question_number / session.question_count) * 100) : 0;
-  const isFinal = Boolean(session && question && question.question_number >= session.question_count);
-
-  async function continueAfterFeedback() {
-    if (isFinal) {
-      await loadSession();
-      return;
-    }
-
-    setAnswer(null);
-    setFeedback(null);
-    await loadSession();
-  }
-
   return (
     <main className="min-h-screen bg-[#fbf8f3] text-[#241d1a]">
       <TopNav />
@@ -254,10 +189,7 @@ export default function InterviewSessionView() {
               </div>
             </header>
 
-            {state === "feedback" && feedback && answer ? (
-              <FeedbackPanel feedback={feedback} answer={answer} isFinal={isFinal} onContinue={() => void continueAfterFeedback()} />
-            ) : (
-              <section aria-labelledby="question-heading" className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <section aria-labelledby="question-heading" className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
                 <div className="min-w-0">
                   <div className="mb-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#8b715c]">
                     <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f3e6d8] text-[#8b715c]">Q</span>
@@ -300,21 +232,18 @@ export default function InterviewSessionView() {
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b715c]">What happens next</p>
                     <ol className="mt-3 space-y-3 text-sm text-[#5e4d40]">
                       <li className="flex gap-3"><span className="font-semibold text-[#b8916d]">01</span>Answer out loud</li>
-                      <li className="flex gap-3"><span className="font-semibold text-[#b8916d]">02</span>Review your coaching</li>
+                      <li className="flex gap-3"><span className="font-semibold text-[#b8916d]">02</span>Continue to the next question</li>
                       <li className="flex gap-3"><span className="font-semibold text-[#b8916d]">03</span>Continue the interview</li>
                     </ol>
                   </div>
                 </aside>
               </section>
-            )}
 
-            {state !== "feedback" ? (
-              <div className="mt-8 border-t border-[#e7d8c5] pt-5">
+            <div className="mt-8 border-t border-[#e7d8c5] pt-5">
                 <Link href="/dashboard" className="text-sm font-medium text-[#7a5f48] transition hover:text-[#201a17] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8916d] focus-visible:ring-offset-4">
                   Exit interview
                 </Link>
-              </div>
-            ) : null}
+            </div>
           </>
         ) : null}
       </div>

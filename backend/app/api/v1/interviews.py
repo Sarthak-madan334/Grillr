@@ -121,7 +121,7 @@ def get_feedback(session_id: UUID, identity: CurrentUser = Depends(get_current_u
 
 @router.post("/questions/{question_id}/answer", response_model=AnswerResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(answer_rate_limit)])
 def submit_answer(question_id: UUID, data: AnswerCreate, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
-    return interviews.answer(question_id, identity.id, data)
+    return interviews.answer(question_id, identity.id, data, defer_evaluation=True)
 
 
 @router.post("/questions/{question_id}/retry", response_model=RetryResponse, dependencies=[Depends(answer_rate_limit)])
