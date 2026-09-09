@@ -7,7 +7,7 @@ import { TranscriptPanel } from "@/components/live-interview/TranscriptPanel";
 import { AudioPlaybackController, type PlaybackSnapshot } from "@/lib/audio-playback";
 import { microphoneService } from "@/services/audio/MicrophoneService";
 import {
-  MockRealtimeClient,
+  BrowserRealtimeClient,
   type RealtimeEvent,
   type TranscriptEntry,
 } from "@/lib/realtime";
@@ -21,14 +21,19 @@ import {
 const demoQuestion =
   "Tell me about yourself and why this role fits your background.";
 
-export function VoiceInterviewPanel() {
-  const realtime = useMemo(() => new MockRealtimeClient(), []);
+type VoiceInterviewPanelProps = {
+  sessionId?: string;
+};
+
+export function VoiceInterviewPanel({ sessionId }: VoiceInterviewPanelProps) {
+  const realtimeRef = useRef<BrowserRealtimeClient | null>(null);
   const playback = useMemo(() => new AudioPlaybackController(), []);
   const intervalRef = useRef<number | null>(null);
   const voiceStageRef = useRef<VoiceState["stage"]>(initialVoiceState.stage);
   const playbackSnapshotRef = useRef<PlaybackSnapshot>(playback.snapshot());
   const invalidatedGenerationsRef = useRef(new Set<string>());
   const questionRef = useRef(demoQuestion);
+  const turnIdRef = useRef<string | null>(null);
   const [voiceState, setVoiceState] = useState<VoiceState>(initialVoiceState);
   const [question, setQuestion] = useState(demoQuestion);
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([
@@ -37,6 +42,7 @@ export function VoiceInterviewPanel() {
   const [isMicOn, setIsMicOn] = useState(false);
   const [audioLevel, setAudioLevel] = useState(42);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isConnected, setIsConnected] = useState(false);
   const [playbackSnapshot, setPlaybackSnapshot] = useState<PlaybackSnapshot>(() => playback.snapshot());
 
   const currentStatus =
@@ -50,14 +56,36 @@ export function VoiceInterviewPanel() {
             ? "Disconnected"
             : "Listening";
 
-  const connectionState = errorMessage ? "Reconnecting" : "Connected";
+  const connectionState = errorMessage ? "Reconnecting" : isConnected ? "Connected" : "Disconnected";
 
   useEffect(() => {
-    const unsubscribe = realtime.subscribe((event: RealtimeEvent) => {
+    let cancelled = false;
+    let unsubscribe: () => void = () => undefined;
+    let realtime: BrowserRealtimeClient | null = null;
+
+    const connect = async () => {
+      if (!sessionId) {
+        setErrorMessage("An interview session is required to connect voice recording.");
+        return;
+      }
+      try {
+        const tokenResponse = await fetch("/api/auth/realtime-token", { credentials: "include", cache: "no-store" });
+        if (!tokenResponse.ok) throw new Error("Realtime authentication failed.");
+        const payload = (await tokenResponse.json()) as { token?: string };
+        if (!payload.token || cancelled) throw new Error("Realtime authentication failed.");
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? window.location.origin;
+        realtime = new BrowserRealtimeClient(`${apiUrl.replace(/^http/, "ws")}/api/v1/ws/interviews/${sessionId}`);
+        realtimeRef.current = realtime;
+        realtime.authenticate(payload.token);
+        unsubscribe = realtime.subscribe((event: RealtimeEvent) => {
       const data = (event.data ?? {}) as Record<string, unknown>;
       const generationId = typeof data.generation_id === "string" ? data.generation_id : null;
       if (event.type === "session.state" && typeof data.interrupted_generation_id === "string") {
         invalidatedGenerationsRef.current.add(data.interrupted_generation_id);
+      }
+      if (event.type === "auth.ok") {
+        setIsConnected(true);
+        realtime?.send("session.start");
       }
       if (generationId && invalidatedGenerationsRef.current.has(generationId)) return;
       const voiceEventMap: Record<string, VoiceStateMachineEvent> = {
@@ -100,7 +128,7 @@ export function VoiceInterviewPanel() {
         ]);
       }
 
-      if (event.type === "user.partial_transcript") {
+      if (event.type === "transcript.partial" || event.type === "user.partial_transcript") {
         const text = typeof data.text === "string" ? data.text : "";
         if (!text) return;
         setTranscripts((previous) => [
@@ -109,7 +137,7 @@ export function VoiceInterviewPanel() {
         ]);
       }
 
-      if (event.type === "user.final_transcript") {
+      if (event.type === "transcript.final" || event.type === "user.final_transcript") {
         const text = typeof data.text === "string" ? data.text : "";
         if (!text) return;
         setTranscripts((previous) => [
@@ -119,12 +147,14 @@ export function VoiceInterviewPanel() {
       }
 
       if (event.type === "connection.error") {
+        setIsConnected(false);
         const message =
           typeof data.message === "string" ? data.message : "Connection error";
         setErrorMessage(message);
       }
 
       if (event.type === "connection.reconnect") {
+        setIsConnected(false);
         setErrorMessage("");
       }
 
@@ -132,14 +162,14 @@ export function VoiceInterviewPanel() {
         if (playbackSnapshotRef.current.generationId) {
           invalidatedGenerationsRef.current.add(playbackSnapshotRef.current.generationId);
           playback.stop(playbackSnapshotRef.current.generationId);
-          realtime.send("interview.interrupt", { generation_id: playbackSnapshotRef.current.generationId });
+          realtime?.send("interview.interrupt", { generation_id: playbackSnapshotRef.current.generationId });
         }
         setAudioLevel(70);
       }
 
       if (event.type === "ai.speech.start") {
         if (!generationId) {
-          realtime.send("ai.speech.start", { question_id: data.id, text: questionRef.current });
+          realtime?.send("ai.speech.start", { question_id: data.id, text: questionRef.current });
         } else if (typeof data.audio_url === "string") {
           void playback.play(data.audio_url, generationId).catch(() => {
             setErrorMessage("The question audio could not be played.");
@@ -157,14 +187,18 @@ export function VoiceInterviewPanel() {
       if (event.type === "answer.processing") {
         setAudioLevel(20);
       }
-    });
+        });
+      } catch (error) {
+        if (!cancelled) setErrorMessage(error instanceof Error ? error.message : "Realtime connection failed.");
+      }
+    };
+
+    void connect();
 
     const unsubscribePlaybackRef = playback.subscribe((snapshot) => {
       playbackSnapshotRef.current = snapshot;
       setPlaybackSnapshot(snapshot);
     });
-    realtime.startMockInterview();
-
     intervalRef.current = window.setInterval(() => {
       setAudioLevel((previous) => {
         if (voiceStageRef.current === "user_speaking" || voiceStageRef.current === "ai_speaking") {
@@ -180,14 +214,18 @@ export function VoiceInterviewPanel() {
     return () => {
       unsubscribe();
       unsubscribePlaybackRef();
-      realtime.disconnect();
+      cancelled = true;
+      setIsConnected(false);
+      unsubscribe();
+      realtime?.disconnect();
+      realtimeRef.current = null;
       playback.dispose();
       microphoneService.releaseMicrophone();
       if (intervalRef.current !== null) {
         window.clearInterval(intervalRef.current);
       }
     };
-  }, [playback, realtime]);
+  }, [playback, sessionId]);
 
   useEffect(() => {
     voiceStageRef.current = voiceState.stage;
@@ -217,20 +255,27 @@ export function VoiceInterviewPanel() {
         microphoneService.stopRecording();
         microphoneService.releaseMicrophone();
         setIsMicOn(false);
-        realtime.send("speech.stop");
+        realtimeRef.current?.send("speech.stop");
         return;
       }
       const enabled = await microphoneService.requestPermission();
       if (!enabled) throw new Error("permission denied");
-      microphoneService.startRecording(() => undefined);
+      turnIdRef.current = typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      realtimeRef.current?.send("speech.start", { turn_id: turnIdRef.current });
+      const recordingStarted = microphoneService.startRecording((chunk) => {
+        realtimeRef.current?.sendAudio(chunk);
+      });
+      if (!recordingStarted) throw new Error("Microphone recording could not be started.");
       microphoneService.startVoiceDetection(() => {
         if (playbackSnapshotRef.current.generationId) {
           playback.stop(playbackSnapshotRef.current.generationId);
-          realtime.send("interview.interrupt", { generation_id: playbackSnapshotRef.current.generationId });
+          realtimeRef.current?.send("interview.interrupt", { generation_id: playbackSnapshotRef.current.generationId });
         }
-        realtime.send("speech.start");
+        realtimeRef.current?.send("speech.start", { turn_id: turnIdRef.current ?? undefined });
         setVoiceState((previous) => applyVoiceEvent(previous, { type: "USER_STARTED_SPEAKING" }));
-      }, () => realtime.send("speech.stop"));
+      }, () => realtimeRef.current?.send("speech.stop"));
       setIsMicOn(true);
       setErrorMessage("");
       setVoiceState((previous) =>
@@ -255,7 +300,7 @@ export function VoiceInterviewPanel() {
       invalidatedGenerationsRef.current.add(generationId);
       playback.stop(generationId);
     }
-    realtime.send("interview.interrupt", { generation_id: generationId });
+    realtimeRef.current?.send("interview.interrupt", { generation_id: generationId });
     setVoiceState((previous) => applyVoiceEvent(previous, { type: "USER_INTERRUPTED_AI" }));
     setVoiceState((previous) =>
       applyVoiceEvent(previous, { type: "USER_INTERRUPTED_AI" }),

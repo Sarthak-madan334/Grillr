@@ -17,12 +17,12 @@ export class MicrophoneService {
     }
   }
 
-  startRecording(onDataAvailable: (data: Blob) => void) {
+  startRecording(onDataAvailable: (data: Blob) => void): boolean {
     if (!this.stream) {
       console.error(
         "Microphone stream not available. Call requestPermission first.",
       );
-      return;
+      return false;
     }
 
     this.onDataAvailableCallback = onDataAvailable;
@@ -35,6 +35,7 @@ export class MicrophoneService {
     };
 
     this.mediaRecorder.start(100); // 100ms chunks
+    return true;
   }
 
   startVoiceDetection(onSpeechStart: () => void, onSpeechStop: () => void) {
