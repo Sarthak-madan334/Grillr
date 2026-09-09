@@ -133,6 +133,9 @@ export default function InterviewSetupPage() {
               >
                 Job title
               </label>
+              <p className="-mt-1 text-xs leading-5 text-[#8b715c]">
+                What role are you preparing for?
+              </p>
               <JobTitleAutocomplete
                 value={formState.jobTitle}
                 onChange={(value) => updateField("jobTitle", value)}
