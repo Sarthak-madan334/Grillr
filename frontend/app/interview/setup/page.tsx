@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { JobTitleAutocomplete } from "@/components/interview/JobTitleAutocomplete";
 import { Select } from "@/components/ui/select";
 import { TopNav } from "@/components/layout/top-nav";
@@ -40,12 +39,6 @@ export default function InterviewSetupPage() {
   const [formState, setFormState] = useState<SetupFormState>(initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      console.debug("Interview setup state", formState);
-    }
-  }, [formState]);
 
   function updateField<Key extends keyof SetupFormState>(
     field: Key,
@@ -134,22 +127,18 @@ export default function InterviewSetupPage() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="jobTitle" className="text-sm font-medium text-[#5e4d40]">Job title</label>
-              <JobTitleAutocomplete value={formState.jobTitle} onChange={(value) => updateField("jobTitle", value)} />
               <label
                 htmlFor="jobTitle"
                 className="text-sm font-medium text-[#5e4d40]"
               >
                 Job title
               </label>
-              <Input
-                id="jobTitle"
-                name="jobTitle"
+              <p className="-mt-1 text-xs leading-5 text-[#8b715c]">
+                What role are you preparing for?
+              </p>
+              <JobTitleAutocomplete
                 value={formState.jobTitle}
-                onChange={(event) =>
-                  updateField("jobTitle", event.target.value)
-                }
-                placeholder="Software Engineer"
+                onChange={(value) => updateField("jobTitle", value)}
               />
             </div>
 
