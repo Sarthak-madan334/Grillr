@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { JobTitleAutocomplete } from "@/components/interview/JobTitleAutocomplete";
@@ -39,12 +39,6 @@ export default function InterviewSetupPage() {
   const [formState, setFormState] = useState<SetupFormState>(initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      console.debug("Interview setup state", formState);
-    }
-  }, [formState]);
 
   function updateField<Key extends keyof SetupFormState>(
     field: Key,
