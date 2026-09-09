@@ -69,8 +69,13 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
   const pendingChunksRef = useRef<Blob[]>([]);
   const { isSpeaking, level } = useVoiceActivityDetection(activeStream);
 
-  const stopStream = useCallback(() => {
+  const stopStream = useCallback((closeSocket = true) => {
     microphoneService.releaseMicrophone();
+    if (closeSocket) {
+      socketRef.current?.close();
+      socketRef.current = null;
+      socketAuthenticatedRef.current = false;
+    }
     aiAudioRef.current?.pause();
     aiAudioRef.current = null;
     if (aiAudioUrlRef.current) URL.revokeObjectURL(aiAudioUrlRef.current);
@@ -139,7 +144,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
               setIsProcessing(false);
               setIsStopping(false);
               onTurnStateChange?.("listening");
-              stopStream();
+              stopStream(false);
               setStatus("ready");
             }
             if (message.type === "answer.evaluated") onAnswerEvaluated?.();
@@ -182,7 +187,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
       cancelled = true;
       setIsSocketReady(false);
       socketAuthenticatedRef.current = false;
-      socket?.close();
+      if (socket && socketRef.current === socket && socket.readyState !== WebSocket.CLOSED) socket.close();
       socketRef.current = null;
     };
   }, [onAnswerEvaluated, onCompleted, onQuestionReady, onTranscript, onTurnStateChange, sessionId, stopStream]);

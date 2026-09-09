@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 async def interview_socket(websocket: WebSocket, session_id: UUID):
     await websocket.accept()
     db: Session = SessionLocal()
+    service: InterviewService
     speech = SpeechController()
     service = None
     identity = None
@@ -77,21 +78,30 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             await send_error("pipeline_initialization_failed", "The interview pipeline is temporarily unavailable. Please try again.")
             return
         await websocket.send_json({"type": "auth.ok", "data": {}})
-        turn_state = "listening"
-
-        async def send_resync() -> None:
-            current_question = next((item for item in session.questions if not item.answered_at), None)
-            await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id), "status": session.status.value, "current_question_number": session.current_question_number, "question_id": str(current_question.id) if current_question else None, "turn_state": turn_state}})
-
-        await send_resync()
+        await websocket.send_json({
+            "type": "session.connected",
+            "data": {"session_id": str(session_id), "turn_state": "listening"},
+        })
         if session.speech_state == "ai_speaking" and session.speech_generation_id is not None:
             await speech.restore_ai_speech(session.speech_generation_id)
-        speech_to_text = SpeechToTextService(create_speech_to_text())
+        turn_state = "listening"
+        try:
+            speech_to_text = SpeechToTextService(create_speech_to_text())
+        except Exception:
+            logger.exception("Failed to initialize speech-to-text provider", extra={"session_id": str(session_id)})
+            await send_error("pipeline_initialization_failed", "The interview pipeline is temporarily unavailable. Please try again.")
+            return
         text_to_speech = None
         audio_buffer = bytearray()
         recording = False
         current_turn_id: str | None = None
 
+        async def send_resync() -> None:
+            current_question = next((item for item in session.questions if not item.answered_at), None)
+            await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id), "status": session.status.value, "current_question_number": session.current_question_number, "question_id": str(current_question.id) if current_question else None, "turn_state": turn_state}})
+
+        if session.speech_state == "ai_speaking" and session.speech_generation_id is not None:
+            await speech.restore_ai_speech(session.speech_generation_id)
         async def send_question_audio(question) -> None:
             nonlocal text_to_speech
             if question is None:
@@ -103,7 +113,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                 media_type = getattr(text_to_speech, "media_type", "audio/mpeg")
                 if not audio:
                     raise TextToSpeechProviderError("TTS returned empty audio")
-            except (TextToSpeechConfigurationError, TextToSpeechProviderError, ValueError):
+            except (TextToSpeechConfigurationError, TextToSpeechProviderError, ValueError, RuntimeError):
                 await send_error("tts_unavailable", "Question audio is temporarily unavailable.")
                 return
             await websocket.send_json({
@@ -263,7 +273,22 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                 await websocket.send_json({"type": "speech.stop.ack", "data": {}})
                 await transcribe_buffer()
             elif event_type == "interview.interrupt":
+                interruption = await speech.interrupt()
                 await websocket.send_json({"type": f"{event_type}.ack", "data": {}})
+                await websocket.send_json({
+                    "type": "turn.state_changed",
+                    "data": {
+                        "state": "listening",
+                        "interrupted": interruption.interrupted,
+                        "generation_id": str(interruption.generation_id) if interruption.generation_id else None,
+                    },
+                })
+            elif event_type == "session.end":
+                try:
+                    session = service.transition(session_id, identity.id, SessionStatus.CANCELLED)
+                    await websocket.send_json({"type": "session.completed", "data": {"session_id": str(session_id), "status": session.status.value}})
+                except Exception:
+                    await send_error("session_end_failed", "The interview could not be ended safely.")
             else:
                 await websocket.send_json({"type": "error", "data": {"code": "invalid_event", "message": "Unsupported event type"}})
     except WebSocketDisconnect:
