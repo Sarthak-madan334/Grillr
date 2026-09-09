@@ -129,7 +129,13 @@ export default function InterviewSessionView() {
   async function handleSubmit() {
     if (!question || !draft.trim() || state === "submitting") return;
     setState("submitting"); setError("");
-    try { const submitted = await submitAnswer(question.id, draft.trim(), Math.max(1, (Date.now() - (questionStartedAt.current ?? Date.now())) / 1000)); if (!submitted.evaluation) throw new Error("The answer was saved, but feedback is not available yet."); setAnswer(submitted); setFeedback(submitted.evaluation); setState("feedback"); } catch (caught: unknown) { setError(caught instanceof Error ? caught.message : "We could not submit your answer."); setState("error"); }
+    try {
+      await submitAnswer(question.id, draft.trim(), Math.max(1, (Date.now() - (questionStartedAt.current ?? Date.now())) / 1000));
+      setDraft("");
+      setAnswer(null);
+      setFeedback(null);
+      await loadSession();
+    } catch (caught: unknown) { setError(caught instanceof Error ? caught.message : "We could not submit your answer."); setState("error"); }
   }
 
   async function continueAfterFeedback() { if (isFinal) { await loadSession(); return; } setDraft(""); setAnswer(null); setFeedback(null); await loadSession(); }

@@ -84,7 +84,7 @@ def test_typed_interview_flow_completes_with_retry_and_feedback(client, monkeypa
         assert UUID(answer["question_id"]) == question_id
         assert answer["attempt_number"] == 1
         assert answer["speech_metrics"] is not None
-        assert answer["evaluation"] is not None
+        assert answer["evaluation"] is None
         total_answers += 1
 
         with SessionLocal() as db:
@@ -93,7 +93,7 @@ def test_typed_interview_flow_completes_with_retry_and_feedback(client, monkeypa
             assert persisted_answer.question_id == question_id
             assert persisted_answer.session_id == interview_id
             assert persisted_answer.attempt_number == 1
-            assert db.scalar(select(AnswerEvaluation).where(AnswerEvaluation.answer_id == answer_id)) is not None
+            assert db.scalar(select(AnswerEvaluation).where(AnswerEvaluation.answer_id == answer_id)) is None
             assert db.scalar(select(SpeechMetrics).where(SpeechMetrics.answer_id == answer_id)) is not None
 
         if question_number == 1:
@@ -120,7 +120,7 @@ def test_typed_interview_flow_completes_with_retry_and_feedback(client, monkeypa
                 assert persisted_retry.question_id == question_id
                 assert persisted_retry.session_id == interview_id
                 assert persisted_retry.attempt_number == 2
-                assert db.scalar(select(AnswerEvaluation).where(AnswerEvaluation.answer_id == retry_answer_id)) is not None
+                assert db.scalar(select(AnswerEvaluation).where(AnswerEvaluation.answer_id == retry_answer_id)) is None
                 assert db.scalar(select(SpeechMetrics).where(SpeechMetrics.answer_id == retry_answer_id)) is not None
 
         interview_response = client.get(f"/api/v1/interviews/{interview_id}")
