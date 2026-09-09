@@ -70,16 +70,16 @@ export function JobTitleAutocomplete({ value, onChange }: JobTitleAutocompletePr
         onChange={(event) => { onChange(event.target.value); setActiveIndex(-1); setIsOpen(true); }}
         onFocus={() => setIsOpen(true)}
         onKeyDown={handleKeyDown}
-        placeholder="Software Engineer"
+        placeholder="e.g. Software Engineer"
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={showSuggestions}
         aria-controls={showSuggestions ? listboxId : undefined}
         aria-activedescendant={showSuggestions && activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined}
-        className="border-[#d9d7ed] bg-[#fffefd] focus:border-[#9da4d8] focus:ring-2 focus:ring-[#e7e8f7]"
+        className="min-h-12 rounded-xl border-[#d9d7ed] bg-[#fffefd] text-[#201a17] shadow-none transition-colors hover:border-[#b9b5d0] focus:border-[#8f98cf] focus:ring-2 focus:ring-[#e7e8f7] motion-reduce:transition-none"
       />
       {showSuggestions ? (
-        <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-2xl border border-[#e4e1ee] bg-[#fffefd] shadow-[0_12px_28px_rgba(78,69,101,0.12)] motion-safe:animate-[fade-in_120ms_ease-out]" role="presentation">
+        <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-xl border border-[#e4e1ee] bg-[#fffefd] shadow-[0_12px_28px_rgba(78,69,101,0.12)] motion-safe:animate-[fade-in_120ms_ease-out]" role="presentation">
           {suggestions.length ? (
             <ul id={listboxId} role="listbox" aria-label="Suggested job titles" className="max-h-64 overflow-y-auto p-1.5">
               {suggestions.map((title, index) => (
