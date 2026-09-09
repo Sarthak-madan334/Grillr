@@ -58,6 +58,8 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
   const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
   const [socketError, setSocketError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSocketReady, setIsSocketReady] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const socketAuthenticatedRef = useRef(false);
@@ -108,6 +110,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
             const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; state?: TurnState; message?: string; audio_base64?: string; media_type?: string; question_id?: string; question_number?: number; is_follow_up?: boolean } };
             if (message.type === "auth.ok") {
               socketAuthenticatedRef.current = true;
+              setIsSocketReady(true);
               socket?.send(JSON.stringify({ type: "session.start" }));
             }
             if (message.type === "audio.ai" && message.data?.audio_base64) {
@@ -134,6 +137,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
             if (message.type === "transcript.final" && message.data?.text) {
               onTranscript?.(message.data.text);
               setIsProcessing(false);
+              setIsStopping(false);
               onTurnStateChange?.("listening");
               stopStream();
               setStatus("ready");
@@ -149,11 +153,15 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
             }
             if (message.type === "session.completed") {
               setIsProcessing(false);
+              setIsStopping(false);
               onTurnStateChange?.("completed");
               onCompleted?.();
             }
             if (message.type === "error") {
+              setIsSocketReady(false);
+              socketAuthenticatedRef.current = false;
               setIsProcessing(false);
+              setIsStopping(false);
               onTurnStateChange?.("listening");
               setSocketError(message.data?.message ?? "The live interview connection returned an error. Please retry your voice answer.");
               stopStream();
@@ -172,6 +180,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
     void connect();
     return () => {
       cancelled = true;
+      setIsSocketReady(false);
       socketAuthenticatedRef.current = false;
       socket?.close();
       socketRef.current = null;
@@ -196,6 +205,10 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
 
   async function startRecording() {
     if (disabled || status === "recording") return;
+    if (sessionId && (typeof WebSocket === "undefined" || !isSocketReady || socketRef.current?.readyState !== WebSocket.OPEN)) {
+      setSocketError("The interview connection is still starting. Please try again in a moment.");
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia) {
       setStatus("unsupported");
       return;
@@ -203,6 +216,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
     setIsRetrying(true);
     setSocketError("");
     setIsProcessing(false);
+    setIsStopping(false);
     try {
       const devices = navigator.mediaDevices.enumerateDevices
         ? await navigator.mediaDevices.enumerateDevices()
@@ -227,6 +241,10 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
       setActiveStream(stream);
       pendingChunksRef.current = [];
       setRecordingBlob(null);
+      turnIdRef.current = typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      socketRef.current?.send(JSON.stringify({ type: "speech.start", turn_id: turnIdRef.current }));
       const handleAudioChunk = (chunk: Blob) => {
         pendingChunksRef.current.push(chunk);
         setRecordingBlob(new Blob([...pendingChunksRef.current], { type: chunk.type || "audio/webm" }));
@@ -239,12 +257,6 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
         return;
       }
       setStatus("recording");
-      turnIdRef.current = typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      if (socketAuthenticatedRef.current && socketRef.current?.readyState === WebSocket.OPEN) {
-        socketRef.current.send(JSON.stringify({ type: "speech.start", turn_id: turnIdRef.current }));
-      }
       onRecordingChange?.(true);
     } catch (error) {
       stopStream();
@@ -258,15 +270,20 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
 
   function stopRecording() {
     if (microphoneService.isRecording()) {
-      microphoneService.stopRecording();
-      if (typeof WebSocket !== "undefined" && socketRef.current?.readyState === WebSocket.OPEN) {
-        setIsProcessing(true);
-        onTurnStateChange?.("processing");
-        if (socketAuthenticatedRef.current) socketRef.current.send(JSON.stringify({ type: "speech.stop", turn_id: turnIdRef.current }));
-      } else {
-        stopStream();
-      }
+      setIsStopping(true);
+      setIsProcessing(true);
+      onTurnStateChange?.("processing");
+      microphoneService.stopRecording(() => {
+        if (socketAuthenticatedRef.current && socketRef.current?.readyState === WebSocket.OPEN) {
+          socketRef.current.send(JSON.stringify({ type: "speech.stop", turn_id: turnIdRef.current }));
+        } else {
+          setIsProcessing(false);
+          setIsStopping(false);
+          stopStream();
+        }
+      });
     } else {
+      setIsStopping(false);
       stopStream();
     }
     if (!sessionId || !socketRef.current) setStatus("ready");
@@ -284,7 +301,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
           </div>
           <p className="mt-2 text-xs leading-5 text-[#6e5a49]">Speak naturally and answer out loud. This interview is designed for voice responses only.</p>
         </div>
-        {status !== "unsupported" ? <button type="button" onClick={status === "recording" ? stopRecording : () => void startRecording()} disabled={disabled || isRetrying || status === "checking"} aria-label={status === "recording" ? "Stop recording" : "Start recording"} aria-pressed={status === "recording"} className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-[#2d241d] bg-[#2d241d] px-5 text-sm font-medium text-white shadow-[0_8px_18px_rgba(45,36,29,0.16)] transition hover:bg-[#1f1915] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8916d] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 motion-reduce:transition-none">{status === "recording" ? <StopIcon /> : <MicrophoneIcon />}{isRetrying ? "Checking microphone..." : status === "recording" ? "Stop recording" : "Start recording"}</button> : null}
+        {status !== "unsupported" ? <button type="button" onClick={status === "recording" ? stopRecording : () => void startRecording()} disabled={disabled || isRetrying || isStopping || isProcessing || status === "checking"} aria-label={status === "recording" ? "Stop recording" : "Start recording"} aria-pressed={status === "recording"} className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-[#2d241d] bg-[#2d241d] px-5 text-sm font-medium text-white shadow-[0_8px_18px_rgba(45,36,29,0.16)] transition hover:bg-[#1f1915] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8916d] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 motion-reduce:transition-none">{status === "recording" ? <StopIcon /> : <MicrophoneIcon />}{isRetrying ? "Checking microphone..." : isStopping || isProcessing ? "Finishing answer..." : status === "recording" ? "Stop recording" : "Start recording"}</button> : null}
       </div>
       {status === "checking" ? <p className="mt-4 animate-pulse text-xs text-[#7a5f48] motion-reduce:animate-none" aria-live="polite">Checking microphone support...</p> : null}
       {status === "recording" ? <p className="mt-4 flex items-center gap-2 text-xs font-medium text-[#26724d]" aria-live="polite"><span className="h-2 w-2 animate-pulse rounded-full bg-[#26724d] motion-reduce:animate-none" /> Recording in progress. Stop when you finish.</p> : null}
