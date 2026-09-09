@@ -100,7 +100,6 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             current_question = next((item for item in session.questions if not item.answered_at), None)
             await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id), "status": session.status.value, "current_question_number": session.current_question_number, "question_id": str(current_question.id) if current_question else None, "turn_state": turn_state}})
 
-        await send_resync()
         if session.speech_state == "ai_speaking" and session.speech_generation_id is not None:
             await speech.restore_ai_speech(session.speech_generation_id)
         async def send_question_audio(question) -> None:
