@@ -34,13 +34,13 @@ function getErrorName(error: unknown) {
 function statusCopy(status: VoiceStatus) {
   switch (status) {
     case "denied":
-      return { title: "Microphone access denied", body: "You can still answer by typing below. To use voice, allow microphone access in your browser settings and retry." };
+      return { title: "Microphone access denied", body: "Voice is required for this interview. Please allow microphone access and retry." };
     case "no-device":
-      return { title: "No microphone detected", body: "Connect a microphone or continue with a typed answer. Your typed response is ready whenever you are." };
+      return { title: "No microphone detected", body: "Connect a microphone and retry. Voice responses are required for this interview." };
     case "unsupported":
-      return { title: "Voice is unavailable here", body: "This browser does not support microphone input. Continue with a typed answer instead." };
+      return { title: "Voice is unavailable here", body: "This browser does not support microphone input. Please switch to a browser with microphone access to continue." };
     case "revoked":
-      return { title: "Microphone access ended", body: "Your microphone became unavailable during recording. Nothing was lost; continue by typing your answer or retry voice." };
+      return { title: "Microphone access ended", body: "Your microphone became unavailable during recording. Please retry voice recording to continue." };
     default:
       return null;
   }
@@ -155,7 +155,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
             if (message.type === "error") {
               setIsProcessing(false);
               onTurnStateChange?.("listening");
-              setSocketError(message.data?.message ?? "The live interview connection returned an error.");
+              setSocketError(message.data?.message ?? "The live interview connection returned an error. Please retry your voice answer.");
               stopStream();
               setStatus("ready");
             }
@@ -163,7 +163,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
             setSocketError("Live interview returned an unreadable response.");
           }
         });
-        socket.addEventListener("error", () => setSocketError("The live interview connection failed. You can retry or answer by typing."), { once: true });
+        socket.addEventListener("error", () => setSocketError("The live interview connection failed. Please retry your voice answer."), { once: true });
       } catch (error) {
         if (!cancelled) setSocketError(error instanceof Error ? error.message : "Realtime authentication failed");
       }
@@ -280,9 +280,9 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
         <div>
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f1e6da] text-[#6b503d]"><MicrophoneIcon /></span>
-            <h3 id="voice-answer-heading" className="text-sm font-semibold text-[#201a17]">Answer by voice <span className="ml-1 text-xs font-normal text-[#7a5f48]">Optional</span></h3>
+            <h3 id="voice-answer-heading" className="text-sm font-semibold text-[#201a17]">Answer by voice <span className="ml-1 text-xs font-normal text-[#7a5f48]">Required</span></h3>
           </div>
-          <p className="mt-2 text-xs leading-5 text-[#6e5a49]">Speak naturally, or use the typed answer below whenever voice is unavailable.</p>
+          <p className="mt-2 text-xs leading-5 text-[#6e5a49]">Speak naturally and answer out loud. This interview is designed for voice responses only.</p>
         </div>
         {status !== "unsupported" ? <button type="button" onClick={status === "recording" ? stopRecording : () => void startRecording()} disabled={disabled || isRetrying || status === "checking"} aria-label={status === "recording" ? "Stop recording" : "Start recording"} aria-pressed={status === "recording"} className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-[#2d241d] bg-[#2d241d] px-5 text-sm font-medium text-white shadow-[0_8px_18px_rgba(45,36,29,0.16)] transition hover:bg-[#1f1915] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8916d] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 motion-reduce:transition-none">{status === "recording" ? <StopIcon /> : <MicrophoneIcon />}{isRetrying ? "Checking microphone..." : status === "recording" ? "Stop recording" : "Start recording"}</button> : null}
       </div>
