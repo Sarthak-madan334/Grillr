@@ -65,6 +65,32 @@ class TestSocket {
   }
 }
 
+class TestAudio extends EventTarget {
+  static latest: TestAudio | undefined;
+  onplay: (() => void) | null = null;
+  onpause: (() => void) | null = null;
+  onended: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  ended = false;
+  paused = true;
+
+  constructor() {
+    super();
+    TestAudio.latest = this;
+  }
+
+  play() {
+    this.paused = false;
+    this.onplay?.();
+    return Promise.resolve();
+  }
+
+  pause() {
+    this.paused = true;
+    this.onpause?.();
+  }
+}
+
 beforeEach(() => {
   vi.stubGlobal("MediaRecorder", TestRecorder);
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(realtimeTokenResponse()));
@@ -89,6 +115,7 @@ afterEach(() => {
   microphoneService.releaseMicrophone();
   TestRecorder.latest = undefined;
   TestSocket.instances = [];
+  TestAudio.latest = undefined;
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   Object.defineProperty(navigator, "mediaDevices", {
@@ -189,6 +216,22 @@ describe("VoiceAnswerPanel", () => {
       { type: "auth", token: "test-token" },
       { type: "session.start" },
     ]);
+  });
+
+  it("reflects the real AI audio playback state and supports pausing", async () => {
+    vi.stubGlobal("WebSocket", TestSocket);
+    vi.stubGlobal("Audio", TestAudio);
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:question-audio");
+    render(<VoiceAnswerPanel sessionId="session-audio" />);
+
+    await waitFor(() => expect(TestSocket.instances[0]?.sent).toHaveLength(2));
+    TestSocket.instances[0]?.emit(JSON.stringify({ type: "audio.ai", data: { audio_base64: "YXVkaW8=", media_type: "audio/mpeg" } }));
+
+    expect(await screen.findByText("AI interviewer is speaking")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    expect(screen.getByText("Question paused")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Resume" }));
+    expect(screen.getByText("AI interviewer is speaking")).toBeInTheDocument();
   });
 
   it("forwards microphone chunks and speech start/stop events", async () => {
