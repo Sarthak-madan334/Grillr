@@ -7,17 +7,27 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/layout/top-nav";
 import { VoiceAnswerPanel } from "@/components/VoiceAnswerPanel";
+import { AnswerEvaluationPanel } from "@/components/AnswerEvaluationPanel";
 import type { TurnState } from "@/components/VoiceAnswerPanel";
 import { ConversationTurnBanner } from "@/components/ConversationTurnBanner";
 import {
   getInterview,
   getQuestions,
   getSummary,
+  getLatestAnswer,
   startInterview,
+  type Answer,
   type InterviewQuestion,
   type InterviewSession,
   type Summary,
 } from "@/lib/interview-api";
+
+type AnswerReview = {
+  answerId: string;
+  transcript: string;
+  answer: Answer | null;
+  status: "processing" | "complete" | "unavailable";
+};
 
 function formatInterviewType(value: string) {
   return value
@@ -135,6 +145,7 @@ export default function InterviewSessionPage() {
   >("loading");
   const [error, setError] = useState("");
   const [turnState, setTurnState] = useState<TurnState>("listening");
+  const [answerReview, setAnswerReview] = useState<AnswerReview | null>(null);
   const questionStartedAt = useRef<number | null>(null);
 
   const loadSession = useCallback(
@@ -221,6 +232,42 @@ export default function InterviewSessionPage() {
     [session?.interview_type],
   );
 
+  const handleAnswerPersisted = useCallback((answerId: string, transcript: string) => {
+    setAnswerReview({ answerId, transcript, answer: null, status: "processing" });
+  }, []);
+
+  useEffect(() => {
+    const reviewAnswerId = answerReview?.answerId;
+    if (!reviewAnswerId || answerReview?.status !== "processing") return;
+    let cancelled = false;
+    let attempts = 0;
+
+    async function refreshAnswer() {
+      try {
+        const latest = await getLatestAnswer(sessionId);
+        if (cancelled) return;
+        if (latest.id === reviewAnswerId) {
+          if (latest.evaluation) {
+            setAnswerReview((current) => current?.answerId === latest.id ? { ...current, answer: latest, status: "complete" } : current);
+            return;
+          }
+          setAnswerReview((current) => current?.answerId === latest.id ? { ...current, answer: latest } : current);
+        }
+      } catch {
+        // Keep the persisted transcript visible while the answer endpoint recovers.
+      }
+      attempts += 1;
+      if (!cancelled && attempts < 8) window.setTimeout(() => void refreshAnswer(), 1000);
+      else if (!cancelled) setAnswerReview((current) => {
+        if (!current || current.answerId !== reviewAnswerId) return current;
+        return { ...current, status: "unavailable" };
+      });
+    }
+
+    void refreshAnswer();
+    return () => { cancelled = true; };
+  }, [answerReview?.answerId, answerReview?.status, sessionId]);
+
   return (
     <main className="min-h-screen text-[#241d1a]">
       <TopNav />
@@ -231,6 +278,7 @@ export default function InterviewSessionPage() {
             hidden={state !== "ready"}
             disabled={state !== "ready" || turnState === "asking" || turnState === "processing"}
             onTranscript={setDraft}
+            onAnswerPersisted={handleAnswerPersisted}
             onTurnStateChange={setTurnState}
             onQuestionReady={handleVoiceQuestionReady}
             onCompleted={handleVoiceCompleted}
@@ -314,6 +362,7 @@ export default function InterviewSessionPage() {
                     Current transcript length: {wordCount} {wordCount === 1 ? "word" : "words"}
                   </p>
                 </div>
+                {answerReview ? <AnswerEvaluationPanel transcript={answerReview.transcript} answer={answerReview.answer} status={answerReview.status} /> : null}
             </section>
           </>
         ) : null}
