@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const apiUrl = process.env.GRILLR_API_URL ?? "http://localhost:8000";
+  const apiUrl = process.env.GRILLR_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "https://grillr-acev.onrender.com";
   if (!supabaseUrl || !anonKey) return failure(request, "provider_unavailable");
 
   try {

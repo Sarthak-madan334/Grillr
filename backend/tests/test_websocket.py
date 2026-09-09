@@ -30,8 +30,6 @@ def test_websocket_lifecycle_and_events(client):
         conn_msg = ws.receive_json()
         assert conn_msg["type"] == "session.connected"
         assert conn_msg["data"]["session_id"] == session_id
-        state_msg = ws.receive_json()
-        assert state_msg["type"] == "session.state"
         assert conn_msg["data"]["turn_state"] == "listening"
 
         # Send session.start
@@ -250,9 +248,7 @@ def test_websocket_continues_pipeline_after_transcript(client, monkeypatch):
         answer = db.scalar(select(Answer).where(Answer.session_id == answer_session_id).order_by(Answer.created_at.desc()))
         assert answer is not None
         assert answer.transcript == "I improved the deployment pipeline."
-        assert answer.evaluation is not None
-        assert isinstance(answer.evaluation, AnswerEvaluation)
-        assert answer.evaluation.overall_score >= 0
+        assert answer.evaluation is None
 
         next_question = db.scalar(select(Question).where(Question.session_id == answer_session_id, Question.is_follow_up.is_(False), Question.question_number > 1))
         assert next_question.question_text == question_created["data"]["text"]
@@ -334,13 +330,13 @@ def test_websocket_duplicate_turn_replays_without_duplicate_answer(client, monke
         ws.receive_json()
         replay_events = submit(ws)
 
-    assert first_events[:2] == ["transcript.final", "answer.evaluated"]
-    assert replay_events[:2] == ["transcript.final", "answer.evaluated"]
+    assert first_events[:2] == ["transcript.final", "answer.saved"]
+    assert replay_events[:2] == ["transcript.final", "answer.saved"]
     with SessionLocal() as db:
         answers = list(db.scalars(select(Answer).where(Answer.session_id == UUID(session_id))).all())
         assert len(answers) == 1
         assert answers[0].idempotency_key == turn_id
-        assert answers[0].evaluation is not None
+        assert answers[0].evaluation is None
 
 
 def test_websocket_final_answer_emits_ordered_completion(client, monkeypatch):
@@ -364,7 +360,7 @@ def test_websocket_final_answer_emits_ordered_completion(client, monkeypatch):
         assert ws.receive_json()["type"] == "turn.state_changed"
         events = [ws.receive_json(), ws.receive_json(), ws.receive_json()]
 
-    assert [event["type"] for event in events] == ["transcript.final", "answer.evaluated", "session.completed"]
+    assert [event["type"] for event in events] == ["transcript.final", "answer.saved", "session.completed"]
     assert events[-1]["data"]["session_id"] == session_id
     with SessionLocal() as db:
         session = db.get(InterviewSession, UUID(session_id))
@@ -373,21 +369,12 @@ def test_websocket_final_answer_emits_ordered_completion(client, monkeypatch):
         assert session.status == SessionStatus.COMPLETED
 
 
-def test_websocket_evaluation_failure_is_retryable_after_reconnect(client, monkeypatch):
+def test_websocket_answer_is_saved_when_final_feedback_is_deferred(client, monkeypatch):
     class FakeSpeechToText:
         def transcribe(self, audio: bytes) -> str:
             return "I improved reliability with automated deployment checks."
 
-    class FailingEvaluator:
-        def evaluate(self, transcript: str, question: str) -> dict:
-            raise RuntimeError("evaluation unavailable")
-
-    class WorkingEvaluator:
-        def evaluate(self, transcript: str, question: str) -> dict:
-            return {field: 80 for field in ("relevance_score", "clarity_score", "structure_score", "specificity_score", "technical_accuracy_score", "conciseness_score", "communication_score", "overall_score")} | {"strengths": [], "weaknesses": [], "suggestions": [], "improved_answer": transcript}
-
     monkeypatch.setattr(websocket_module, "create_speech_to_text", lambda: FakeSpeechToText())
-    monkeypatch.setattr("app.services.interview_service.create_answer_evaluator", lambda settings: FailingEvaluator())
     session_id, token = _create_interview(client)
     turn_id = "turn-retry-1"
 
@@ -400,12 +387,15 @@ def test_websocket_evaluation_failure_is_retryable_after_reconnect(client, monke
         ws.receive_json()
         ws.send_bytes(b"audio")
         ws.send_json({"type": "speech.stop", "turn_id": turn_id})
-        ws.receive_json()
-        ws.receive_json()
-        error = ws.receive_json()
-        assert error["data"]["code"] == "answer_evaluation_failed"
+        events = []
+        for _ in range(6):
+            event = ws.receive_json()
+            events.append(event["type"])
+            if event["type"] == "answer.saved":
+                break
+        assert "transcript.final" in events
+        assert "answer.saved" in events
 
-    monkeypatch.setattr("app.services.interview_service.create_answer_evaluator", lambda settings: WorkingEvaluator())
     with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
         ws.send_json({"type": "auth", "token": token})
         assert ws.receive_json()["type"] == "auth.ok"
@@ -419,9 +409,9 @@ def test_websocket_evaluation_failure_is_retryable_after_reconnect(client, monke
         ws.receive_json()
         events = [ws.receive_json(), ws.receive_json(), ws.receive_json(), ws.receive_json()]
         assert events[0]["type"] == "transcript.final"
-        assert events[1]["type"] == "answer.evaluated"
+        assert events[1]["type"] == "answer.saved"
 
     with SessionLocal() as db:
         answers = list(db.scalars(select(Answer).where(Answer.session_id == UUID(session_id))).all())
         assert len(answers) == 1
-        assert answers[0].evaluation is not None
+        assert answers[0].evaluation is None

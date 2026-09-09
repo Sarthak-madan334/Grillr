@@ -12,8 +12,6 @@ from typing import Any, Callable, ClassVar, Literal, Protocol
 from uuid import UUID
 
 import httpx
-from openai import OpenAI
-
 from app.core.config import get_settings
 from app.core.errors import ProviderError
 
@@ -302,6 +300,8 @@ class OpenAISpeechToText:
     """Speech-to-text adapter for recorded browser audio."""
 
     def __init__(self, api_key: str | None = None, model: str = "gpt-4o-mini-transcribe"):
+        from openai import OpenAI
+
         self.client = OpenAI(api_key=api_key or get_settings().openai_api_key)
         self.model = model
 
@@ -315,7 +315,9 @@ class OpenAISpeechToText:
 
 def create_speech_to_text() -> SpeechToText:
     settings = get_settings()
-    return OpenAISpeechToText(api_key=settings.openai_api_key) if settings.openai_api_key else MockSpeechToText()
+    if settings.openai_api_key:
+        return OpenAISpeechToText(api_key=settings.openai_api_key)
+    return WhisperSpeechToText()
 
 
 class MockTextToSpeech:
