@@ -309,7 +309,7 @@ class InterviewService:
 
     def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate, is_retry: bool = False, idempotency_key: str | None = None, session_id: UUID | None = None) -> Answer:
         existing = self.get_idempotent_answer(session_id, user_id, idempotency_key) if idempotency_key and session_id else None
-        if existing is not None and existing.evaluation is not None:
+        if existing is not None:
             return existing
 
         question = existing.question if existing is not None else self.db.scalar(select(Question).join(InterviewSession).where(Question.id == question_id, InterviewSession.user_id == user_id).options(selectinload(Question.session)))
@@ -334,43 +334,24 @@ class InterviewService:
             self.db.commit()
             self.db.refresh(answer)
 
-        try:
-            evaluation = self.evaluator.evaluate(answer.transcript, question.question_text)
-        except Exception as exc:
-            self.db.rollback()
-            raise AnswerEvaluationError from exc
-        self.db.add(AnswerEvaluation(answer_id=answer.id, **evaluation))
         if not is_retry:
             question.answered_at = datetime.now(timezone.utc)
             question.session.current_question_number = question.question_number
         if not is_retry:
-            decision = self._follow_up_decision(question, data.transcript, evaluation)
-            if decision.action in {"follow_up", "clarification"} and decision.question:
-                root_id = question.parent_question_id or question.id
-                try:
-                    follow_up = self._create_question(question.session_id, 0, decision.question, question.session.interview_type)
-                    follow_up.is_follow_up = True
-                    follow_up.parent_question_id = root_id
-                    parent = next((item for item in question.session.questions if item.id == root_id), question)
-                    self._insert_question(question.session, follow_up, after=parent)
-                except Exception:
-                    if "follow_up" in locals() and follow_up in self.db:
-                        self.db.expunge(follow_up)
-            else:
-                planned = sorted((item for item in question.session.questions if not item.is_follow_up), key=lambda item: item.question_number)
-                answered_planned = [item for item in planned if item.answers]
-                next_planned = next((item for item in planned if item.question_number > question.question_number and not item.answers), None)
-                if next_planned is None and len(answered_planned) < question.session.question_count:
-                    next_question_number = len(planned) + 1
-                    next_question_text = self._next_question(
-                        question.session.job_role,
-                        next_question_number,
-                        self._history(question.session),
-                        question.session.personality,
-                        self._adaptive_difficulty(question.session),
-                    )
-                    next_question = self._create_question(question.session_id, 0, next_question_text, question.session.interview_type)
-                    self._insert_question(question.session, next_question)
+            planned = sorted((item for item in question.session.questions if not item.is_follow_up), key=lambda item: item.question_number)
+            answered_planned = [item for item in planned if item.answers]
+            next_planned = next((item for item in planned if item.question_number > question.question_number and not item.answers), None)
+            if next_planned is None and len(answered_planned) < question.session.question_count:
+                next_question_number = len(planned) + 1
+                next_question_text = self._next_question(
+                    question.session.job_role,
+                    next_question_number,
+                    self._history(question.session),
+                    question.session.personality,
+                    self._adaptive_difficulty(question.session),
+                )
+                next_question = self._create_question(question.session_id, 0, next_question_text, question.session.interview_type)
+                self._insert_question(question.session, next_question)
         self.db.commit()
         self.db.refresh(answer)
         planned_questions = list(self.db.scalars(
@@ -399,9 +380,21 @@ class InterviewService:
 
     def complete(self, session_id: UUID, user_id: UUID) -> InterviewSession:
         session = self.transition(session_id, user_id, SessionStatus.COMPLETED)
-        answers = list(self.db.scalars(select(Answer).where(Answer.session_id == session.id).options(selectinload(Answer.speech_metrics), selectinload(Answer.evaluation))).all())
-        scores = [answer.evaluation.overall_score for answer in answers if answer.evaluation]
+        answers = list(self.db.scalars(select(Answer).where(Answer.session_id == session.id).options(selectinload(Answer.question), selectinload(Answer.speech_metrics), selectinload(Answer.evaluation))).all())
+        evaluations = []
+        for answer in answers:
+            if answer.evaluation is None:
+                evaluation = self.evaluator.evaluate(answer.transcript, answer.question.question_text)
+                self.db.add(AnswerEvaluation(answer_id=answer.id, **evaluation))
+                evaluations.append(evaluation)
+            else:
+                evaluations.append(answer.evaluation)
+        self.db.flush()
+        scores = [evaluation["overall_score"] if isinstance(evaluation, dict) else evaluation.overall_score for evaluation in evaluations]
         metrics = [answer.speech_metrics for answer in answers if answer.speech_metrics]
-        self.db.add(InterviewSummary(session_id=session.id, overall_score=round(sum(scores) / len(scores)) if scores else 0, total_questions=len(session.questions), total_duration=sum(metric.duration_seconds for metric in metrics), average_wpm=round(sum(metric.words_per_minute for metric in metrics) / len(metrics), 2) if metrics else 0, total_filler_words=sum(metric.filler_count for metric in metrics), total_pauses=sum(metric.pause_count for metric in metrics), strengths=["Completed the interview"], weaknesses=[], recommendations=["Review answer feedback"]))
+        strengths = [item for evaluation in evaluations for item in (evaluation["strengths"] if isinstance(evaluation, dict) else evaluation.strengths)][:5]
+        weaknesses = [item for evaluation in evaluations for item in (evaluation["weaknesses"] if isinstance(evaluation, dict) else evaluation.weaknesses)][:5]
+        recommendations = [item for evaluation in evaluations for item in (evaluation["suggestions"] if isinstance(evaluation, dict) else evaluation.suggestions)][:5]
+        self.db.add(InterviewSummary(session_id=session.id, overall_score=round(sum(scores) / len(scores)) if scores else 0, total_questions=len(session.questions), total_duration=sum(metric.duration_seconds for metric in metrics), average_wpm=round(sum(metric.words_per_minute for metric in metrics) / len(metrics), 2) if metrics else 0, total_filler_words=sum(metric.filler_count for metric in metrics), total_pauses=sum(metric.pause_count for metric in metrics), strengths=strengths or ["Completed the interview"], weaknesses=weaknesses, recommendations=recommendations or ["Review your final answer feedback"]))
         self.db.commit()
         return self.get(session_id, user_id)
