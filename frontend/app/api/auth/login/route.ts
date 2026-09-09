@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const apiUrl = process.env.GRILLR_API_URL ?? "http://localhost:8000";
+    const apiUrl = process.env.GRILLR_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "https://grillr-acev.onrender.com";
     const response = await fetch(`${apiUrl}/api/v1/users/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
