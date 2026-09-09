@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/layout/top-nav";
-import { QuestionAudioPlayer } from "@/components/QuestionAudioPlayer";
 import { VoiceAnswerPanel } from "@/components/VoiceAnswerPanel";
 import type { TurnState } from "@/components/VoiceAnswerPanel";
 import { ConversationTurnBanner } from "@/components/ConversationTurnBanner";
@@ -346,16 +345,23 @@ export default function InterviewSessionPage() {
   }
 
   const handleVoiceAnswerEvaluated = useCallback(async () => {
-    try {
-      const latest = await getLatestAnswer(sessionId);
-      if (latest.evaluation) {
-        setAnswer(latest);
-        setFeedback(latest.evaluation);
-        setState("feedback");
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const latest = await getLatestAnswer(sessionId);
+        if (latest.evaluation) {
+          setAnswer(latest);
+          setFeedback(latest.evaluation);
+          setState("feedback");
+          return;
+        }
+      } catch (caught: unknown) {
+        if (attempt === 2) {
+          setError(caught instanceof Error ? caught.message : "We could not load answer feedback.");
+          setState("error");
+          return;
+        }
       }
-    } catch (caught: unknown) {
-      setError(caught instanceof Error ? caught.message : "We could not load answer feedback.");
-      setState("error");
+      await new Promise((resolve) => window.setTimeout(resolve, 150));
     }
   }, [sessionId]);
 
@@ -480,7 +486,6 @@ export default function InterviewSessionPage() {
                   {question.question_text}
                 </h2>
                 <ConversationTurnBanner state={turnState} />
-                <QuestionAudioPlayer key={question.id} questionId={question.id} shouldStop={state === "submitting"} />
                 <div className="mt-8 rounded-[24px] border border-[#e7d8c5] bg-[rgba(255,255,255,0.56)] p-5 text-sm text-[#5e4d40]">
                   <p className="font-semibold text-[#201a17]">Voice answer required</p>
                   <p className="mt-2 leading-6">
