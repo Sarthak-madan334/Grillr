@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/layout/top-nav";
+import { SpeechAnalysis } from "@/components/interview/SpeechAnalysis";
 import {
   getInterview,
   getLatestAnswer,
@@ -20,6 +21,8 @@ import {
   type Summary,
 } from "@/lib/interview-api";
 
+export { buildSpeechInsight, createSpeechOverview } from "@/components/interview/SpeechAnalysis";
+
 function formatLabel(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
@@ -30,6 +33,10 @@ function LoadingState() {
       <div className="h-4 w-36 animate-pulse rounded-full bg-[#eadcc8] motion-reduce:animate-none" />
       <div className="h-16 max-w-3xl animate-pulse rounded-2xl bg-[#eadcc8] motion-reduce:animate-none" />
       <div className="h-56 animate-pulse rounded-[28px] bg-[#f3e9dc] motion-reduce:animate-none" />
+      <div className="max-w-lg rounded-[24px] border border-[#e7d8c5] bg-[#fffaf3] p-4 text-sm text-[#5e4d40]">
+        <p className="font-medium text-[#201a17]">Analyzing your response</p>
+        <p className="mt-2 leading-6">We’re reviewing your speech signals and feedback so the result stays focused on what matters most.</p>
+      </div>
     </div>
   );
 }
@@ -53,13 +60,16 @@ function FeedbackPanel({ feedback, answer, isFinal, onContinue }: { feedback: Fe
         <div>
           <Badge className="border-[#d4eadb] bg-[#e5f6eb] text-[#26724d]">Answer analyzed</Badge>
           <h2 id="feedback-heading" className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-[#201a17]">A useful signal for your next attempt.</h2>
-          <p className="mt-3 text-sm text-[#7a5f48]">Attempt {answer.attempt_number} · {answer.speech_metrics?.word_count ?? 0} words · {Math.round(answer.duration)} seconds</p>
+          <p className="mt-3 text-sm text-[#7a5f48]">Attempt {answer.attempt_number} · {answer.speech_metrics?.word_count ?? answer.transcript.trim().split(/\s+/).filter(Boolean).length} words · {Math.round(answer.duration)} seconds</p>
         </div>
         <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-[22px] border border-[#ddc8b2] bg-[#f8eee4] text-center">
           <span className="text-3xl font-semibold text-[#201a17]">{feedback.overall_score}</span>
           <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7a5f48]">Overall</span>
         </div>
       </div>
+
+      <SpeechAnalysis answer={answer} />
+
       <div className="grid gap-x-8 gap-y-7 sm:grid-cols-3">
         <FeedbackList title="What worked" color="green" items={feedback.strengths} />
         <FeedbackList title="Next focus" color="orange" items={feedback.weaknesses.length ? feedback.weaknesses : feedback.suggestions} />
