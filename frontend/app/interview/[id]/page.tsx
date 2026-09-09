@@ -138,7 +138,7 @@ export default function InterviewSessionPage() {
   const questionStartedAt = useRef<number | null>(null);
 
   const loadSession = useCallback(
-    async (signal?: AbortSignal, restoreLatestFeedback = false) => {
+    async (signal?: AbortSignal) => {
       setState("loading");
       setError("");
       const loaded = await getInterview(sessionId, signal);
@@ -153,30 +153,6 @@ export default function InterviewSessionPage() {
         return;
       }
       const questionData = await getQuestions(sessionId, signal);
-      if (restoreLatestFeedback) {
-        try {
-          const latest = await getLatestAnswer(sessionId, signal);
-          const answeredQuestion = questionData.items.find(
-            (item) => item.id === latest.question_id,
-          );
-          if (answeredQuestion && latest.evaluation) {
-            setQuestion(answeredQuestion);
-            setAnswer(latest);
-            setFeedback(latest.evaluation);
-            setState("feedback");
-            return;
-          }
-        } catch (caught: unknown) {
-          if (caught instanceof DOMException && caught.name === "AbortError")
-            throw caught;
-          if (!(
-            caught instanceof Error &&
-            "status" in caught &&
-            (caught as { status?: number }).status === 404
-          ))
-            throw caught;
-        }
-      }
       const unanswered = questionData.items.find((item) => !item.answered_at);
       if (!unanswered)
         throw new Error("This interview has no unanswered question.");
@@ -191,7 +167,7 @@ export default function InterviewSessionPage() {
   useEffect(() => {
     const controller = new AbortController();
     void Promise.resolve()
-      .then(() => loadSession(controller.signal, true))
+      .then(() => loadSession(controller.signal))
       .catch((caught: unknown) => {
         if (caught instanceof DOMException && caught.name === "AbortError")
           return;

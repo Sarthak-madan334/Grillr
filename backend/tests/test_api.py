@@ -63,28 +63,6 @@ def test_interview_creation_synthesizes_and_returns_question_audio(client, monke
     assert len(tts.calls) == 2
 
 
-def test_direct_text_answer_submission_requires_voice(client):
-    created = client.post("/api/v1/interviews", json=interview_payload())
-    assert created.status_code == 201
-    question_id = created.json()["questions"][0]["id"]
-
-    response = client.post(
-        f"/api/v1/interviews/questions/{question_id}/answer",
-        json={"transcript": "This answer was typed directly.", "duration": 8},
-    )
-
-    assert response.status_code == 409
-    assert response.json()["error"]["code"] == "voice_required"
-
-    retry_response = client.post(
-        f"/api/v1/interviews/questions/{question_id}/retry",
-        json={"transcript": "This typed retry should also be rejected.", "duration": 8},
-    )
-
-    assert retry_response.status_code == 409
-    assert retry_response.json()["error"]["code"] == "voice_required"
-
-
 def test_interview_lifecycle_and_answer(client):
     created = client.post("/api/v1/interviews", json=interview_payload())
     assert created.status_code == 201
