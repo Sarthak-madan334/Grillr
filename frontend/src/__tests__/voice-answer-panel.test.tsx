@@ -68,11 +68,14 @@ class TestSocket {
 class TestAudio extends EventTarget {
   static latest: TestAudio | undefined;
   onplay: (() => void) | null = null;
+  onloadedmetadata: (() => void) | null = null;
   onpause: (() => void) | null = null;
   onended: (() => void) | null = null;
   onerror: (() => void) | null = null;
   ended = false;
   paused = true;
+  currentTime = 0;
+  duration = 10;
 
   constructor() {
     super();
@@ -226,12 +229,19 @@ describe("VoiceAnswerPanel", () => {
 
     await waitFor(() => expect(TestSocket.instances[0]?.sent).toHaveLength(2));
     TestSocket.instances[0]?.emit(JSON.stringify({ type: "audio.ai", data: { audio_base64: "YXVkaW8=", media_type: "audio/mpeg" } }));
+    act(() => TestAudio.latest?.onloadedmetadata?.());
 
     expect(await screen.findByText("AI interviewer is speaking")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    expect(screen.getByLabelText("Question audio progress")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Pause question audio" }));
     expect(screen.getByText("Question paused")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Resume" }));
+    fireEvent.click(screen.getByRole("button", { name: "Resume question audio" }));
     expect(screen.getByText("AI interviewer is speaking")).toBeInTheDocument();
+    act(() => {
+      TestAudio.latest!.ended = true;
+      TestAudio.latest?.onended?.();
+    });
+    expect(screen.getByRole("button", { name: "Replay question audio" })).toBeInTheDocument();
   });
 
   it("forwards microphone chunks and speech start/stop events", async () => {
