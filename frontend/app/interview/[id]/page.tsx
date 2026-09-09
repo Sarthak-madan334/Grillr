@@ -481,48 +481,14 @@ export default function InterviewSessionPage() {
                 </h2>
                 <ConversationTurnBanner state={turnState} />
                 <QuestionAudioPlayer key={question.id} questionId={question.id} shouldStop={state === "submitting"} />
-                <div className="mt-10">
-                  <label
-                    htmlFor="answer"
-                    className="text-sm font-semibold text-[#3d3028]"
-                  >
-                    Your answer
-                  </label>
-                  <textarea
-                    id="answer"
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    disabled={state === "submitting" || turnState === "asking" || turnState === "processing"}
-                    placeholder="Start with the situation, explain what you did, and finish with the outcome."
-                    rows={10}
-                    className="mt-3 w-full resize-y rounded-[24px] border border-[#e7d8c5] bg-[rgba(255,255,255,0.56)] px-5 py-4 text-base leading-7 text-[#201a17] outline-none transition placeholder:text-[#aa9582] focus:border-[#b8916d] focus:ring-2 focus:ring-[#b8916d]/20 disabled:opacity-70 motion-reduce:transition-none"
-                    aria-describedby="answer-hint answer-count"
-                  />
-                  <div className="mt-3 flex flex-col gap-1 text-xs text-[#7a5f48] sm:flex-row sm:items-center sm:justify-between">
-                    <span id="answer-hint">
-                      Aim for a specific example and outcome.
-                    </span>
-                    <span id="answer-count" aria-live="polite">
-                      {wordCount} {wordCount === 1 ? "word" : "words"}
-                    </span>
-                  </div>
-                  <Button
-                    className="mt-6"
-                    onClick={() => void handleSubmit()}
-                    disabled={!draft.trim() || state === "submitting" || turnState !== "listening"}
-                  >
-                    {state === "submitting" ? (
-                      <span className="inline-flex items-center gap-2">
-                        <span
-                          className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white motion-reduce:animate-none"
-                          aria-hidden="true"
-                        />
-                        Analyzing answer...
-                      </span>
-                    ) : (
-                      "Submit answer"
-                    )}
-                  </Button>
+                <div className="mt-8 rounded-[24px] border border-[#e7d8c5] bg-[rgba(255,255,255,0.56)] p-5 text-sm text-[#5e4d40]">
+                  <p className="font-semibold text-[#201a17]">Voice answer required</p>
+                  <p className="mt-2 leading-6">
+                    Please answer this question out loud. The interview expects a spoken response and will analyze your delivery as you talk.
+                  </p>
+                  <p className="mt-2 text-xs text-[#7a5f48]" aria-live="polite">
+                    Current transcript length: {wordCount} {wordCount === 1 ? "word" : "words"}
+                  </p>
                 </div>
               </section>
             )}

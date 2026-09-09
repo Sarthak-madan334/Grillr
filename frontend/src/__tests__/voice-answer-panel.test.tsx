@@ -105,7 +105,7 @@ describe("VoiceAnswerPanel", () => {
     expect(screen.queryByRole("button", { name: "Start recording" })).not.toBeInTheDocument();
   });
 
-  it("shows a denial message while keeping retry available", async () => {
+  it("shows a denial message while keeping voice as the required path", async () => {
     const getUserMedia = vi.fn().mockRejectedValue(Object.assign(new Error("blocked"), { name: "NotAllowedError" }));
     mockMediaDevices({ getUserMedia, enumerateDevices: vi.fn().mockResolvedValue([{ kind: "audioinput" }]) });
     render(<VoiceAnswerPanel />);
@@ -115,6 +115,7 @@ describe("VoiceAnswerPanel", () => {
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Microphone access denied"));
     expect(screen.getByRole("button", { name: "Retry voice" })).toBeInTheDocument();
+    expect(screen.queryByText(/typed answer/i)).not.toBeInTheDocument();
   });
 
   it("distinguishes a missing microphone device", async () => {
@@ -245,23 +246,18 @@ describe("VoiceAnswerPanel", () => {
     expect(TestRecorder.latest?.state).toBe("inactive");
   });
 
-  it("keeps the typed-answer fallback available after a WebSocket failure", async () => {
+  it("keeps voice as the required response path after a WebSocket failure", async () => {
     vi.stubGlobal("WebSocket", TestSocket);
     mockAvailableMicrophone();
     const pushState = vi.spyOn(window.history, "pushState");
-    render(
-      <>
-        <textarea aria-label="Typed answer" defaultValue="A typed fallback" />
-        <VoiceAnswerPanel sessionId="session-failure" />
-      </>,
-    );
+    render(<VoiceAnswerPanel sessionId="session-failure" />);
     await waitFor(() => expect(TestSocket.instances).toHaveLength(1));
     const socket = TestSocket.instances[0];
     act(() => socket.emitError());
 
     expect(await screen.findByRole("alert")).toHaveTextContent("live interview connection failed");
-    expect(screen.getByText(/answer by typing/i)).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Typed answer" })).toBeEnabled();
+    expect(screen.queryByText(/answer by typing/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: /typed answer/i })).not.toBeInTheDocument();
     expect(pushState).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Start recording" })).toBeEnabled();
   });

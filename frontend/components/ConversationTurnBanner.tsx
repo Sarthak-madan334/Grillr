@@ -6,7 +6,7 @@ type ConversationTurnBannerProps = {
 
 const copy: Record<TurnState, { label: string; detail: string }> = {
   asking: { label: "AI is asking", detail: "Listen to the question before answering." },
-  listening: { label: "Your turn", detail: "Take a moment, then answer by voice or text." },
+  listening: { label: "Your turn", detail: "Take a moment, then answer by voice." },
   processing: { label: "Reviewing your answer", detail: "Your response is being analyzed." },
   completed: { label: "Interview complete", detail: "Your session summary is ready." },
 };
