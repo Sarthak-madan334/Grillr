@@ -5,7 +5,6 @@ import { microphoneService } from "../lib/audio/microphone-service";
 import { useVoiceActivityDetection } from "../lib/audio/use-voice-activity-detection";
 
 type VoiceStatus = "checking" | "ready" | "recording" | "denied" | "no-device" | "unsupported" | "revoked";
-type AiAudioState = "idle" | "loading" | "playing" | "paused" | "completed" | "error";
 export type TurnState = "asking" | "listening" | "processing" | "completed";
 
 type VoiceAnswerPanelProps = {
@@ -26,21 +25,6 @@ function MicrophoneIcon() {
 
 function StopIcon() {
   return <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="1.5" /></svg>;
-}
-
-function SpeakerIcon() {
-  return <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10v4h4l5 4V6l-5 4H4Z" /><path d="M17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11" /></svg>;
-}
-
-function audioStatusCopy(state: AiAudioState) {
-  switch (state) {
-    case "loading": return "Preparing the question";
-    case "playing": return "AI interviewer is speaking";
-    case "paused": return "Question paused";
-    case "completed": return "Question finished";
-    case "error": return "Couldn\'t play the question";
-    default: return "Question audio ready when available";
-  }
 }
 
 function getErrorName(error: unknown) {
@@ -76,8 +60,6 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSocketReady, setIsSocketReady] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
-  const [aiAudioState, setAiAudioState] = useState<AiAudioState>("idle");
-  const [aiAudioError, setAiAudioError] = useState("");
   const streamRef = useRef<MediaStream | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const socketAuthenticatedRef = useRef(false);
@@ -98,8 +80,6 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
     aiAudioRef.current = null;
     if (aiAudioUrlRef.current) URL.revokeObjectURL(aiAudioUrlRef.current);
     aiAudioUrlRef.current = null;
-    setAiAudioState("idle");
-    setAiAudioError("");
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     setActiveStream(null);
@@ -146,27 +126,14 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
               const audio = new Audio(audioUrl);
               aiAudioRef.current = audio;
               aiAudioUrlRef.current = audioUrl;
-              setAiAudioState("loading");
-              setAiAudioError("");
-              audio.onplay = () => setAiAudioState("playing");
-              audio.onpause = () => {
-                if (aiAudioRef.current === audio && !audio.ended) setAiAudioState("paused");
-              };
               audio.onended = () => {
                 if (aiAudioRef.current === audio) {
-                  setAiAudioState("completed");
+                  aiAudioRef.current = null;
+                  URL.revokeObjectURL(audioUrl);
+                  aiAudioUrlRef.current = null;
                 }
               };
-              audio.onerror = () => {
-                if (aiAudioRef.current !== audio) return;
-                setAiAudioState("error");
-                setAiAudioError("Question audio could not be played. Continue with the text prompt.");
-              };
-              void audio.play().catch(() => {
-                if (aiAudioRef.current !== audio) return;
-                setAiAudioState("error");
-                setAiAudioError("Question audio could not be played. Continue with the text prompt.");
-              });
+              void audio.play().catch(() => setSocketError("Question audio could not be played. Continue with the text prompt."));
             }
             if (message.type === "turn.state_changed" && message.data?.state) {
               setIsProcessing(message.data.state === "processing");
@@ -327,19 +294,6 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
     if (!sessionId || !socketRef.current) setStatus("ready");
   }
 
-  function toggleAiAudio() {
-    const audio = aiAudioRef.current;
-    if (!audio || aiAudioState === "error" || aiAudioState === "completed") return;
-    if (aiAudioState === "playing") {
-      audio.pause();
-      return;
-    }
-    void audio.play().catch(() => {
-      setAiAudioState("error");
-      setAiAudioError("Question audio could not be played. Continue with the text prompt.");
-    });
-  }
-
   const message = statusCopy(status);
 
   return (
@@ -357,7 +311,6 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
       {status === "checking" ? <p className="mt-4 animate-pulse text-xs text-[#7a5f48] motion-reduce:animate-none" aria-live="polite">Checking microphone support...</p> : null}
       {status === "recording" ? <p className="mt-4 flex items-center gap-2 text-xs font-medium text-[#26724d]" aria-live="polite"><span className="h-2 w-2 animate-pulse rounded-full bg-[#26724d] motion-reduce:animate-none" /> Recording in progress. Stop when you finish.</p> : null}
       {isProcessing ? <p className="mt-4 flex items-center gap-2 text-xs font-medium text-[#7a5f48]" aria-live="polite"><span className="h-3 w-3 animate-pulse rounded-full bg-[#b8916d] motion-reduce:animate-none" /> Processing your answer...</p> : null}
-      {aiAudioState !== "idle" ? <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-[#e7d8c5] bg-[#fffdf9] px-3 py-2.5" aria-live="polite"><span className={`flex h-7 w-7 items-center justify-center rounded-lg ${aiAudioState === "playing" ? "bg-[#e5f6eb] text-[#26724d]" : "bg-[#f1e6da] text-[#6b503d]"}`}><SpeakerIcon /></span><span className="min-w-0 flex-1 text-xs font-medium text-[#5e4d40]">{audioStatusCopy(aiAudioState)}{aiAudioError ? <span className="mt-0.5 block text-[11px] font-normal text-[#805542]">{aiAudioError}</span> : null}</span>{aiAudioState === "loading" ? <span className="flex gap-1" aria-label="Loading question audio"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#b8916d] motion-reduce:animate-none" /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#b8916d] [animation-delay:150ms] motion-reduce:animate-none" /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#b8916d] [animation-delay:300ms] motion-reduce:animate-none" /></span> : null}{aiAudioState === "playing" || aiAudioState === "paused" ? <button type="button" onClick={toggleAiAudio} className="rounded-full border border-[#d8c5b3] px-3 py-1.5 text-xs font-semibold text-[#5e402e] transition hover:bg-[#f3e3d5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8916d] focus-visible:ring-offset-2 motion-reduce:transition-none">{aiAudioState === "playing" ? "Pause" : "Resume"}</button> : null}</div> : null}
       {activeStream ? <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#e7d8c5] bg-white/50 px-3 py-2" aria-live="polite"><span className={`h-2.5 w-2.5 rounded-full transition-colors motion-reduce:transition-none ${isSpeaking ? "bg-[#26724d] shadow-[0_0_0_4px_rgba(38,114,77,0.14)]" : "bg-[#b8916d]"}`} /><span className="text-xs font-medium text-[#5e4d40]">{isSpeaking ? "Speaking detected" : "Listening for your voice"}</span><span className="ml-auto text-[10px] tabular-nums text-[#7a5f48]">{Math.round(level * 100)}%</span></div> : null}
       {recordingUrl ? <div className="mt-4 rounded-xl border border-[#e7d8c5] bg-white/60 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7a5f48]">Captured locally</p><audio className="mt-2 h-9 w-full" controls src={recordingUrl} aria-label="Recorded answer preview" /></div> : null}
       {socketError ? <div role="alert" className="mt-3 rounded-xl border border-[#d8b9a7] bg-[#fff7f1] px-3 py-2 text-xs leading-5 text-[#805542]">{socketError}</div> : null}
