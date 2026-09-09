@@ -60,6 +60,10 @@ class TestSocket {
     this.emitEvent("error", new Event("error") as MessageEvent);
   }
 
+  emitEventForTest(event: string) {
+    this.emitEvent(event, undefined);
+  }
+
   private emitEvent(event: string, payload: Event | undefined) {
     this.listeners.get(event)?.forEach((callback) => callback(payload as MessageEvent));
   }
@@ -259,6 +263,26 @@ describe("VoiceAnswerPanel", () => {
     expect(screen.queryByText(/answer by typing/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: /typed answer/i })).not.toBeInTheDocument();
     expect(pushState).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Start recording" })).toBeEnabled();
+  });
+
+  it("surfaces token failures without falling back to mock transcripts", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "expired" }), { status: 401 })));
+    mockAvailableMicrophone();
+    render(<VoiceAnswerPanel sessionId="session-token-failure" />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Realtime authentication failed");
+    expect(screen.queryByText(/I have spent the last/i)).not.toBeInTheDocument();
+  });
+
+  it("surfaces a clean WebSocket disconnect and keeps retry available", async () => {
+    vi.stubGlobal("WebSocket", TestSocket);
+    mockAvailableMicrophone();
+    render(<VoiceAnswerPanel sessionId="session-disconnect" />);
+    await waitFor(() => expect(TestSocket.instances).toHaveLength(1));
+    TestSocket.instances[0].emitEventForTest("close");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("connection closed");
     expect(screen.getByRole("button", { name: "Start recording" })).toBeEnabled();
   });
 

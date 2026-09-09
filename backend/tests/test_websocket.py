@@ -156,6 +156,37 @@ def test_websocket_buffers_binary_audio_and_returns_final_transcript(client, mon
         assert received == [b"first-chunk"]
 
 
+def test_browser_microphone_bridge_reaches_backend_transcript_event(client, monkeypatch):
+    received: list[bytes] = []
+
+    class BrowserAudioProvider:
+        def transcribe(self, audio: bytes) -> str:
+            received.append(audio)
+            return "The browser microphone answer reached the backend."
+
+    monkeypatch.setattr(websocket_module, "create_speech_to_text", lambda: BrowserAudioProvider())
+    session_id, token = _create_interview(client, question_count=1)
+
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
+        ws.send_json({"type": "auth", "token": token})
+        assert ws.receive_json()["type"] == "auth.ok"
+        assert ws.receive_json()["type"] == "session.connected"
+        ws.send_json({"type": "speech.start", "turn_id": "browser-mic-turn"})
+        assert ws.receive_json()["type"] == "speech.start.ack"
+        assert ws.receive_json()["type"] == "turn.state_changed"
+        ws.send_bytes(b"webm-chunk-1")
+        ws.send_bytes(b"webm-chunk-2")
+        ws.send_json({"type": "speech.stop", "turn_id": "browser-mic-turn"})
+
+        assert ws.receive_json()["type"] == "speech.stop.ack"
+        assert ws.receive_json()["type"] == "turn.state_changed"
+        transcript = ws.receive_json()
+
+    assert transcript["type"] == "transcript.final"
+    assert transcript["data"]["text"] == "The browser microphone answer reached the backend."
+    assert received == [b"webm-chunk-1webm-chunk-2"]
+
+
 def test_websocket_emits_question_audio_on_session_start(client, monkeypatch):
     class FakeTextToSpeech:
         media_type = "audio/wav"
