@@ -31,15 +31,17 @@ export class MicrophoneService {
     return true;
   }
 
-  stopRecording() {
+  stopRecording(onStopped?: () => void) {
     if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
       this.mediaRecorder.addEventListener("stop", () => {
         this.mediaRecorder = null;
         this.onDataAvailableCallback = null;
+        onStopped?.();
       }, { once: true });
       this.mediaRecorder.stop();
     } else {
       this.onDataAvailableCallback = null;
+      onStopped?.();
     }
   }
 

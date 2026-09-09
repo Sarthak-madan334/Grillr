@@ -290,7 +290,7 @@ class InterviewService:
             return duplicate
 
         try:
-            return self.answer(question_id, user_id, AnswerCreate(transcript=transcript, duration=duration), is_retry=True)
+            return self.answer(question_id, user_id, AnswerCreate(transcript=transcript, duration=duration), is_retry=True, defer_evaluation=True)
         except IntegrityError:
             self.db.rollback()
             duplicate = self.db.scalar(
@@ -307,7 +307,7 @@ class InterviewService:
                 return duplicate
             raise
 
-    def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate, is_retry: bool = False, idempotency_key: str | None = None, session_id: UUID | None = None) -> Answer:
+    def answer(self, question_id: UUID, user_id: UUID, data: AnswerCreate, is_retry: bool = False, idempotency_key: str | None = None, session_id: UUID | None = None, defer_evaluation: bool = False) -> Answer:
         existing = self.get_idempotent_answer(session_id, user_id, idempotency_key) if idempotency_key and session_id else None
         if existing is not None:
             return existing
@@ -334,10 +334,30 @@ class InterviewService:
             self.db.commit()
             self.db.refresh(answer)
 
+        if not defer_evaluation:
+            try:
+                evaluation = self.evaluator.evaluate(answer.transcript, question.question_text)
+            except Exception as exc:
+                self.db.rollback()
+                raise AnswerEvaluationError from exc
+            self.db.add(AnswerEvaluation(answer_id=answer.id, **evaluation))
         if not is_retry:
             question.answered_at = datetime.now(timezone.utc)
             question.session.current_question_number = question.question_number
-        if not is_retry:
+        if not is_retry and not defer_evaluation:
+            decision = self._follow_up_decision(question, data.transcript, evaluation)
+            if decision.action in {"follow_up", "clarification"} and decision.question:
+                root_id = question.parent_question_id or question.id
+                try:
+                    follow_up = self._create_question(question.session_id, 0, decision.question, question.session.interview_type)
+                    follow_up.is_follow_up = True
+                    follow_up.parent_question_id = root_id
+                    parent = next((item for item in question.session.questions if item.id == root_id), question)
+                    self._insert_question(question.session, follow_up, after=parent)
+                except Exception:
+                    if "follow_up" in locals() and follow_up in self.db:
+                        self.db.expunge(follow_up)
+        if not is_retry and (defer_evaluation or 'decision' not in locals() or decision.action not in {"follow_up", "clarification"}):
             planned = sorted((item for item in question.session.questions if not item.is_follow_up), key=lambda item: item.question_number)
             answered_planned = [item for item in planned if item.answers]
             next_planned = next((item for item in planned if item.question_number > question.question_number and not item.answers), None)

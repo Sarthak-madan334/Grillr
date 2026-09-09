@@ -152,6 +152,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                     AnswerCreate(transcript=normalized, duration=max(len(audio) / (2 * 16000), 1.0)),
                     idempotency_key=current_turn_id,
                     session_id=session_id,
+                    defer_evaluation=True,
                 )
                 service.recover_progression(answer, identity.id)
             except Exception:
