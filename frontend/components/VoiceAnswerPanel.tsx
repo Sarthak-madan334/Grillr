@@ -63,11 +63,13 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
   const pendingChunksRef = useRef<Blob[]>([]);
   const { isSpeaking, level } = useVoiceActivityDetection(activeStream);
 
-  const stopStream = useCallback(() => {
+  const stopStream = useCallback((closeSocket = true) => {
     microphoneService.releaseMicrophone();
-    socketRef.current?.close();
-    socketRef.current = null;
-    socketAuthenticatedRef.current = false;
+    if (closeSocket) {
+      socketRef.current?.close();
+      socketRef.current = null;
+      socketAuthenticatedRef.current = false;
+    }
     aiAudioRef.current?.pause();
     aiAudioRef.current = null;
     if (aiAudioUrlRef.current) URL.revokeObjectURL(aiAudioUrlRef.current);
@@ -141,7 +143,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
         setRecordingBlob(new Blob([...pendingChunksRef.current], { type: chunk.type || "audio/webm" }));
       if (socketAuthenticatedRef.current && typeof WebSocket !== "undefined" && socketRef.current?.readyState === WebSocket.OPEN) socketRef.current.send(chunk);
       };
-      if (sessionId && typeof WebSocket !== "undefined" && typeof MediaRecorder !== "undefined") {
+      if (sessionId && typeof WebSocket !== "undefined" && typeof MediaRecorder !== "undefined" && (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN)) {
         const tokenResponse = await fetch("/api/auth/realtime-token", { cache: "no-store", credentials: "include" });
         if (!tokenResponse.ok) throw new Error("Realtime authentication failed");
         const { token } = (await tokenResponse.json()) as { token?: string };
@@ -161,6 +163,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
               turnIdRef.current = typeof crypto !== "undefined" && crypto.randomUUID
                 ? crypto.randomUUID()
                 : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+              socket.send(JSON.stringify({ type: "session.start" }));
               socket.send(JSON.stringify({ type: "speech.start", turn_id: turnIdRef.current }));
               pendingChunksRef.current.forEach((chunk) => socket.send(chunk));
             }
@@ -191,7 +194,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
               onTranscript?.(message.data.text);
               setIsProcessing(false);
               onTurnStateChange?.("listening");
-              stopStream();
+              stopStream(false);
               setStatus("ready");
             }
             if (message.type === "error") {
@@ -212,6 +215,12 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, onRecordingChang
           stopStream();
           setStatus("ready");
         }, { once: true });
+      }
+      if (socketAuthenticatedRef.current && socketRef.current?.readyState === WebSocket.OPEN) {
+        turnIdRef.current = typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        socketRef.current.send(JSON.stringify({ type: "speech.start", turn_id: turnIdRef.current }));
       }
       if (!microphoneService.startRecording(handleAudioChunk)) {
         microphoneService.releaseMicrophone();
