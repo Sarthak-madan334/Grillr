@@ -1,0 +1,17 @@
+name: Keep Render backend awake
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Wake the Render Free service
+        run: curl --fail --silent --show-error --location --max-time 55 https://grillr-acev.onrender.com/health

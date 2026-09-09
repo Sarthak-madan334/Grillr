@@ -14,7 +14,7 @@ from app.services.providers import RimeTextToSpeech
 from app.services.speech_controller import SpeechController
 from app.models import SessionStatus
 from app.schemas.answer import AnswerCreate
-from app.services.interview_service import AnswerEvaluationError, InterviewService
+from app.services.interview_service import InterviewService
 from app.services.providers import (
     SpeechToTextService,
     TextToSpeechConfigurationError,
@@ -35,6 +35,8 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
     db: Session = SessionLocal()
     service: InterviewService
     speech = SpeechController()
+    service = None
+    identity = None
 
     async def send_error(code: str, message: str) -> None:
         await websocket.send_json({"type": "error", "data": {"code": code, "message": message}})
@@ -98,6 +100,9 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             current_question = next((item for item in session.questions if not item.answered_at), None)
             await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id), "status": session.status.value, "current_question_number": session.current_question_number, "question_id": str(current_question.id) if current_question else None, "turn_state": turn_state}})
 
+        await send_resync()
+        if session.speech_state == "ai_speaking" and session.speech_generation_id is not None:
+            await speech.restore_ai_speech(session.speech_generation_id)
         async def send_question_audio(question) -> None:
             nonlocal text_to_speech
             if question is None:
@@ -158,10 +163,9 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                     AnswerCreate(transcript=normalized, duration=max(len(audio) / (2 * 16000), 1.0)),
                     idempotency_key=current_turn_id,
                     session_id=session_id,
+                    defer_evaluation=True,
                 )
-            except (AnswerEvaluationError, RuntimeError):
-                await send_error("answer_evaluation_failed", "Your answer was saved, but evaluation is unavailable. Please retry.")
-                return
+                service.recover_progression(answer, identity.id)
             except Exception:
                 logger.exception("Failed to persist websocket answer", extra={"session_id": str(session_id), "question_id": str(answer_question.id)})
                 await send_error("answer_persistence_failed", "We could not save your answer. Please try again.")
@@ -170,10 +174,6 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             try:
                 db.expire_all()
                 updated_session = service.get(session_id, identity.id)
-                if answer.evaluation is None:
-                    await send_error("answer_evaluation_failed", "Your answer was saved, but evaluation is unavailable. Please retry.")
-                    return
-
                 await websocket.send_json({
                     "type": "transcript.final",
                     "data": {
@@ -184,11 +184,10 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                     },
                 })
                 await websocket.send_json({
-                    "type": "answer.evaluated",
+                    "type": "answer.saved",
                     "data": {
                         "answer_id": str(answer.id),
                         "question_id": str(answer.question_id),
-                        "overall_score": answer.evaluation.overall_score,
                         "turn_id": current_turn_id,
                     },
                 })
@@ -203,7 +202,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                     if updated_session.status == SessionStatus.COMPLETED:
                         await websocket.send_json({
                             "type": "session.completed",
-                            "data": {"session_id": str(session_id), "answer_id": str(answer.id), "overall_score": updated_session.summary.overall_score if updated_session.summary else 0},
+                            "data": {"session_id": str(session_id), "answer_id": str(answer.id)},
                         })
                     else:
                         await send_error("question_generation_failed", "We could not prepare the next question. Please try again.")
@@ -260,9 +259,13 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                 session = service.get(session_id, identity.id)
                 await send_resync()
             elif event_type == "speech.start":
+                turn_id = event.get("turn_id")
+                if not isinstance(turn_id, str) or not turn_id.strip() or len(turn_id) > 128:
+                    await send_error("missing_turn_id", "A unique turn_id is required for every answer.")
+                    continue
                 audio_buffer.clear()
                 recording = True
-                current_turn_id = event.get("turn_id") if isinstance(event.get("turn_id"), str) and event.get("turn_id") else None
+                current_turn_id = turn_id.strip()
                 turn_state = "listening"
                 await websocket.send_json({"type": "speech.start.ack", "data": {}})
                 current_question = next((item for item in session.questions if not item.answered_at), None)

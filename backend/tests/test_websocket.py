@@ -30,8 +30,6 @@ def test_websocket_lifecycle_and_events(client):
         conn_msg = ws.receive_json()
         assert conn_msg["type"] == "session.connected"
         assert conn_msg["data"]["session_id"] == session_id
-        state_msg = ws.receive_json()
-        assert state_msg["type"] == "session.state"
         assert conn_msg["data"]["turn_state"] == "listening"
 
         # Send session.start
@@ -41,7 +39,7 @@ def test_websocket_lifecycle_and_events(client):
         assert ws.receive_json()["type"] == "audio.ai"
 
         # Send speech.start
-        ws.send_json({"type": "speech.start"})
+        ws.send_json({"type": "speech.start", "turn_id": "turn-lifecycle"})
         speech_msg = ws.receive_json()
         assert speech_msg["type"] == "speech.start.ack"
         assert ws.receive_json()["data"]["state"] == "listening"
@@ -56,7 +54,7 @@ def test_websocket_lifecycle_and_events(client):
 def test_websocket_rejects_unauthenticated(client):
     fake_session_id = uuid4()
     with client.websocket_connect(f"/api/v1/ws/interviews/{fake_session_id}") as ws:
-        ws.send_json({"type": "speech.start"})
+        ws.send_json({"type": "speech.start", "turn_id": "turn-buffer"})
         with pytest.raises(WebSocketDisconnect) as exc_info:
             ws.receive_json()
         assert exc_info.value.code == 1008
@@ -76,6 +74,19 @@ def test_websocket_rejects_invalid_auth_token(client):
         with pytest.raises(WebSocketDisconnect) as exc_info:
             ws.receive_json()
         assert exc_info.value.code == 1008
+
+
+def test_websocket_rejects_answer_without_turn_id(client):
+    session_id, token = _create_interview(client)
+
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
+        ws.send_json({"type": "auth", "token": token})
+        assert ws.receive_json()["type"] == "auth.ok"
+        assert ws.receive_json()["type"] == "session.connected"
+        ws.send_json({"type": "speech.start"})
+        error = ws.receive_json()
+        assert error["type"] == "error"
+        assert error["data"]["code"] == "missing_turn_id"
 
 
 def test_websocket_reconnect_requires_first_message_auth(client, caplog):
@@ -129,7 +140,7 @@ def test_websocket_buffers_binary_audio_and_returns_final_transcript(client, mon
         ws.send_json({"type": "auth", "token": token})
         assert ws.receive_json()["type"] == "auth.ok"
         ws.receive_json()
-        ws.send_json({"type": "speech.start"})
+        ws.send_json({"type": "speech.start", "turn_id": "turn-empty"})
         assert ws.receive_json()["type"] == "speech.start.ack"
         ws.receive_json()
         ws.send_bytes(b"first-")
@@ -183,7 +194,7 @@ def test_websocket_rejects_out_of_state_and_empty_audio(client):
         ws.send_text("not-json")
         assert ws.receive_json()["data"]["code"] == "invalid_event"
 
-        ws.send_json({"type": "speech.start"})
+        ws.send_json({"type": "speech.start", "turn_id": "turn-pipeline"})
         ws.receive_json()
         ws.receive_json()
         ws.send_json({"type": "speech.stop"})
@@ -212,7 +223,7 @@ def test_websocket_continues_pipeline_after_transcript(client, monkeypatch):
         ws.send_json({"type": "auth", "token": token})
         assert ws.receive_json()["type"] == "auth.ok"
         ws.receive_json()
-        ws.send_json({"type": "speech.start"})
+        ws.send_json({"type": "speech.start", "turn_id": "turn-stt-failure"})
         ws.receive_json()
         ws.receive_json()
         ws.send_bytes(b"audio-bytes")
@@ -237,9 +248,7 @@ def test_websocket_continues_pipeline_after_transcript(client, monkeypatch):
         answer = db.scalar(select(Answer).where(Answer.session_id == answer_session_id).order_by(Answer.created_at.desc()))
         assert answer is not None
         assert answer.transcript == "I improved the deployment pipeline."
-        assert answer.evaluation is not None
-        assert isinstance(answer.evaluation, AnswerEvaluation)
-        assert answer.evaluation.overall_score >= 0
+        assert answer.evaluation is None
 
         next_question = db.scalar(select(Question).where(Question.session_id == answer_session_id, Question.is_follow_up.is_(False), Question.question_number > 1))
         assert next_question.question_text == question_created["data"]["text"]
@@ -257,7 +266,7 @@ def test_websocket_provider_failure_returns_error_event(client, monkeypatch):
         ws.send_json({"type": "auth", "token": token})
         assert ws.receive_json()["type"] == "auth.ok"
         ws.receive_json()
-        ws.send_json({"type": "speech.start"})
+        ws.send_json({"type": "speech.start", "turn_id": "turn-stt-failure"})
         ws.receive_json()
         ws.receive_json()
         ws.send_bytes(b"audio")
@@ -321,13 +330,13 @@ def test_websocket_duplicate_turn_replays_without_duplicate_answer(client, monke
         ws.receive_json()
         replay_events = submit(ws)
 
-    assert first_events[:2] == ["transcript.final", "answer.evaluated"]
-    assert replay_events[:2] == ["transcript.final", "answer.evaluated"]
+    assert first_events[:2] == ["transcript.final", "answer.saved"]
+    assert replay_events[:2] == ["transcript.final", "answer.saved"]
     with SessionLocal() as db:
         answers = list(db.scalars(select(Answer).where(Answer.session_id == UUID(session_id))).all())
         assert len(answers) == 1
         assert answers[0].idempotency_key == turn_id
-        assert answers[0].evaluation is not None
+        assert answers[0].evaluation is None
 
 
 def test_websocket_final_answer_emits_ordered_completion(client, monkeypatch):
@@ -351,7 +360,7 @@ def test_websocket_final_answer_emits_ordered_completion(client, monkeypatch):
         assert ws.receive_json()["type"] == "turn.state_changed"
         events = [ws.receive_json(), ws.receive_json(), ws.receive_json()]
 
-    assert [event["type"] for event in events] == ["transcript.final", "answer.evaluated", "session.completed"]
+    assert [event["type"] for event in events] == ["transcript.final", "answer.saved", "session.completed"]
     assert events[-1]["data"]["session_id"] == session_id
     with SessionLocal() as db:
         session = db.get(InterviewSession, UUID(session_id))
@@ -360,21 +369,12 @@ def test_websocket_final_answer_emits_ordered_completion(client, monkeypatch):
         assert session.status == SessionStatus.COMPLETED
 
 
-def test_websocket_evaluation_failure_is_retryable_after_reconnect(client, monkeypatch):
+def test_websocket_answer_is_saved_when_final_feedback_is_deferred(client, monkeypatch):
     class FakeSpeechToText:
         def transcribe(self, audio: bytes) -> str:
             return "I improved reliability with automated deployment checks."
 
-    class FailingEvaluator:
-        def evaluate(self, transcript: str, question: str) -> dict:
-            raise RuntimeError("evaluation unavailable")
-
-    class WorkingEvaluator:
-        def evaluate(self, transcript: str, question: str) -> dict:
-            return {field: 80 for field in ("relevance_score", "clarity_score", "structure_score", "specificity_score", "technical_accuracy_score", "conciseness_score", "communication_score", "overall_score")} | {"strengths": [], "weaknesses": [], "suggestions": [], "improved_answer": transcript}
-
     monkeypatch.setattr(websocket_module, "create_speech_to_text", lambda: FakeSpeechToText())
-    monkeypatch.setattr("app.services.interview_service.create_answer_evaluator", lambda settings: FailingEvaluator())
     session_id, token = _create_interview(client)
     turn_id = "turn-retry-1"
 
@@ -387,12 +387,15 @@ def test_websocket_evaluation_failure_is_retryable_after_reconnect(client, monke
         ws.receive_json()
         ws.send_bytes(b"audio")
         ws.send_json({"type": "speech.stop", "turn_id": turn_id})
-        ws.receive_json()
-        ws.receive_json()
-        error = ws.receive_json()
-        assert error["data"]["code"] == "answer_evaluation_failed"
+        events = []
+        for _ in range(6):
+            event = ws.receive_json()
+            events.append(event["type"])
+            if event["type"] == "answer.saved":
+                break
+        assert "transcript.final" in events
+        assert "answer.saved" in events
 
-    monkeypatch.setattr("app.services.interview_service.create_answer_evaluator", lambda settings: WorkingEvaluator())
     with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
         ws.send_json({"type": "auth", "token": token})
         assert ws.receive_json()["type"] == "auth.ok"
@@ -406,9 +409,9 @@ def test_websocket_evaluation_failure_is_retryable_after_reconnect(client, monke
         ws.receive_json()
         events = [ws.receive_json(), ws.receive_json(), ws.receive_json(), ws.receive_json()]
         assert events[0]["type"] == "transcript.final"
-        assert events[1]["type"] == "answer.evaluated"
+        assert events[1]["type"] == "answer.saved"
 
     with SessionLocal() as db:
         answers = list(db.scalars(select(Answer).where(Answer.session_id == UUID(session_id))).all())
         assert len(answers) == 1
-        assert answers[0].evaluation is not None
+        assert answers[0].evaluation is None
