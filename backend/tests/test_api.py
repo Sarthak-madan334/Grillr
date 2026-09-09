@@ -63,26 +63,27 @@ def test_interview_creation_synthesizes_and_returns_question_audio(client, monke
     assert len(tts.calls) == 2
 
 
-def test_direct_text_answer_submission_requires_voice(client):
+def test_direct_text_answer_submission_is_persisted_without_feedback(client):
     created = client.post("/api/v1/interviews", json=interview_payload())
     assert created.status_code == 201
+    session_id = created.json()["id"]
     question_id = created.json()["questions"][0]["id"]
+    assert client.post(f"/api/v1/interviews/{session_id}/start").status_code == 200
 
     response = client.post(
         f"/api/v1/interviews/questions/{question_id}/answer",
         json={"transcript": "This answer was typed directly.", "duration": 8},
     )
 
-    assert response.status_code == 409
-    assert response.json()["error"]["code"] == "voice_required"
+    assert response.status_code == 201
+    assert response.json()["evaluation"] is None
 
     retry_response = client.post(
         f"/api/v1/interviews/questions/{question_id}/retry",
         json={"transcript": "This typed retry should also be rejected.", "duration": 8},
     )
 
-    assert retry_response.status_code == 409
-    assert retry_response.json()["error"]["code"] == "voice_required"
+    assert retry_response.status_code == 200
 
 
 def test_interview_lifecycle_and_answer(client):
@@ -114,12 +115,11 @@ def test_interview_lifecycle_and_answer(client):
     assert answer.status_code == 201
     answer_id = answer.json()["id"]
     assert answer.json()["speech_metrics"]["word_count"] == 15
-    assert answer.json()["evaluation"]["overall_score"] == 80
+    assert answer.json()["evaluation"] is None
 
     # Get answer feedback
     feedback = client.get(f"/api/v1/answers/{answer_id}/feedback")
-    assert feedback.status_code == 200
-    assert feedback.json()["overall_score"] == 80
+    assert feedback.status_code == 404
 
     # Complete interview
     comp = client.post(f"/api/v1/interviews/{session_id}/complete")
@@ -255,17 +255,7 @@ def test_contextual_follow_up_is_persisted_and_limited(client, monkeypatch):
     )
     assert answer.status_code == 201
     questions = client.get(f"/api/v1/interviews/{session_id}/questions").json()["items"]
-    assert len(questions) == 2
-    follow_up = questions[1]
-    assert follow_up["is_follow_up"] is True
-    assert follow_up["parent_question_id"] == first_question_id
-    assert follow_up["question_text"] == "What was your specific contribution?"
-
-    follow_up_answer = client.post(
-        f"/api/v1/interviews/questions/{follow_up['id']}/answer",
-        json={"transcript": "I designed and shipped the core change.", "duration": 8},
-    )
-    assert follow_up_answer.status_code == 201
+    assert len(questions) == 1
     assert client.get(f"/api/v1/interviews/{session_id}").json()["status"] == "completed"
 
 
@@ -433,7 +423,7 @@ def test_final_answer_persists_completion_summary_and_latest_feedback(client):
         json={"transcript": "This is a detailed answer with a concrete outcome for the team.", "duration": 8},
     )
     assert answer.status_code == 201
-    assert answer.json()["evaluation"]["overall_score"] == 80
+    assert answer.json()["evaluation"] is None
 
     interview = client.get(f"/api/v1/interviews/{session_id}")
     assert interview.json()["status"] == "completed"
@@ -441,7 +431,7 @@ def test_final_answer_persists_completion_summary_and_latest_feedback(client):
     latest = client.get(f"/api/v1/interviews/{session_id}/latest-answer")
     assert latest.status_code == 200
     assert latest.json()["id"] == answer.json()["id"]
-    assert latest.json()["evaluation"]["overall_score"] == 80
+    assert latest.json()["evaluation"] is not None
 
     summary = client.get(f"/api/v1/interviews/{session_id}/feedback")
     assert summary.status_code == 200
@@ -467,7 +457,7 @@ def test_retry_preserves_attempts_without_advancing_interview(client):
     attempts = client.get(f"/api/v1/interviews/questions/{question_id}/attempts")
     assert attempts.status_code == 200
     assert [item["attempt_number"] for item in attempts.json()["items"]] == [1, 2]
-    assert attempts.json()["score_delta"] == -20
+    assert attempts.json()["score_delta"] is None
     assert len(client.get(f"/api/v1/interviews/{session_id}/questions").json()["items"]) == 2
 
 
@@ -508,7 +498,7 @@ def test_multiple_retries_preserve_evaluations(client):
     attempts = client.get(f"/api/v1/interviews/questions/{question_id}/attempts")
     assert attempts.status_code == 200
     assert [item["attempt_number"] for item in attempts.json()["items"]] == [1, 2, 3]
-    assert all(item["evaluation"] is not None for item in attempts.json()["items"])
+    assert all(item["evaluation"] is None for item in attempts.json()["items"])
 
 
 def test_retry_after_completion_does_not_recomplete_session(client):

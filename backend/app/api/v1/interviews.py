@@ -121,24 +121,14 @@ def get_feedback(session_id: UUID, identity: CurrentUser = Depends(get_current_u
 
 @router.post("/questions/{question_id}/answer", response_model=AnswerResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(answer_rate_limit)])
 def submit_answer(question_id: UUID, data: AnswerCreate, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
-    raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail={
-            "code": "voice_required",
-            "message": "Interview answers must be submitted through voice recording.",
-        },
-    )
+    return interviews.answer(question_id, identity.id, data)
 
 
 @router.post("/questions/{question_id}/retry", response_model=RetryResponse, dependencies=[Depends(answer_rate_limit)])
 def retry_answer(question_id: UUID, request: RetryRequest, identity: CurrentUser = Depends(get_current_user), interviews: InterviewService = Depends(service)):
-    raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail={
-            "code": "voice_required",
-            "message": "Interview retries must be submitted through voice recording.",
-        },
-    )
+    answer = interviews.retry(question_id, identity.id, request.transcript, request.duration)
+    attempts, score_delta = interviews.attempts(question_id, identity.id)
+    return {"question_id": question_id, "answer_id": answer.id, "attempt_number": answer.attempt_number, "status": "submitted", "score_delta": score_delta}
 
 
 @router.get("/questions/{question_id}/attempts", response_model=AttemptsResponse)
