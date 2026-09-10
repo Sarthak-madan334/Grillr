@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000"]
     jwt_secret: str = "change-me-in-development"
     openai_api_key: str | None = None
+    stt_provider: str = "whisper"
     supabase_jwt_secret: str | None = None
     supabase_url: str | None = None
     supabase_anon_key: str | None = None
@@ -30,8 +31,8 @@ class Settings(BaseSettings):
     interview_creation_rate_window_seconds: int = 60
     answer_rate_limit: int = 20
     answer_rate_window_seconds: int = 60
-    stt_timeout_seconds: float = 20.0
-    whisper_model_size: str = "base"
+    stt_timeout_seconds: float = 90.0
+    whisper_model_size: str = "tiny"
     max_follow_ups_per_question: int = 1
     user_rate_limit: int = 100
     user_rate_window_seconds: int = 60

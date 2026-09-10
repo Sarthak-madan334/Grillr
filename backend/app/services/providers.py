@@ -1,4 +1,5 @@
 import asyncio
+import time
 from dataclasses import dataclass
 from typing import Any
 from typing import Protocol
@@ -173,24 +174,50 @@ class SpeechToTextService:
         session_id: UUID | str | None = None,
         question_id: UUID | str | None = None,
     ) -> TranscriptionResult:
+        start_time = time.perf_counter()
         audio_length = len(audio)
+        provider_name = self.provider.__class__.__name__
         context = {
             "session_id": str(session_id) if session_id is not None else None,
             "question_id": str(question_id) if question_id is not None else None,
             "audio_length": audio_length,
+            "provider": provider_name,
         }
         try:
             transcript = await asyncio.wait_for(
                 asyncio.to_thread(self.provider.transcribe, audio),
                 timeout=self.timeout_seconds,
             )
+            latency = time.perf_counter() - start_time
+            logger.info(
+                "[STT Latency] Transcribed %d audio bytes in %.2fs using provider=%s",
+                audio_length,
+                latency,
+                provider_name,
+                extra=context,
+            )
         except asyncio.TimeoutError as exc:
-            logger.warning("Speech transcription timed out", extra=context)
+            latency = time.perf_counter() - start_time
+            logger.warning(
+                "[STT Latency] Transcription timed out after %.2fs (limit=%.0fs, bytes=%d, provider=%s)",
+                latency,
+                self.timeout_seconds,
+                audio_length,
+                provider_name,
+                extra=context,
+            )
             raise TranscriptionTimeoutError(
                 f"Speech transcription exceeded {self.timeout_seconds:g} seconds"
             ) from exc
         except Exception as exc:
-            logger.exception("Speech transcription failed", extra=context)
+            latency = time.perf_counter() - start_time
+            logger.exception(
+                "Speech transcription failed after %.2fs (bytes=%d, provider=%s)",
+                latency,
+                audio_length,
+                provider_name,
+                extra=context,
+            )
             raise TranscriptionError("Speech transcription failed") from exc
 
         normalized_transcript = transcript.strip()
@@ -264,9 +291,11 @@ class WhisperSpeechToText:
     @classmethod
     def _load_model(cls, model_size: str) -> Any:
         try:
+            import os
             from faster_whisper import WhisperModel
 
-            return WhisperModel(model_size, device="cpu", compute_type="int8")
+            threads = min(4, os.cpu_count() or 2)
+            return WhisperModel(model_size, device="cpu", compute_type="int8", cpu_threads=threads)
         except Exception as exc:
             raise WhisperTranscriptionError(
                 f"Whisper model '{model_size}' could not be loaded: {exc}"
@@ -288,7 +317,18 @@ class WhisperSpeechToText:
             raise WhisperTranscriptionError("Whisper cannot transcribe empty audio")
         samples, sample_rate = _decode_audio(audio)
         try:
-            segments, _ = self._get_model().transcribe(samples)
+            model = self._get_model()
+            try:
+                segments, _ = model.transcribe(
+                    samples,
+                    beam_size=1,
+                    best_of=1,
+                    language="en",
+                    vad_filter=True,
+                    vad_parameters=dict(min_silence_duration_ms=500),
+                )
+            except Exception:
+                segments, _ = model.transcribe(samples)
             return " ".join(segment.text.strip() for segment in segments).strip()
         except WhisperTranscriptionError:
             raise
@@ -313,11 +353,14 @@ class OpenAISpeechToText:
         return response.text
 
 
-def create_speech_to_text() -> SpeechToText:
-    settings = get_settings()
-    if settings.openai_api_key:
-        return OpenAISpeechToText(api_key=settings.openai_api_key)
-    return WhisperSpeechToText()
+def create_speech_to_text(settings=None) -> SpeechToText:
+    selected_settings = settings if settings is not None else get_settings()
+    provider_name = getattr(selected_settings, "stt_provider", "whisper").lower()
+    if provider_name == "openai" and getattr(selected_settings, "openai_api_key", None):
+        return OpenAISpeechToText(api_key=selected_settings.openai_api_key)
+    if provider_name == "openai" and not getattr(selected_settings, "openai_api_key", None):
+        logger.warning("OPENAI_API_KEY is missing; falling back to local Whisper STT.")
+    return WhisperSpeechToText(model_size=getattr(selected_settings, "whisper_model_size", None))
 
 
 class MockTextToSpeech:

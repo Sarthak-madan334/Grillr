@@ -50,7 +50,7 @@ Backend settings are loaded by Pydantic from `backend/.env`. Frontend server rou
 | `APP_NAME` | No | `Grillr Interview Coach API` | API title |
 | `ENVIRONMENT` | No | `development` | Enables development defaults |
 | `DATABASE_URL` | No | `sqlite:///./grillr.db` | SQLAlchemy database URL |
-| `CORS_ORIGINS` | No | `http://localhost:3000` | Comma-separated browser origins |
+| `CORS_ORIGINS` | No | `["http://localhost:3000"]` | JSON list of browser origins |
 | `JWT_SECRET` | No in development | `change-me-in-development` | Local JWT fallback secret |
 | `AUTH_REQUIRED` | No | `false` | Requires real auth when true |
 | `AUTO_CREATE_SCHEMA` | No | `true` | Creates local schema on startup |
@@ -62,6 +62,7 @@ Backend settings are loaded by Pydantic from `backend/.env`. Frontend server rou
 | `RIME_API_KEY` | No in development | empty | Rime question-audio provider |
 | `GROQ_API_KEY` | No | empty | Optional answer-evaluation provider |
 | `GROQ_MODEL` | No | `llama-3.1-8b-instant` | Groq evaluation model |
+| `STT_PROVIDER` | No | `whisper` | Free local STT provider selection (`whisper` is the default no-key route) |
 | `WHISPER_MODEL_SIZE` | No | `base` | Local Whisper model size |
 | `STT_TIMEOUT_SECONDS` | No | `20` | STT timeout |
 | `MAX_FOLLOW_UPS_PER_QUESTION` | No | `1` | Follow-up limit |
