@@ -291,9 +291,11 @@ class WhisperSpeechToText:
     @classmethod
     def _load_model(cls, model_size: str) -> Any:
         try:
+            import os
             from faster_whisper import WhisperModel
 
-            return WhisperModel(model_size, device="cpu", compute_type="int8")
+            threads = min(4, os.cpu_count() or 2)
+            return WhisperModel(model_size, device="cpu", compute_type="int8", cpu_threads=threads)
         except Exception as exc:
             raise WhisperTranscriptionError(
                 f"Whisper model '{model_size}' could not be loaded: {exc}"
@@ -315,7 +317,18 @@ class WhisperSpeechToText:
             raise WhisperTranscriptionError("Whisper cannot transcribe empty audio")
         samples, sample_rate = _decode_audio(audio)
         try:
-            segments, _ = self._get_model().transcribe(samples)
+            model = self._get_model()
+            try:
+                segments, _ = model.transcribe(
+                    samples,
+                    beam_size=1,
+                    best_of=1,
+                    language="en",
+                    vad_filter=True,
+                    vad_parameters=dict(min_silence_duration_ms=500),
+                )
+            except Exception:
+                segments, _ = model.transcribe(samples)
             return " ".join(segment.text.strip() for segment in segments).strip()
         except WhisperTranscriptionError:
             raise
