@@ -13,5 +13,18 @@ const copy: Record<TurnState, { label: string; detail: string }> = {
 
 export function ConversationTurnBanner({ state }: ConversationTurnBannerProps) {
   const message = copy[state];
-  return <div role="status" className="mb-5 flex items-center gap-3 rounded-2xl border border-[#e7d8c5] bg-[rgba(255,255,255,0.5)] px-4 py-3" aria-live="polite" aria-label={`Conversation state: ${message.label}`}><span className={`h-2.5 w-2.5 rounded-full ${state === "processing" ? "animate-pulse bg-[#b8916d]" : state === "listening" ? "bg-[#26724d]" : "bg-[#7a5f48]"}`} /><div><p className="text-sm font-semibold text-[#3d3028]">{message.label}</p><p className="text-xs text-[#7a5f48]">{message.detail}</p></div></div>;
+  return (
+    <div
+      role="status"
+      className="mb-6 flex items-center gap-3 rounded-[20px] border border-[#eaded1] bg-white/75 px-4 py-3 shadow-[0_10px_24px_rgba(16,24,39,0.04)]"
+      aria-live="polite"
+      aria-label={`Conversation state: ${message.label}`}
+    >
+      <span className={`h-2.5 w-2.5 rounded-full ${state === "processing" ? "animate-pulse bg-[#ba7a4b]" : state === "listening" ? "bg-[#1f7d5d]" : "bg-[#7a5f48]"}`} />
+      <div>
+        <p className="text-sm font-semibold text-[#111827]">{message.label}</p>
+        <p className="text-xs text-[#5b6472]">{message.detail}</p>
+      </div>
+    </div>
+  );
 }
