@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     interview_creation_rate_window_seconds: int = 60
     answer_rate_limit: int = 20
     answer_rate_window_seconds: int = 60
-    stt_timeout_seconds: float = 20.0
+    stt_timeout_seconds: float = 60.0
     whisper_model_size: str = "base"
     max_follow_ups_per_question: int = 1
     user_rate_limit: int = 100
