@@ -139,11 +139,16 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             await websocket.send_json({"type": "turn.state_changed", "data": {"state": turn_state, "question_id": str(current_question.id) if current_question else None}})
             try:
                 result = await speech_to_text.transcribe(audio, session_id=session_id, question_id=current_question.id if current_question else None)
-            except TranscriptionTimeoutError:
-                await send_error("transcription_timeout", "Transcription took too long. Please try again.")
+            except TranscriptionTimeoutError as exc:
+                provider_name = speech_to_text.provider.__class__.__name__
+                if provider_name == "WhisperSpeechToText":
+                    msg = "Transcription timed out during CPU processing. Please try speaking a shorter answer or set OPENAI_API_KEY for instant transcription."
+                else:
+                    msg = f"Transcription request to {provider_name} took too long to respond ({exc}). Please try again."
+                await send_error("transcription_timeout", msg)
                 return
-            except TranscriptionError:
-                await send_error("stt_failed", "We could not transcribe that answer. Please try again.")
+            except TranscriptionError as exc:
+                await send_error("stt_failed", f"Could not transcribe audio ({exc}). Please try again.")
                 return
             if not result.has_speech:
                 await send_error("no_speech_detected", "No speech was detected. Please try again.")

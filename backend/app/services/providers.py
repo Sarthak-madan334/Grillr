@@ -1,4 +1,5 @@
 import asyncio
+import time
 from dataclasses import dataclass
 from typing import Any
 from typing import Protocol
@@ -173,24 +174,50 @@ class SpeechToTextService:
         session_id: UUID | str | None = None,
         question_id: UUID | str | None = None,
     ) -> TranscriptionResult:
+        start_time = time.perf_counter()
         audio_length = len(audio)
+        provider_name = self.provider.__class__.__name__
         context = {
             "session_id": str(session_id) if session_id is not None else None,
             "question_id": str(question_id) if question_id is not None else None,
             "audio_length": audio_length,
+            "provider": provider_name,
         }
         try:
             transcript = await asyncio.wait_for(
                 asyncio.to_thread(self.provider.transcribe, audio),
                 timeout=self.timeout_seconds,
             )
+            latency = time.perf_counter() - start_time
+            logger.info(
+                "[STT Latency] Transcribed %d audio bytes in %.2fs using provider=%s",
+                audio_length,
+                latency,
+                provider_name,
+                extra=context,
+            )
         except asyncio.TimeoutError as exc:
-            logger.warning("Speech transcription timed out", extra=context)
+            latency = time.perf_counter() - start_time
+            logger.warning(
+                "[STT Latency] Transcription timed out after %.2fs (limit=%.0fs, bytes=%d, provider=%s)",
+                latency,
+                self.timeout_seconds,
+                audio_length,
+                provider_name,
+                extra=context,
+            )
             raise TranscriptionTimeoutError(
                 f"Speech transcription exceeded {self.timeout_seconds:g} seconds"
             ) from exc
         except Exception as exc:
-            logger.exception("Speech transcription failed", extra=context)
+            latency = time.perf_counter() - start_time
+            logger.exception(
+                "Speech transcription failed after %.2fs (bytes=%d, provider=%s)",
+                latency,
+                audio_length,
+                provider_name,
+                extra=context,
+            )
             raise TranscriptionError("Speech transcription failed") from exc
 
         normalized_transcript = transcript.strip()
