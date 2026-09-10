@@ -144,7 +144,9 @@ describe("VoiceAnswerPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Stop recording" })).toBeInTheDocument());
 
-    onEnded?.();
+    act(() => {
+      onEnded?.();
+    });
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Microphone access ended");
     expect(screen.getByRole("button", { name: "Retry voice" })).toBeInTheDocument();
@@ -168,13 +170,17 @@ describe("VoiceAnswerPanel", () => {
     mockMediaDevices({ getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [track] }), enumerateDevices: vi.fn().mockResolvedValue([]) });
     render(<VoiceAnswerPanel sessionId="session-1" onTranscript={onTranscript} />);
 
+    await waitFor(() => expect(TestSocket.instances[0]?.sent).toHaveLength(2));
+
     fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
     fireEvent.click(await screen.findByRole("button", { name: "Stop recording" }));
 
     const socket = TestSocket.instances[0];
     expect(onTranscript).not.toHaveBeenCalled();
     expect(screen.getByText("Processing your answer...")).toBeInTheDocument();
-    socket?.emit(JSON.stringify({ type: "transcript.final", data: { text: "I improved the deployment pipeline." } }));
+    act(() => {
+      socket?.emit(JSON.stringify({ type: "transcript.final", data: { text: "I improved the deployment pipeline." } }));
+    });
     expect(onTranscript).toHaveBeenCalledWith("I improved the deployment pipeline.");
   });
 
@@ -197,10 +203,14 @@ describe("VoiceAnswerPanel", () => {
     mockMediaDevices({ getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [track] }), enumerateDevices: vi.fn().mockResolvedValue([]) });
     render(<VoiceAnswerPanel sessionId="session-recording" />);
 
+    await waitFor(() => expect(TestSocket.instances[0]?.sent).toHaveLength(2));
+
     fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
     const socket = TestSocket.instances[0];
     await waitFor(() => expect(socket?.sent.some((value) => JSON.parse(String(value)).type === "speech.start")).toBe(true));
-    TestRecorder.latest?.emitData(new Blob(["chunk"]));
+    act(() => {
+      TestRecorder.latest?.emitData(new Blob(["chunk"]));
+    });
     fireEvent.click(screen.getByRole("button", { name: "Stop recording" }));
 
     await waitFor(() => expect(socket?.sent.some((value) => value instanceof Blob)).toBe(true));
@@ -219,10 +229,12 @@ describe("VoiceAnswerPanel", () => {
     const socket = TestSocket.instances[0];
     await waitFor(() => expect(socket.sent).toHaveLength(2));
 
-    socket?.emit(JSON.stringify({ type: "answer.evaluated", data: { answer_id: "answer-1", question_id: "question-1", overall_score: 86 } }));
-    socket?.emit(JSON.stringify({ type: "question.created", data: { question_id: "question-2", text: "Tell me about scale.", question_number: 2, is_follow_up: false } }));
-    socket?.emit(JSON.stringify({ type: "question.follow_up", data: { question_id: "question-2-follow-up", text: "What trade-off did you make?", question_number: 3, is_follow_up: true } }));
-    socket?.emit(JSON.stringify({ type: "session.completed", data: { session_id: "session-progression", answer_id: "answer-2", overall_score: 88 } }));
+    act(() => {
+      socket?.emit(JSON.stringify({ type: "answer.evaluated", data: { answer_id: "answer-1", question_id: "question-1", overall_score: 86 } }));
+      socket?.emit(JSON.stringify({ type: "question.created", data: { question_id: "question-2", text: "Tell me about scale.", question_number: 2, is_follow_up: false } }));
+      socket?.emit(JSON.stringify({ type: "question.follow_up", data: { question_id: "question-2-follow-up", text: "What trade-off did you make?", question_number: 3, is_follow_up: true } }));
+      socket?.emit(JSON.stringify({ type: "session.completed", data: { session_id: "session-progression", answer_id: "answer-2", overall_score: 88 } }));
+    });
 
     expect(onAnswerEvaluated).toHaveBeenCalledOnce();
     expect(onQuestionReady).toHaveBeenNthCalledWith(1, { id: "question-2", text: "Tell me about scale.", questionNumber: 2, isFollowUp: false });
@@ -236,6 +248,7 @@ describe("VoiceAnswerPanel", () => {
     vi.stubGlobal("WebSocket", TestSocket);
     const track = mockAvailableMicrophone();
     const { unmount } = render(<VoiceAnswerPanel sessionId="session-cleanup" />);
+    await waitFor(() => expect(TestSocket.instances[0]?.sent).toHaveLength(2));
     fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
     await screen.findByRole("button", { name: "Stop recording" });
     const socket = TestSocket.instances[0];
@@ -261,5 +274,6 @@ describe("VoiceAnswerPanel", () => {
     expect(pushState).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Start recording" })).toBeEnabled();
   });
+
 
 });
