@@ -219,7 +219,19 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
             setSocketError("Live interview returned an unreadable response.");
           }
         });
-        socket.addEventListener("error", () => setSocketError("The live interview connection failed. Please retry your voice answer."), { once: true });
+        socket.addEventListener("error", () => {
+          setIsSocketReady(false);
+          socketAuthenticatedRef.current = false;
+          setSocketError("The live interview connection failed. Please retry your voice answer.");
+          setStatus("ready");
+        });
+        socket.addEventListener("close", () => {
+          if (cancelled) return;
+          setIsSocketReady(false);
+          socketAuthenticatedRef.current = false;
+          setSocketError("The live interview connection closed. Please retry your voice answer.");
+          setStatus("ready");
+        });
       } catch (error) {
         if (!cancelled) setSocketError(error instanceof Error ? error.message : "Realtime authentication failed");
       }

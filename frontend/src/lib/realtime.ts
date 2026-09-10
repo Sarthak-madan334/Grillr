@@ -14,7 +14,19 @@ export type RealtimeEventType =
   | "ai.speech.started"
   | "audio.chunk"
   | "connection.error"
-  | "connection.reconnect";
+  | "connection.reconnect"
+  | "auth.ok"
+  | "session.connected"
+  | "session.started"
+  | "session.state"
+  | "transcript.partial"
+  | "transcript.final"
+  | "answer.evaluated"
+  | "question.created"
+  | "question.follow_up"
+  | "session.completed"
+  | "turn.state_changed"
+  | "error";
 
 export interface SpeechGenerationData {
   session_id?: string;
@@ -27,6 +39,7 @@ export interface SpeechGenerationData {
 export interface RealtimeTransport {
   subscribe(listener: (event: RealtimeEvent) => void): () => void;
   send(type: string, data?: Record<string, unknown>): void;
+  sendAudio(audio: Blob | ArrayBuffer): void;
   disconnect(): void;
 }
 
@@ -176,11 +189,23 @@ export class BrowserRealtimeClient implements RealtimeTransport {
 
   subscribe(listener: (event: RealtimeEvent) => void) {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   send(type: string, data: Record<string, unknown> = {}) {
     if (this.socket.readyState === 1) this.socket.send(JSON.stringify({ type, data }));
+  }
+
+  authenticate(token: string) {
+    const sendAuth = () => this.socket.send(JSON.stringify({ type: "auth", token }));
+    if (this.socket.readyState === 1) sendAuth();
+    else this.socket.addEventListener("open", sendAuth, { once: true });
+  }
+
+  sendAudio(audio: Blob | ArrayBuffer) {
+    if (this.socket.readyState === 1) this.socket.send(audio);
   }
 
   disconnect() {
