@@ -6,13 +6,12 @@ The repository already contains the AI interviewer, prompt builders, question-ge
 
 - [ ] Install the backend Python environment from the repository evidence: `python -m pip install -e ".[test]"` in the backend folder.
 - [ ] Install the frontend dependency lockfile from the repository evidence with `npm ci` in the frontend folder if the UI needs to be started locally.
-- [ ] Create and verify the backend environment file from `.env.example` so `OPENAI_API_KEY` is present for the interviewer provider.
-- [ ] Add a valid `GROQ_API_KEY` in the backend environment file so the answer evaluator can return a real LLM-backed result instead of the mock fallback.
-- [ ] Keep `GROQ_MODEL` configured for the evaluator service.
-- [ ] Keep `RIME_API_KEY` optional only if real TTS audio output is needed; otherwise the repository falls back to `MockTextToSpeech` in development.
+- [ ] Create and verify the backend environment file from `.env.example` and keep `OPENAI_API_KEY`, `GROQ_API_KEY`, and `RIME_API_KEY` blank unless the user supplies them manually.
+- [ ] Keep `STT_PROVIDER=whisper` and `WHISPER_MODEL_SIZE=base` in the backend environment file so the free local Whisper route becomes the default no-key STT provider.
+- [ ] Keep `GROQ_MODEL` configured for the evaluator service only if the user chooses to supply a Groq evaluator key.
 - [ ] Start the backend with the documented local command from the docs: `python -m uvicorn app.main:app --host 127.0.0.1 --port 8001`.
 - [ ] Use the frontend `.env.local` file to point `GRILLR_API_URL` and `NEXT_PUBLIC_API_URL` at the running backend port.
-- [ ] Run the backend interview service path through an interview creation request and answer submission so `LLMAIInterviewer` and the evaluator can generate the question and result.
+- [ ] Smoke test the STT path through the WebSocket answer loop and confirm the `WhisperSpeechToText` provider is selected when no OpenAI key is configured.
 - [ ] Verify the test command in the selected environment has the backend test dependencies installed; the current workspace terminal evidence showed `No module named pytest`, so this is still pending.
 
 ## Evidence from the Repository
