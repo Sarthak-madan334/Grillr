@@ -32,13 +32,14 @@ export class MicrophoneService {
   }
 
   stopRecording(onStopped?: () => void) {
-    if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
-      this.mediaRecorder.addEventListener("stop", () => {
-        this.mediaRecorder = null;
+    const recorder = this.mediaRecorder;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.addEventListener("stop", () => {
+        if (this.mediaRecorder === recorder) this.mediaRecorder = null;
         this.onDataAvailableCallback = null;
         onStopped?.();
       }, { once: true });
-      this.mediaRecorder.stop();
+      recorder.stop();
     } else {
       this.onDataAvailableCallback = null;
       onStopped?.();
@@ -49,7 +50,7 @@ export class MicrophoneService {
     this.stopRecording();
     this.stream?.getTracks().forEach((track) => track.stop());
     this.stream = null;
-    if (!this.mediaRecorder?.state || this.mediaRecorder.state === "inactive") this.mediaRecorder = null;
+    this.mediaRecorder = null;
   }
 
   isRecording() {
