@@ -313,11 +313,14 @@ class OpenAISpeechToText:
         return response.text
 
 
-def create_speech_to_text() -> SpeechToText:
-    settings = get_settings()
-    if settings.openai_api_key:
-        return OpenAISpeechToText(api_key=settings.openai_api_key)
-    return WhisperSpeechToText()
+def create_speech_to_text(settings=None) -> SpeechToText:
+    selected_settings = settings if settings is not None else get_settings()
+    provider_name = getattr(selected_settings, "stt_provider", "whisper").lower()
+    if provider_name == "openai" and getattr(selected_settings, "openai_api_key", None):
+        return OpenAISpeechToText(api_key=selected_settings.openai_api_key)
+    if provider_name == "openai" and not getattr(selected_settings, "openai_api_key", None):
+        logger.warning("OPENAI_API_KEY is missing; falling back to local Whisper STT.")
+    return WhisperSpeechToText(model_size=getattr(selected_settings, "whisper_model_size", None))
 
 
 class MockTextToSpeech:

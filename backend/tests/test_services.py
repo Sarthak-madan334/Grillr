@@ -114,6 +114,14 @@ def test_speech_analyzer_detects_common_filler_phrases():
     assert metrics["filler_count"] == 5
 
 
+def test_create_speech_to_text_prefers_free_whisper_provider_when_openai_key_missing():
+    settings = SimpleNamespace(openai_api_key=None, stt_provider="whisper", whisper_model_size="base")
+
+    provider = providers.create_speech_to_text(settings)
+
+    assert isinstance(provider, providers.WhisperSpeechToText)
+
+
 def test_speech_analyzer_detects_repeated_phrases():
     metrics = MockSpeechAnalyzer().analyze("I think the plan is strong and I think the plan should ship", 10.0)
 

@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000"]
     jwt_secret: str = "change-me-in-development"
     openai_api_key: str | None = None
+    stt_provider: str = "whisper"
     supabase_jwt_secret: str | None = None
     supabase_url: str | None = None
     supabase_anon_key: str | None = None
