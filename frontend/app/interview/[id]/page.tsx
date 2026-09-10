@@ -1,0 +1,323 @@
+"use client";
+
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { TopNav } from "@/components/layout/top-nav";
+import { VoiceAnswerPanel } from "@/components/VoiceAnswerPanel";
+import type { TurnState } from "@/components/VoiceAnswerPanel";
+import { ConversationTurnBanner } from "@/components/ConversationTurnBanner";
+import {
+  getInterview,
+  getQuestions,
+  getSummary,
+  startInterview,
+  type InterviewQuestion,
+  type InterviewSession,
+  type Summary,
+} from "@/lib/interview-api";
+
+function formatInterviewType(value: string) {
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function LoadingState() {
+  return (
+    <div aria-live="polite" className="space-y-5">
+      <div className="h-4 w-32 animate-pulse rounded-full bg-[#eadcc8] motion-reduce:animate-none" />
+      <div className="h-12 max-w-2xl animate-pulse rounded-2xl bg-[#eadcc8] motion-reduce:animate-none" />
+      <div className="h-32 animate-pulse rounded-[24px] bg-[#eadcc8] motion-reduce:animate-none" />
+    </div>
+  );
+}
+
+function CompletionPanel({ summary }: { summary: Summary }) {
+  return (
+    <section
+      aria-labelledby="completion-heading"
+      className="space-y-8"
+      aria-live="polite"
+    >
+      <div className="border-b border-[#e7d8c5] pb-8">
+        <Badge className="border-[#d4eadb] bg-[#e5f6eb] text-[#26724d]">
+          Interview complete
+        </Badge>
+        <h1
+          id="completion-heading"
+          className="mt-4 text-3xl font-semibold tracking-tight text-[#201a17]"
+        >
+          Your practice signal is ready.
+        </h1>
+        <p className="mt-3 max-w-2xl leading-7 text-[#5e4d40]">
+          Review the patterns from this session, then carry one clear
+          improvement into your next answer.
+        </p>
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="border-l-2 border-[#b8916d] pl-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-[#7a5f48]">
+            Overall score
+          </p>
+          <p className="mt-2 text-3xl font-semibold text-[#201a17]">
+            {summary.overall_score}
+          </p>
+        </div>
+        <div className="border-l-2 border-[#dfcdb9] pl-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-[#7a5f48]">
+            Questions
+          </p>
+          <p className="mt-2 text-3xl font-semibold text-[#201a17]">
+            {summary.total_questions}
+          </p>
+        </div>
+        <div className="border-l-2 border-[#dfcdb9] pl-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-[#7a5f48]">
+            Average WPM
+          </p>
+          <p className="mt-2 text-3xl font-semibold text-[#201a17]">
+            {summary.average_wpm}
+          </p>
+        </div>
+        <div className="border-l-2 border-[#dfcdb9] pl-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-[#7a5f48]">
+            Pauses
+          </p>
+          <p className="mt-2 text-3xl font-semibold text-[#201a17]">
+            {summary.total_pauses}
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-6 border-t border-[#e7d8c5] pt-8 sm:grid-cols-2">
+        <div>
+          <h2 className="text-lg font-semibold text-[#201a17]">What worked</h2>
+          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-[#5e4d40]">
+            {summary.strengths.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-[#201a17]">
+            Recommendations
+          </h2>
+          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-[#5e4d40]">
+            {summary.recommendations.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <Link href="/dashboard">
+          <Button>Back to dashboard</Button>
+        </Link>
+        <Link href="/interview/setup">
+          <Button variant="secondary">Practice again</Button>
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+export default function InterviewSessionPage() {
+  const params = useParams<{ id: string }>();
+  const sessionId = params.id;
+  const [session, setSession] = useState<InterviewSession | null>(null);
+  const [question, setQuestion] = useState<InterviewQuestion | null>(null);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [draft, setDraft] = useState("");
+  const [state, setState] = useState<
+    "loading" | "ready" | "completed" | "error"
+  >("loading");
+  const [error, setError] = useState("");
+  const [turnState, setTurnState] = useState<TurnState>("listening");
+  const questionStartedAt = useRef<number | null>(null);
+
+  const loadSession = useCallback(
+    async (signal?: AbortSignal) => {
+      setState("loading");
+      setError("");
+      const loaded = await getInterview(sessionId, signal);
+      const active =
+        loaded.status === "created"
+          ? await startInterview(sessionId, signal)
+          : loaded;
+      setSession(active);
+      if (active.status === "completed") {
+        setSummary(await getSummary(sessionId, signal));
+        setState("completed");
+        return;
+      }
+      const questionData = await getQuestions(sessionId, signal);
+      const unanswered = questionData.items.find((item) => !item.answered_at);
+      if (!unanswered)
+        throw new Error("This interview has no unanswered question.");
+      setQuestion(unanswered);
+      setTurnState("listening");
+      questionStartedAt.current = Date.now();
+      setState("ready");
+    },
+    [sessionId],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void Promise.resolve()
+      .then(() => loadSession(controller.signal))
+      .catch((caught: unknown) => {
+        if (caught instanceof DOMException && caught.name === "AbortError")
+          return;
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "We could not load this interview.",
+        );
+        setState("error");
+      });
+    return () => controller.abort();
+  }, [loadSession]);
+
+  const progress =
+    session && question
+      ? Math.min(
+          100,
+          ((question.question_number - 1) / session.question_count) * 100,
+        )
+      : 0;
+  const wordCount = useMemo(
+    () => (draft.trim() ? draft.trim().split(/\s+/).length : 0),
+    [draft],
+  );
+
+  const handleVoiceCompleted = useCallback(async () => {
+    try {
+      setSummary(await getSummary(sessionId));
+      setTurnState("completed");
+      setState("completed");
+    } catch (caught: unknown) {
+      setError(caught instanceof Error ? caught.message : "We could not load interview results.");
+      setState("error");
+    }
+  }, [sessionId]);
+
+  const handleVoiceQuestionReady = useCallback(
+    (nextQuestion: { id: string; text: string; questionNumber: number; isFollowUp: boolean }) => {
+      setQuestion({
+        id: nextQuestion.id,
+        question_number: nextQuestion.questionNumber,
+        question_text: nextQuestion.text,
+        question_type: session?.interview_type ?? "behavioral",
+        is_follow_up: nextQuestion.isFollowUp,
+        answered_at: null,
+      });
+      setDraft("");
+      questionStartedAt.current = Date.now();
+      setTurnState("listening");
+    },
+    [session?.interview_type],
+  );
+
+  return (
+    <main className="min-h-screen text-[#241d1a]">
+      <TopNav />
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        {session ? (
+          <VoiceAnswerPanel
+            sessionId={session.id}
+            hidden={state !== "ready"}
+            disabled={state !== "ready" || turnState === "asking" || turnState === "processing"}
+            onTranscript={setDraft}
+            onTurnStateChange={setTurnState}
+            onQuestionReady={handleVoiceQuestionReady}
+            onCompleted={handleVoiceCompleted}
+          />
+        ) : null}
+        {state === "loading" ? (
+          <LoadingState />
+        ) : state === "completed" && summary ? (
+          <CompletionPanel summary={summary} />
+        ) : state === "error" ? (
+          <section
+            role="alert"
+            className="max-w-xl border-l-2 border-[#b8916d] pl-5"
+          >
+            <h1 className="text-2xl font-semibold text-[#201a17]">
+              We could not open this interview.
+            </h1>
+            <p className="mt-3 leading-7 text-[#5e4d40]">{error}</p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button onClick={() => void loadSession()}>Try again</Button>
+              <Link href="/dashboard">
+                <Button variant="secondary">Back to dashboard</Button>
+              </Link>
+            </div>
+          </section>
+        ) : session && question ? (
+          <>
+            <header className="mb-10 flex flex-col gap-6 border-b border-[#e7d8c5] pb-6 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7a5f48]">
+                  {formatInterviewType(session.interview_type)} interview
+                </p>
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#201a17]">
+                  {session.job_role}
+                </h1>
+                <p className="mt-2 text-sm text-[#5e4d40]">
+                  {formatInterviewType(session.personality)} interviewer ·{" "}
+                  {session.experience_level} level
+                </p>
+              </div>
+              <div className="w-full sm:max-w-xs">
+                <div className="flex justify-between text-sm font-medium text-[#5e4d40]">
+                  <span>
+                    Question {question.question_number} of{" "}
+                    {session.question_count}
+                  </span>
+                  <span>{Math.round(progress)}%</span>
+                </div>
+                <div
+                  className="mt-2 h-2 overflow-hidden rounded-full bg-[#eadcc8]"
+                  role="progressbar"
+                  aria-label="Interview progress"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(progress)}
+                >
+                  <div
+                    className="h-full rounded-full bg-[#a27c5b] transition-[width] duration-500 motion-reduce:transition-none"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            </header>
+            <section aria-labelledby="question-heading" className="max-w-3xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7a5f48]">
+                  Grillr asks
+                </p>
+                <h2
+                  id="question-heading"
+                  className="mt-5 text-3xl font-semibold leading-tight tracking-tight text-[#201a17] sm:text-4xl"
+                >
+                  {question.question_text}
+                </h2>
+                <ConversationTurnBanner state={turnState} />
+                <div className="mt-8 rounded-[24px] border border-[#e7d8c5] bg-[rgba(255,255,255,0.56)] p-5 text-sm text-[#5e4d40]">
+                  <p className="font-semibold text-[#201a17]">Voice answer required</p>
+                  <p className="mt-2 leading-6">
+                    Please answer this question out loud. The interview expects a spoken response and will analyze your delivery as you talk.
+                  </p>
+                  <p className="mt-2 text-xs text-[#7a5f48]" aria-live="polite">
+                    Current transcript length: {wordCount} {wordCount === 1 ? "word" : "words"}
+                  </p>
+                </div>
+            </section>
+          </>
+        ) : null}
+      </div>
+    </main>
+  );
+}

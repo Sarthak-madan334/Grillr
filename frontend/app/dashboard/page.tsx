@@ -1,126 +1,99 @@
 "use client";
-
-import { HomeCTA } from "@/components/HomeCTA";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { TopNav } from "@/components/layout/top-nav";
+import { getDashboardStats, type DashboardStats } from "@/lib/dashboard-api";
+import { listInterviews, type InterviewListItem } from "@/lib/interview-api";
+const dimensionLabels = [
+  ["clarity", "Clarity"],
+  ["structure", "Structure"],
+  ["specificity", "Specificity"],
+  ["communication", "Communication"],
+] as const;
 
-const flowSteps = [
-  { title: "Choose your interview", description: "Select your role, experience level, and interview style.", icon: "compass" },
-  { title: "Answer in real time", description: "Respond naturally as the AI adapts with relevant follow-ups.", icon: "waveform" },
-  { title: "Get honest feedback", description: "Review speech metrics, strengths, and the clearest next improvements.", icon: "pulse" },
-  { title: "Retry and track progress", description: "Practice again and see your confidence build over time.", icon: "trend" },
-];
-
-function FlowIcon({ icon }: { icon: string }) {
-  if (icon === "compass") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="m14.8 9.2-1.7 3.9-3.9 1.7 1.7-3.9 3.9-1.7Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5" /></svg>;
-  }
-
-  if (icon === "pulse") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M3 12h4l2.2-6 4.1 12 2.2-6H21" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg>;
-  }
-
-  if (icon === "trend") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M4 17 10 11l4 4 6-8M15 7h5v5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg>;
-  }
-
-  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M4 13v-2M8 16V8M12 19V5M16 16V8M20 13v-2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" /></svg>;
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(value));
 }
 
-export default function HomePage() {
+function LoadingCard({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-[24px] bg-[#eadcc8] ${className}`} aria-hidden="true" />;
+}
+
+function RecentInterview({ interview }: { interview: InterviewListItem }) {
+  return (
+    <Link href={`/interview/${interview.id}`} className="flex items-center justify-between rounded-[22px] border border-[#eadcc8] bg-[rgba(255,255,255,0.45)] p-4 transition hover:border-[#b8916d] hover:bg-white">
+      <div>
+        <p className="font-medium text-[#201a17]">{interview.job_role}</p>
+        <p className="mt-1 text-sm text-[#7a5f48]">{formatDate(interview.completed_at ?? interview.created_at)}</p>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="rounded-full bg-[#dff5e8] px-2.5 py-1 text-xs font-medium text-[#1c7c4d]">Completed</span>
+        <span className="text-lg font-semibold text-[#201a17]">{interview.overall_score ?? "—"}</span>
+      </div>
+    </Link>
+  );
+}
+
+export default function DashboardPage() {
+  const [interviews, setInterviews] = useState<InterviewListItem[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([listInterviews(3), getDashboardStats()])
+      .then(([recent, dashboardStats]) => {
+        if (!active) return;
+        setInterviews(recent.items);
+        setStats(dashboardStats);
+      })
+      .catch((caught: unknown) => {
+        if (active) setError(caught instanceof Error ? caught.message : "Unable to load dashboard data.");
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  const hasCompletedInterviews = Boolean(stats?.interview_count);
+
   return (
     <main className="min-h-screen bg-[#0e1720] text-[#f8f5f0]">
       <TopNav />
-
-      <section className="mx-auto max-w-6xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10 lg:px-8">
-        <div className="grid items-center gap-6 overflow-hidden rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_right,_rgba(186,122,75,0.28),_transparent_26%),linear-gradient(135deg,#111b24_0%,#0e1720_45%,#0b1117_100%)] p-4 shadow-[0_30px_90px_rgba(15,23,32,0.38)] sm:p-6 lg:grid-cols-[1.15fr_0.85fr] lg:p-8">
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm sm:p-7 lg:p-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#c78d5f]/30 bg-[#ba7a4b]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f2d1a2]">
-              <span className="h-2 w-2 rounded-full bg-[#f2d1a2]" />
-              Speak. Practice. Grow.
-            </div>
-
-            <h1 className="mt-6 max-w-xl text-4xl font-semibold tracking-[-0.06em] text-white sm:text-5xl lg:text-[4rem] lg:leading-[0.96]">
-              Turn every answer into momentum.
-            </h1>
-
-            <p className="mt-5 max-w-lg text-base leading-7 text-[#d3dbe5] sm:text-lg">
-              Grillr helps candidates sharpen answers, improve delivery, and build confidence with deliberate mock interviews and real-time coaching.
-            </p>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <HomeCTA />
-            </div>
-
-            <div className="mt-8 flex flex-wrap gap-4 text-sm text-[#d3dbe5]">
-              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">Voice-first interview flow</div>
-              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">Adaptive follow-ups</div>
-              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">Actionable coaching</div>
-            </div>
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+        <section className="mb-8 flex flex-col gap-6 rounded-[32px] border border-[#eadcc8] bg-[linear-gradient(135deg,rgba(255,255,255,0.78),rgba(244,236,227,0.85))] p-6 shadow-[0_24px_70px_rgba(120,92,68,0.08)] backdrop-blur-md sm:p-8 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <Badge className="mb-3 border-[#eadcc8] bg-[#f9f1e8] text-[#6a5648]">Practice dashboard</Badge>
+            <h1 className="text-3xl font-semibold tracking-tight text-[#201a17] sm:text-4xl">Get ready for your next round.</h1>
+            <p className="mt-3 max-w-xl text-base text-[#5e4d40]">Review your metrics, open the next mock interview, and keep improving with focused feedback.</p>
           </div>
+          <div className="flex gap-3"><Link href="/interview/setup"><Button size="lg">Start interview</Button></Link><Link href="/history"><Button variant="secondary" size="lg">View history</Button></Link></div>
+        </section>
 
-          <div className="rounded-[30px] border border-white/10 bg-[#101a23] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.34)] sm:p-5">
-            <div className="rounded-[24px] border border-[#d7c8ba]/10 bg-[#111d26] p-4 sm:p-5">
-              <div className="mb-5 flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#a8b7c7]">Current session</p>
-                  <h2 className="mt-2 text-xl font-semibold text-[#f8f5f0]">Software Engineer</h2>
-                </div>
-                <div className="rounded-full border border-[#83d1a1]/30 bg-[#1a3d2b] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#bfe9cf]">
-                  Live
-                </div>
-              </div>
+        {error ? <div role="alert" className="mb-8 border-l-2 border-[#b45b45] pl-4 text-sm text-[#8a3f32]">{error}</div> : null}
 
-              <div className="rounded-[22px] border border-white/10 bg-[#0d1520] p-4">
-                <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-[#9fb3c4]">
-                  <span>Question</span>
-                  <span>3 / 8</span>
-                </div>
-                <p className="mt-4 text-lg font-medium leading-7 text-[#f1eee9]">
-                  Tell me about a time you improved a system under pressure.
-                </p>
-              </div>
+        {isLoading ? (
+          <div className="space-y-8" aria-label="Loading dashboard"><div className="grid gap-6 md:grid-cols-3"><LoadingCard className="h-32" /><LoadingCard className="h-32" /><LoadingCard className="h-32" /></div><div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]"><LoadingCard className="h-72" /><LoadingCard className="h-72" /></div></div>
+        ) : (
+          <>
+            <section className="grid gap-6 md:grid-cols-3">
+              <Card className="p-5"><p className="text-sm text-[#7a5f48]">Average score</p><p className="mt-4 text-4xl font-semibold text-[#201a17]">{stats?.average_score ?? "—"}</p><p className="mt-2 text-sm text-[#5e4d40]">{hasCompletedInterviews ? "Across completed interviews" : "Complete your first interview"}</p></Card>
+              <Card className="p-5"><p className="text-sm text-[#7a5f48]">Interviews</p><p className="mt-4 text-4xl font-semibold text-[#201a17]">{stats?.interview_count ?? 0}</p><p className="mt-2 text-sm text-[#5e4d40]">Across {stats?.role_count ?? 0} {stats?.role_count === 1 ? "role" : "roles"}</p></Card>
+              <Card className="p-5"><p className="text-sm text-[#7a5f48]">Improvement</p><p className="mt-4 text-4xl font-semibold text-[#201a17]">—</p><p className="mt-2 text-sm text-[#5e4d40]">Available after retry tracking</p></Card>
+            </section>
 
-              <div className="mt-5 rounded-[20px] border border-[#d7c8ba]/10 bg-white/[0.03] p-3">
-                <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-[#9fb3c4]">
-                  <span>Voice status</span>
-                  <span>Listening</span>
-                </div>
-                <div className="mt-3 flex items-end gap-1">
-                  {[16, 20, 14, 28, 18, 24, 20, 16, 22, 14, 18, 28, 16, 24, 12].map((height, index) => (
-                    <span key={index} className="block w-1.5 rounded-full bg-gradient-to-t from-[#ba7a4b] to-[#f2d1a2]" style={{ height: `${height}px` }} />
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between text-sm text-[#d3dbe5]">
-                <span>Q3 / 8</span>
-                <span>18:42 remaining</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section aria-labelledby="grillr-flow-heading" className="mx-auto max-w-6xl px-4 pb-14 sm:px-6 sm:pb-20 lg:px-8">
-        <div className="rounded-[32px] border border-[#d7c8ba]/70 bg-[#f5efe9]/90 p-5 shadow-[0_18px_48px_rgba(17,24,39,0.04)] sm:p-7">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8f6d4d]">The Grillr flow</p>
-          <h2 id="grillr-flow-heading" className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[#111827] sm:text-3xl">Practice with purpose.</h2>
-          <p className="mt-3 max-w-xl text-base leading-7 text-[#5b6472]">A focused loop designed to make every interview answer stronger.</p>
-
-          <ol className="mt-8 grid gap-6 md:grid-cols-4">
-            {flowSteps.map((step, index) => (
-              <li key={step.title} className="relative rounded-[24px] border border-[#eaded1] bg-white/80 p-4 shadow-[0_12px_30px_rgba(17,24,39,0.03)]">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f4e6d8] text-[#8f6d4d]">
-                  <FlowIcon icon={step.icon} />
-                </div>
-                <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8f6d4d]">0{index + 1}</p>
-                <h3 className="mt-3 text-base font-semibold text-[#111827]">{step.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[#5b6472]">{step.description}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+            <section className="mt-8 grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+              <Card className="p-6"><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-semibold text-[#201a17]">Recent interviews</h2><Link href="/history" className="text-sm font-medium text-[#5d4a3b] hover:text-[#201a17]">See all</Link></div>{interviews.length ? <div className="space-y-4">{interviews.map((interview) => <RecentInterview key={interview.id} interview={interview} />)}</div> : <p className="rounded-2xl border border-dashed border-[#d9c5b1] px-4 py-8 text-center text-sm text-[#7a5f48]">Complete your first interview to see it here.</p>}</Card>
+              <Card className="p-6"><h2 className="text-xl font-semibold text-[#201a17]">Performance</h2>{hasCompletedInterviews ? <div className="mt-5 space-y-4">{dimensionLabels.map(([key, label]) => { const value = stats?.dimensions[key] ?? null; return <div key={key}><div className="mb-2 flex items-center justify-between text-sm text-[#5e4d40]"><span>{label}</span><span>{value ?? "—"}</span></div><div className="h-2.5 overflow-hidden rounded-full border border-[#eadcc8] bg-[rgba(255,255,255,0.45)]"><div className="h-full rounded-full bg-[linear-gradient(90deg,rgba(122,95,72,0.92),rgba(201,176,152,0.95))]" style={{ width: `${value ?? 0}%` }} /></div></div>; })}</div> : <p className="mt-5 rounded-2xl border border-dashed border-[#d9c5b1] px-4 py-8 text-center text-sm text-[#7a5f48]">Complete your first interview to see performance data.</p>}</Card>
+            </section>
+          </>
+        )}
+      </div>
     </main>
   );
 }

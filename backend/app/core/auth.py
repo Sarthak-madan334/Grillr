@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from uuid import UUID, uuid5, NAMESPACE_URL
 
-from fastapi import Depends, HTTPException, status
+import httpx
+from fastapi import Cookie, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -25,6 +26,34 @@ def _unauthorized() -> HTTPException:
     return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={"code": "unauthorized", "message": "Authentication is required"}, headers={"WWW-Authenticate": "Bearer"})
 
 
+def _decode_supabase_token(token: str) -> dict:
+    settings = get_settings()
+    header = jwt.get_unverified_header(token)
+    algorithm = str(header.get("alg", ""))
+
+    if algorithm == "HS256":
+        return jwt.decode(token, settings.effective_jwt_secret, algorithms=["HS256"], audience="authenticated")
+
+    if algorithm not in {"ES256", "RS256"}:
+        raise JWTError("Unsupported token algorithm")
+    if not settings.supabase_url and not settings.supabase_jwks_url:
+        raise JWTError("Supabase JWKS URL is not configured")
+
+    jwks_url = settings.supabase_jwks_url or f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+    try:
+        response = httpx.get(jwks_url, timeout=10.0)
+        response.raise_for_status()
+        keys = response.json().get("keys", [])
+    except (httpx.HTTPError, ValueError, TypeError):
+        raise JWTError("Supabase JWKS could not be loaded") from None
+
+    key_id = header.get("kid")
+    key = next((candidate for candidate in keys if candidate.get("kid") == key_id), None)
+    if key is None:
+        raise JWTError("Supabase signing key was not found")
+    return jwt.decode(token, key, algorithms=[algorithm], audience="authenticated")
+
+
 def authenticate_token(token: str, db: Session) -> CurrentUser:
     settings = get_settings()
     if token.startswith("dev:") and settings.environment == "development":
@@ -35,7 +64,7 @@ def authenticate_token(token: str, db: Session) -> CurrentUser:
             raise _unauthorized()
     else:
         try:
-            payload = jwt.decode(token, settings.effective_jwt_secret, algorithms=["HS256"], audience="authenticated")
+            payload = _decode_supabase_token(token)
             user_id = UUID(str(payload["sub"]))
             identity = CurrentUser(user_id, str(payload.get("email", f"{user_id}@supabase.local")), payload.get("user_metadata", {}).get("name"))
         except (JWTError, KeyError, ValueError, TypeError):
@@ -48,10 +77,15 @@ def authenticate_token(token: str, db: Session) -> CurrentUser:
     return identity
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer), db: Session = Depends(get_db)) -> CurrentUser:
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    access_token: str | None = Cookie(default=None, alias="grillr_access_token"),
+    db: Session = Depends(get_db),
+) -> CurrentUser:
     settings = get_settings()
-    if credentials is None:
+    token = credentials.credentials if credentials is not None else access_token
+    if token is None:
         if settings.auth_required:
             raise _unauthorized()
         return authenticate_token(f"dev:{DEV_USER_ID}:developer@localhost:Development User", db)
-    return authenticate_token(credentials.credentials, db)
+    return authenticate_token(token, db)

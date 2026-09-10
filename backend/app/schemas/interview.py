@@ -22,17 +22,20 @@ class InterviewCreate(BaseModel):
     difficulty: str = Field(min_length=2, max_length=40)
     personality: str = Field(min_length=2, max_length=40)
     duration: int = Field(gt=0, le=180)
+    question_count: int = Field(default=5, ge=1, le=20)
     resume_url: HttpUrl | None = None
     job_description: str | None = Field(default=None, max_length=10000)
 
 
 class QuestionResponse(BaseModel):
     id: UUID
+    parent_question_id: UUID | None = None
     question_number: int
     question_text: str
     question_type: str
     is_follow_up: bool
     answered_at: datetime | None
+    audio_base64: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -46,10 +49,17 @@ class InterviewResponse(BaseModel):
     difficulty: str
     personality: str
     duration: int
+    question_count: int
     current_question_number: int
+    speech_state: str
+    speech_generation_id: UUID | None
+    speech_question_id: UUID | None
+    interrupted_generation_id: UUID | None
+    interrupted_at: datetime | None
     created_at: datetime
     started_at: datetime | None
     completed_at: datetime | None
+    overall_score: int | None = None
     questions: list[QuestionResponse] = []
 
     model_config = {"from_attributes": True}
@@ -68,8 +78,10 @@ class QuestionsResponse(BaseModel):
 
 class RetryResponse(BaseModel):
     question_id: UUID
+    answer_id: UUID
     attempt_number: int
     status: str
+    score_delta: int | None = None
 
 
 class FeedbackResponse(BaseModel):
@@ -93,3 +105,10 @@ class SummaryResponse(BaseModel):
     recommendations: list[str]
 
     model_config = {"from_attributes": True}
+
+
+class DashboardStatsResponse(BaseModel):
+    average_score: float | None
+    interview_count: int
+    role_count: int
+    dimensions: dict[str, float | None]

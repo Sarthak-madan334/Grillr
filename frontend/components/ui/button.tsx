@@ -17,9 +17,9 @@ export function Button({
 
   const variants = {
     primary:
-      "border border-[#111827] bg-[#111827] text-[#f7f3ee] shadow-[0_14px_28px_rgba(17,24,39,0.16)] hover:-translate-y-0.5 hover:bg-[#1b2430]",
+      "border border-[#1f1f1f] bg-[#1f1f1f] text-[#f7f3ee] shadow-[0_14px_28px_rgba(17,24,39,0.16)] hover:-translate-y-0.5 hover:bg-[#2b2b2b]",
     secondary:
-      "border border-[#e7d7c5] bg-white/80 text-[#1b2430] shadow-[0_10px_22px_rgba(18,24,39,0.05)] hover:-translate-y-0.5 hover:border-[#d7b99a] hover:bg-[#fffaf5]",
+      "border border-[#e7d7c5] bg-white/85 text-[#1b2430] shadow-[0_10px_22px_rgba(18,24,39,0.05)] hover:-translate-y-0.5 hover:border-[#d7b99a] hover:bg-[#fffaf5]",
     ghost: "text-[#2d3847] hover:bg-[#f0e4d9]",
   };
 

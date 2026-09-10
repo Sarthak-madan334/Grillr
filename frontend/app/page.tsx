@@ -4,26 +4,59 @@ import { HomeCTA } from "@/components/HomeCTA";
 import { TopNav } from "@/components/layout/top-nav";
 
 const flowSteps = [
-  { title: "Choose your interview", description: "Select your role, experience level, and interview style.", icon: "compass" },
-  { title: "Answer in real time", description: "Respond naturally as the AI adapts with relevant follow-ups.", icon: "waveform" },
-  { title: "Get honest feedback", description: "Review speech metrics, strengths, and the clearest next improvements.", icon: "pulse" },
-  { title: "Retry and track progress", description: "Practice again and see your confidence build over time.", icon: "trend" },
+  {
+    title: "Choose your interview",
+    description: "Select your role, experience level, and interview style.",
+    icon: "compass",
+  },
+  {
+    title: "Answer in real time",
+    description: "Respond naturally as the AI adapts with relevant follow-ups.",
+    icon: "waveform",
+  },
+  {
+    title: "Get honest feedback",
+    description: "Review speech metrics, strengths, and the clearest next improvements.",
+    icon: "pulse",
+  },
+  {
+    title: "Retry and track progress",
+    description: "Practice again and see your confidence build over time.",
+    icon: "trend",
+  },
 ];
 
 function FlowIcon({ icon }: { icon: string }) {
   if (icon === "compass") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="m14.8 9.2-1.7 3.9-3.9 1.7 1.7-3.9 3.9-1.7Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5" /></svg>;
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+        <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        <path d="m14.8 9.2-1.7 3.9-3.9 1.7 1.7-3.9 3.9-1.7Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5" />
+      </svg>
+    );
   }
 
   if (icon === "pulse") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M3 12h4l2.2-6 4.1 12 2.2-6H21" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg>;
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+        <path d="M3 12h4l2.2-6 4.1 12 2.2-6H21" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      </svg>
+    );
   }
 
   if (icon === "trend") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M4 17 10 11l4 4 6-8M15 7h5v5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg>;
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+        <path d="M4 17 10 11l4 4 6-8M15 7h5v5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      </svg>
+    );
   }
 
-  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M4 13v-2M8 16V8M12 19V5M16 16V8M20 13v-2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" /></svg>;
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+      <path d="M4 13v-2M8 16V8M12 19V5M16 16V8M20 13v-2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
+    </svg>
+  );
 }
 
 export default function HomePage() {
