@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run --no-file-parallelism --maxWorkers=1"
+    "test": "vitest run"
   },
   "dependencies": {
     "next": "16.3.4",
