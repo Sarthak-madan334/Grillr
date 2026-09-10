@@ -13,12 +13,14 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    "inline-flex items-center justify-center rounded-full font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8916d] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f6f1ea] disabled:pointer-events-none disabled:opacity-60 active:translate-y-[1px]";
+    "inline-flex items-center justify-center rounded-full font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b77c4a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f4efe9] disabled:pointer-events-none disabled:opacity-60 active:translate-y-px";
 
   const variants = {
-    primary: "bg-[#2d241d] text-[#f9f5f1] hover:bg-[#1f1915] shadow-[0_10px_24px_rgba(45,36,29,0.2)] border border-[#2d241d]",
-    secondary: "bg-white/85 text-[#2d241d] hover:bg-[#fffaf4] border border-[#e7d8c5] shadow-[0_8px_20px_rgba(156,125,93,0.08)]",
-    ghost: "text-[#473a2d] hover:bg-[#eadcc8]/60",
+    primary:
+      "border border-[#111827] bg-[#111827] text-[#f7f3ee] shadow-[0_14px_28px_rgba(17,24,39,0.16)] hover:-translate-y-0.5 hover:bg-[#1b2430]",
+    secondary:
+      "border border-[#e7d7c5] bg-white/80 text-[#1b2430] shadow-[0_10px_22px_rgba(18,24,39,0.05)] hover:-translate-y-0.5 hover:border-[#d7b99a] hover:bg-[#fffaf5]",
+    ghost: "text-[#2d3847] hover:bg-[#f0e4d9]",
   };
 
   const sizes = {
