@@ -15,6 +15,7 @@ type VoiceAnswerPanelProps = {
   onTranscript?: (transcript: string) => void;
   onTurnStateChange?: (state: TurnState) => void;
   onAnswerEvaluated?: () => void;
+  onAnswerPersisted?: (answerId: string, transcript: string) => void;
   onQuestionReady?: (question: { id: string; text: string; questionNumber: number; isFollowUp: boolean }) => void;
   onCompleted?: () => void;
 };
@@ -46,7 +47,7 @@ function statusCopy(status: VoiceStatus) {
   }
 }
 
-export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, onRecordingChange, onTranscript, onTurnStateChange, onAnswerEvaluated, onQuestionReady, onCompleted }: VoiceAnswerPanelProps) {
+export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, onRecordingChange, onTranscript, onTurnStateChange, onAnswerEvaluated, onAnswerPersisted, onQuestionReady, onCompleted }: VoiceAnswerPanelProps) {
   const [status, setStatus] = useState<VoiceStatus>(() =>
     typeof navigator !== "undefined" &&
     typeof navigator.mediaDevices?.getUserMedia === "function"
@@ -112,7 +113,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
         socket.addEventListener("open", () => socket?.send(JSON.stringify({ type: "auth", token })));
         socket.addEventListener("message", (event) => {
           try {
-            const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; state?: TurnState; message?: string; audio_base64?: string; media_type?: string; question_id?: string; question_number?: number; is_follow_up?: boolean } };
+            const message = JSON.parse(event.data) as { type?: string; data?: { answer_id?: string; text?: string; state?: TurnState; message?: string; audio_base64?: string; media_type?: string; question_id?: string; question_number?: number; is_follow_up?: boolean } };
             if (message.type === "auth.ok") {
               socketAuthenticatedRef.current = true;
               setIsSocketReady(true);
@@ -141,6 +142,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
             }
             if (message.type === "transcript.final" && message.data?.text) {
               onTranscript?.(message.data.text);
+              if (message.data.answer_id) onAnswerPersisted?.(message.data.answer_id, message.data.text);
               setIsProcessing(false);
               setIsStopping(false);
               onTurnStateChange?.("listening");
@@ -190,7 +192,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
       if (socket && socketRef.current === socket && socket.readyState !== WebSocket.CLOSED) socket.close();
       socketRef.current = null;
     };
-  }, [onAnswerEvaluated, onCompleted, onQuestionReady, onTranscript, onTurnStateChange, sessionId, stopStream]);
+  }, [onAnswerEvaluated, onAnswerPersisted, onCompleted, onQuestionReady, onTranscript, onTurnStateChange, sessionId, stopStream]);
 
   const recordingUrl = useMemo(() => {
     if (!recordingBlob || typeof URL.createObjectURL !== "function") return "";
