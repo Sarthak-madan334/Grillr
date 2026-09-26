@@ -11,6 +11,7 @@ export function TopNav() {
   const { user, isAuthenticated, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
   const navItems = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/interview/setup", label: "Practice" },
@@ -41,15 +42,12 @@ export function TopNav() {
 
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
+
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isMenuOpen]);
-
-  function closeMenu() {
-    setIsMenuOpen(false);
-  }
 
   async function handleSignOut() {
     await signOut();
@@ -64,12 +62,7 @@ export function TopNav() {
         <Link href="/" aria-label="Grillr home" className="grillr-brand group flex min-w-0 items-center gap-2.5">
           <div className="grillr-brand-mark relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-[11px]">
             <span className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_transparent_55%)]" />
-            <svg
-              viewBox="0 0 56 56"
-              className="relative h-8 w-8 drop-shadow-[0_3px_10px_rgba(73,55,47,0.12)]"
-              aria-label="Grillr logo"
-              role="img"
-            >
+            <svg viewBox="0 0 56 56" className="relative h-8 w-8 drop-shadow-[0_3px_10px_rgba(73,55,47,0.12)]" aria-label="Grillr logo" role="img">
               <defs>
                 <linearGradient id="grillr-g-glow" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#ffffff" />
@@ -88,12 +81,11 @@ export function TopNav() {
               />
 
               <path d="M30 28h11" stroke="url(#grillr-g-glow)" strokeWidth="3.7" strokeLinecap="round" />
-
               <path d="M17 24v8M22 20v16M27 17v22" stroke="#f4b860" strokeWidth="2.4" strokeLinecap="round" opacity="0.95" />
-
               <circle cx="39" cy="28" r="2.4" fill="#f4b860" />
             </svg>
           </div>
+
           <div className="max-[359px]:hidden">
             <div className="grillr-brand-name">GRILLR</div>
             <div className="grillr-brand-tagline">INTERVIEW COACH</div>
@@ -114,31 +106,20 @@ export function TopNav() {
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#edf4ff] text-[10px] font-bold text-[#365bb4]">
                 {greetingInitial}
               </span>
-              <span className="min-w-0 truncate text-[11px] font-semibold text-[#4b5d77]">
-                Welcome back, {greetingName}
-              </span>
+              <span className="min-w-0 truncate text-[11px] font-semibold text-[#4b5d77]">Welcome back, {greetingName}</span>
             </div>
           ) : null}
+
           {isAuthenticated ? (
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="grillr-nav-action grillr-nav-action-muted"
-            >
+            <button type="button" onClick={handleSignOut} className="grillr-nav-action grillr-nav-action-muted">
               Log out
             </button>
           ) : (
             <>
-              <Link
-                href="/login"
-                className="grillr-nav-signin hidden sm:inline-flex"
-              >
+              <Link href="/login" className="grillr-nav-signin hidden sm:inline-flex">
                 Sign in
               </Link>
-              <Link
-                href="/signup"
-                className="grillr-nav-signin hidden sm:inline-flex"
-              >
+              <Link href="/signup" className="grillr-nav-signin hidden sm:inline-flex">
                 Create account
               </Link>
             </>
@@ -151,11 +132,10 @@ export function TopNav() {
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#edf4ff] text-[9px] font-bold text-[#365bb4]">
                 {greetingInitial}
               </span>
-              <span className="min-w-0 truncate text-[10px] font-semibold text-[#4b5d77]">
-                {greetingName}
-              </span>
+              <span className="min-w-0 truncate text-[10px] font-semibold text-[#4b5d77]">{greetingName}</span>
             </div>
           ) : null}
+
           <button
             type="button"
             aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
@@ -180,18 +160,20 @@ export function TopNav() {
             <nav id="mobile-navigation-menu" aria-label="Mobile navigation" className="grillr-mobile-menu absolute right-0 top-[calc(100%+0.75rem)] w-[min(18rem,calc(100vw-2rem))]">
               <div className="space-y-1">
                 {navItems.map((item) => (
-                  <Link key={item.href} href={item.href} onClick={closeMenu} className={`grillr-mobile-link ${isActive(item.href) ? "is-active" : ""}`}>
+                  <Link key={item.href} href={item.href} onClick={() => setIsMenuOpen(false)} className={`grillr-mobile-link ${isActive(item.href) ? "is-active" : ""}`}>
                     {item.label}
                   </Link>
                 ))}
               </div>
+
               <div className="my-3 border-t border-[#e7d8c5]" />
+
               <div className="space-y-1">
                 {isAuthenticated ? (
                   <button
                     type="button"
                     onClick={() => {
-                      closeMenu();
+                      setIsMenuOpen(false);
                       void handleSignOut();
                     }}
                     className="flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e7d8c5] bg-white px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none"
@@ -200,10 +182,10 @@ export function TopNav() {
                   </button>
                 ) : (
                   <>
-                    <Link href="/login" onClick={closeMenu} className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none">
+                    <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none">
                       Sign in
                     </Link>
-                    <Link href="/signup" onClick={closeMenu} className="flex min-h-11 items-center justify-center rounded-xl border border-[#e7d8c5] bg-[linear-gradient(135deg,rgba(48,38,31,0.96),rgba(76,62,54,0.9))] px-3 text-sm font-medium text-[#f9f5f1] shadow-[0_8px_18px_rgba(47,36,30,0.14)] transition hover:shadow-[0_10px_22px_rgba(47,36,30,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none">
+                    <Link href="/signup" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center justify-center rounded-xl border border-[#e7d8c5] bg-[linear-gradient(135deg,rgba(48,38,31,0.96),rgba(76,62,54,0.9))] px-3 text-sm font-medium text-[#f9f5f1] shadow-[0_8px_18px_rgba(47,36,30,0.14)] transition hover:shadow-[0_10px_22px_rgba(47,36,30,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none">
                       Create account
                     </Link>
                   </>

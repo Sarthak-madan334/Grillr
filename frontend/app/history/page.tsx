@@ -11,7 +11,11 @@ import { listInterviews, type InterviewListItem } from "@/lib/interview-api";
 const pageSize = 20;
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 function formatLabel(value: string) {
@@ -27,6 +31,7 @@ export default function HistoryPage() {
 
   useEffect(() => {
     const controller = new AbortController();
+
     listInterviews(pageSize, 0, controller.signal)
       .then((response) => {
         setInterviews(response.items);
@@ -38,12 +43,14 @@ export default function HistoryPage() {
         }
       })
       .finally(() => setIsLoading(false));
+
     return () => controller.abort();
   }, []);
 
   async function loadMore() {
     setIsLoadingMore(true);
     setError("");
+
     try {
       const response = await listInterviews(pageSize, interviews.length);
       setInterviews((current) => [...current, ...response.items]);
@@ -54,21 +61,24 @@ export default function HistoryPage() {
       setIsLoadingMore(false);
     }
   }
+
   return (
-    <main className="min-h-screen bg-[#f8fafc] text-slate-900">
+    <main className="min-h-screen bg-[#0e1720] text-[#f8f5f0]">
       <TopNav />
+
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Interview history</p>
-            <h1 className="mt-2 text-3xl font-semibold text-slate-900">Your recent sessions</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a5f48]">Interview history</p>
+            <h1 className="mt-2 text-3xl font-semibold text-[#201a17]">Your recent sessions</h1>
           </div>
-          <Link href="/interview/setup">
-            <Button>New interview</Button>
-          </Link>
         </div>
 
-        {error ? <p role="alert" className="mb-6 rounded-2xl border border-[#e7b8a9] bg-[#fff1ed] px-4 py-3 text-sm text-[#9a4635]">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="mb-6 rounded-2xl border border-[#e7b8a9] bg-[#fff1ed] px-4 py-3 text-sm text-[#9a4635]">
+            {error}
+          </p>
+        ) : null}
 
         {isLoading ? <p className="text-sm text-slate-500">Loading your interview history...</p> : null}
 
@@ -82,32 +92,34 @@ export default function HistoryPage() {
           </Card>
         ) : null}
 
-        {!isLoading && interviews.length > 0 ? <div className="space-y-4">
-          {interviews.map((item) => (
-            <Card key={item.id} className="p-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="mb-2 flex items-center gap-3">
-                    <Badge className="bg-slate-100 text-slate-700">{formatLabel(item.interview_type)}</Badge>
-                    <span className="text-sm text-slate-500">{formatDate(item.completed_at ?? item.created_at)}</span>
+        {!isLoading && interviews.length > 0 ? (
+          <div className="space-y-4">
+            {interviews.map((item) => (
+              <Card key={item.id} className="p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="mb-2 flex items-center gap-3">
+                      <Badge className="bg-slate-100 text-slate-700">{formatLabel(item.interview_type)}</Badge>
+                      <span className="text-sm text-slate-500">{formatDate(item.completed_at ?? item.created_at)}</span>
+                    </div>
+                    <p className="text-xl font-semibold text-slate-900">{item.job_role}</p>
+                    <p className="mt-1 text-sm capitalize text-slate-500">{formatLabel(item.status)}</p>
                   </div>
-                  <p className="text-xl font-semibold text-slate-900">{item.job_role}</p>
-                  <p className="mt-1 text-sm capitalize text-slate-500">{formatLabel(item.status)}</p>
-                </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-sm text-slate-500">Score</p>
-                    <p className="text-2xl font-semibold text-slate-900">{item.overall_score ?? "-"}</p>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-sm text-slate-500">Score</p>
+                      <p className="text-2xl font-semibold text-slate-900">{item.overall_score ?? "-"}</p>
+                    </div>
+                    <Link href={`/interview/${item.id}`}>
+                      <Button variant="secondary">View results</Button>
+                    </Link>
                   </div>
-                  <Link href={`/interview/${item.id}`}>
-                    <Button variant="secondary">View results</Button>
-                  </Link>
                 </div>
-              </div>
-            </Card>
-          ))}
-        </div> : null}
+              </Card>
+            ))}
+          </div>
+        ) : null}
 
         {!isLoading && interviews.length > 0 && interviews.length < total ? (
           <div className="mt-6 flex justify-center">

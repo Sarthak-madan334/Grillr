@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #1d1d1f;
-  --card: rgba(255, 255, 255, 0.7);
-  --card-strong: #fffdf9;
-  --accent: #2563eb;
-  --accent-strong: #1d4ed8;
+  --background: #f3efe9;
+  --foreground: #111827;
+  --card: rgba(255, 255, 255, 0.72);
+  --card-strong: #fffdfb;
+  --accent: #ba7a4b;
+  --accent-strong: #8f6d4d;
 }
 
 @theme inline {
@@ -18,10 +18,13 @@
 
 html {
   scroll-behavior: smooth;
+  background: var(--background);
 }
 
 body {
-  background: #ffffff;
+  background:
+    radial-gradient(circle at top left, rgba(186, 122, 75, 0.12), transparent 28%),
+    linear-gradient(180deg, #f3efe9 0%, #f8f4ef 100%);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
@@ -38,7 +41,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(37, 99, 235, 0.18);
+  background: rgba(186, 122, 75, 0.22);
 }
 
 .signup-page {

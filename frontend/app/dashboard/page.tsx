@@ -1,5 +1,4 @@
 "use client";
-
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +7,6 @@ import { Card } from "@/components/ui/card";
 import { TopNav } from "@/components/layout/top-nav";
 import { getDashboardStats, type DashboardStats } from "@/lib/dashboard-api";
 import { listInterviews, type InterviewListItem } from "@/lib/interview-api";
-
 const dimensionLabels = [
   ["clarity", "Clarity"],
   ["structure", "Structure"],
@@ -65,7 +63,7 @@ export default function DashboardPage() {
   const hasCompletedInterviews = Boolean(stats?.interview_count);
 
   return (
-    <main className="min-h-screen text-[#241d1a]">
+    <main className="min-h-screen bg-[#0e1720] text-[#f8f5f0]">
       <TopNav />
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <section className="mb-8 flex flex-col gap-6 rounded-[32px] border border-[#eadcc8] bg-[linear-gradient(135deg,rgba(255,255,255,0.78),rgba(244,236,227,0.85))] p-6 shadow-[0_24px_70px_rgba(120,92,68,0.08)] backdrop-blur-md sm:p-8 lg:flex-row lg:items-center lg:justify-between">
