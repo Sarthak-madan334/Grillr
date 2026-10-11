@@ -7,11 +7,6 @@ import { TranscriptPanel } from "@/components/live-interview/TranscriptPanel";
 import { AudioPlaybackController, type PlaybackSnapshot } from "@/lib/audio-playback";
 import { microphoneService } from "@/services/audio/MicrophoneService";
 import {
-  MockRealtimeClient,
-  type RealtimeEvent,
-  type TranscriptEntry,
-} from "@/lib/realtime";
-import {
   applyVoiceEvent,
   initialVoiceState,
   type VoiceState,
