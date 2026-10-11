@@ -1,6 +1,6 @@
 # The Interview Coach
 
-AI-powered mock interviews with real-time voice interaction, adaptive questioning, and structured feedback.
+AI-powered mock interviews with real-time voice interaction, adaptive questioning, and structured feedback
 
 ## Local development
 
