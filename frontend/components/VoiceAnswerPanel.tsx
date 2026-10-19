@@ -16,7 +16,7 @@ type VoiceAnswerPanelProps = {
   onTranscript?: (transcript: string) => void;
   onTurnStateChange?: (state: TurnState) => void;
   onAnswerEvaluated?: () => void;
-  onQuestionReady?: (question: { id: string; text: string; questionNumber: number; questionType: string; isFollowUp: boolean }) => void;
+  onQuestionReady?: (question: { id: string; text: string; questionNumber: number; questionType?: string; isFollowUp: boolean }) => void;
   onCompleted?: () => void;
 };
 
@@ -196,7 +196,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
                 id: message.data.question_id,
                 text: message.data.text,
                 questionNumber: message.data.question_number ?? 0,
-                questionType: message.data.question_type ?? "technical",
+                ...(message.data.question_type ? { questionType: message.data.question_type } : {}),
                 isFollowUp: Boolean(message.data.is_follow_up),
               });
             }

@@ -208,12 +208,12 @@ export default function InterviewSessionPage() {
   }, [sessionId]);
 
   const handleVoiceQuestionReady = useCallback(
-    (nextQuestion: { id: string; text: string; questionNumber: number; questionType: string; isFollowUp: boolean }) => {
+    (nextQuestion: { id: string; text: string; questionNumber: number; questionType?: string; isFollowUp: boolean }) => {
       setQuestion({
         id: nextQuestion.id,
         question_number: nextQuestion.questionNumber,
         question_text: nextQuestion.text,
-        question_type: nextQuestion.questionType,
+        question_type: nextQuestion.questionType ?? session?.interview_type ?? "behavioral",
         is_follow_up: nextQuestion.isFollowUp,
         answered_at: null,
       });
