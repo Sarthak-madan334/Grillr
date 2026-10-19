@@ -30,8 +30,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <meta name="color-scheme" content="dark light" />
       </head>
-      <body className="flex min-h-full flex-col bg-white text-[#1d1d1f]">
-        <AuthProvider>{children}</AuthProvider>
+      <body className="flex min-h-full flex-col bg-[#090b0c] text-[#e9e9e1]">
+        <AuthProvider>
+          <div className="app-frame">{children}</div>
+        </AuthProvider>
         <Footer />
       </body>
     </html>
