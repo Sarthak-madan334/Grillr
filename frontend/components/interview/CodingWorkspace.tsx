@@ -33,10 +33,13 @@ export function CodingWorkspace({ questionId }: { questionId: string }) {
     const nextLanguage = saved && languages.includes(saved.language)
       ? saved.language
       : "TypeScript";
-    setLanguage(nextLanguage);
-    setCode(typeof saved?.code === "string" ? saved.code : starterCode[nextLanguage]);
-    setSaveState(saved ? "Draft restored from this device" : "Draft saves on this device");
-    setLoadedQuestionId(questionId);
+    const restoreTimer = window.setTimeout(() => {
+      setLanguage(nextLanguage);
+      setCode(typeof saved?.code === "string" ? saved.code : starterCode[nextLanguage]);
+      setSaveState(saved ? "Draft restored from this device" : "Draft saves on this device");
+      setLoadedQuestionId(questionId);
+    }, 0);
+    return () => window.clearTimeout(restoreTimer);
   }, [questionId]);
 
   useEffect(() => {
