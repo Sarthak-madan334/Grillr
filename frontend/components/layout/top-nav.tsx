@@ -137,7 +137,7 @@ export function TopNav() {
               </Link>
               <Link
                 href="/signup"
-                className="grillr-nav-signin hidden sm:inline-flex"
+                className="grillr-nav-signin grillr-nav-signup hidden sm:inline-flex"
               >
                 Create account
               </Link>
@@ -194,16 +194,16 @@ export function TopNav() {
                       closeMenu();
                       void handleSignOut();
                     }}
-                    className="flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e7d8c5] bg-white px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none"
+                    className="grillr-mobile-auth grillr-mobile-auth-button"
                   >
                     Sign out
                   </button>
                 ) : (
                   <>
-                    <Link href="/login" onClick={closeMenu} className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[#473a2d] transition hover:bg-[#f2e5d7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-inset motion-reduce:transition-none">
+                    <Link href="/login" onClick={closeMenu} className="grillr-mobile-auth">
                       Sign in
                     </Link>
-                    <Link href="/signup" onClick={closeMenu} className="flex min-h-11 items-center justify-center rounded-xl border border-[#e7d8c5] bg-[linear-gradient(135deg,rgba(48,38,31,0.96),rgba(76,62,54,0.9))] px-3 text-sm font-medium text-[#f9f5f1] shadow-[0_8px_18px_rgba(47,36,30,0.14)] transition hover:shadow-[0_10px_22px_rgba(47,36,30,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8f6b4d] focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffaf4] motion-reduce:transition-none">
+                    <Link href="/signup" onClick={closeMenu} className="grillr-mobile-auth grillr-mobile-auth-primary">
                       Create account
                     </Link>
                   </>

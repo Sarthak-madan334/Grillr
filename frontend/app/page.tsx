@@ -1,100 +1,188 @@
-"use client";
-
+import Link from "next/link";
+import type { CSSProperties } from "react";
 import { HomeCTA } from "@/components/HomeCTA";
+import { ArrowIcon } from "@/components/landing/ArrowIcon";
 import { TopNav } from "@/components/layout/top-nav";
 
-const flowSteps = [
-  { title: "Choose your interview", description: "Select your role, experience level, and interview style.", icon: "compass" },
-  { title: "Answer in real time", description: "Respond naturally as the AI adapts with relevant follow-ups.", icon: "waveform" },
-  { title: "Get honest feedback", description: "Review speech metrics, strengths, and the clearest next improvements.", icon: "pulse" },
-  { title: "Retry and track progress", description: "Practice again and see your confidence build over time.", icon: "trend" },
+const practiceSteps = [
+  {
+    number: "01",
+    title: "Choose your direction",
+    description:
+      "Pick a role, experience level, and interview style. We shape the session around what you need.",
+  },
+  {
+    number: "02",
+    title: "Find your rhythm",
+    description:
+      "Answer out loud, think at your own pace, and get thoughtful follow-ups as you go.",
+  },
+  {
+    number: "03",
+    title: "Leave with a plan",
+    description:
+      "Get clear notes on your answers and delivery, then try again with a little more confidence.",
+  },
 ];
-
-function FlowIcon({ icon }: { icon: string }) {
-  if (icon === "compass") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="m14.8 9.2-1.7 3.9-3.9 1.7 1.7-3.9 3.9-1.7Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5" /></svg>;
-  }
-
-  if (icon === "pulse") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M3 12h4l2.2-6 4.1 12 2.2-6H21" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg>;
-  }
-
-  if (icon === "trend") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M4 17 10 11l4 4 6-8M15 7h5v5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" /></svg>;
-  }
-
-  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5"><path d="M4 13v-2M8 16V8M12 19V5M16 16V8M20 13v-2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" /></svg>;
-}
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen text-[#241d1a]">
+    <main className="landing-page">
+      <div className="landing-atmosphere" aria-hidden="true">
+        <span className="landing-orb landing-orb-one" />
+        <span className="landing-orb landing-orb-two" />
+      </div>
       <TopNav />
 
-      <section className="mx-auto max-w-6xl px-4 pb-12 pt-7 sm:px-6 sm:pb-16 sm:pt-10 lg:px-8">
-        <div className="transform-gpu grid items-center gap-8 transition-[transform,box-shadow] duration-300 sm:rounded-[38px] sm:border sm:border-[#d2d2d7] sm:bg-white sm:px-5 sm:py-4 sm:shadow-[0_28px_90px_rgba(0,0,0,0.06)] sm:[transform:perspective(1200px)_translateZ(0)] sm:hover:[transform:perspective(1200px)_translateY(-3px)] sm:hover:shadow-[0_34px_100px_rgba(0,0,0,0.1)] lg:grid-cols-[1.2fr_0.8fr] lg:px-6 lg:py-6">
-          <div className="rounded-[28px] border border-[#d2d2d7] bg-white px-5 py-9 shadow-[0_18px_50px_rgba(0,0,0,0.04)] sm:rounded-none sm:border-0 sm:px-3 sm:py-8 sm:shadow-none lg:px-4 lg:py-10">
-            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-[#424245] sm:mb-4">
-              Speak. Practice. Grow.
-            </p>
-            <h1 className="group/headline max-w-xl text-3xl font-semibold tracking-tight text-[#201a17] sm:text-4xl lg:text-[3rem]">
-              <span className="inline-block transition duration-300 group-hover/headline:-translate-y-0.5">
-                Turn every answer into momentum.
+      <section className="landing-hero" aria-labelledby="landing-title">
+        <div className="landing-container landing-hero-grid">
+          <div className="landing-copy">
+            <p className="landing-eyebrow">
+              <span className="landing-eyebrow-mark" aria-hidden="true">
+                <span />
+                <span />
+                <span />
               </span>
+              Interview practice, in a better rhythm
+            </p>
+            <h1 id="landing-title">
+              Show up as
+              <br />
+              <span>your best self.</span>
             </h1>
-            <p className="mt-6 max-w-lg text-base leading-7 text-[#6e6e73] sm:mt-5 sm:text-lg sm:leading-8">
-              Grillr helps candidates sharpen answers, improve delivery, and build confidence with focused mock interviews and structured feedback.
+            <p className="landing-intro">
+              A thoughtful space to practice out loud, get useful feedback, and
+              feel more like yourself when it counts.
             </p>
 
             <HomeCTA />
+
+            <div className="landing-reassurance">
+              <span className="landing-reassurance-icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">
+                  <path d="M10 2.7 16 5v4.8c0 3.6-2.5 6.1-6 7.5-3.5-1.4-6-3.9-6-7.5V5l6-2.3Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+                  <path d="m7.4 10 1.7 1.7 3.6-3.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              Built for honest practice <span aria-hidden="true">·</span> Practice at your pace
+            </div>
           </div>
 
-          <div className="rounded-[30px] border border-[#d2d2d7] bg-white p-4 shadow-[0_18px_40px_rgba(0,0,0,0.06)] sm:p-5">
-            <div className="rounded-[24px] border border-[#d2d2d7] bg-white p-5 shadow-[0_14px_30px_rgba(0,0,0,0.04)]">
-              <div className="mb-5 flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-[#424245]">Current session</p>
-                  <h2 className="mt-2 text-xl font-semibold text-[#1d1d1f]">Software Engineer</h2>
+          <div className="landing-preview">
+            <div className="landing-preview-glow" aria-hidden="true" />
+            <article className="landing-session glass-surface">
+              <div className="landing-session-topline">
+                <div className="landing-session-label">
+                  <span className="landing-live-dot" />
+                  SAMPLE SESSION
                 </div>
-                <div className="rounded-full bg-[#dff5e8] px-2.5 py-1 text-xs font-medium text-[#1c7c4d]">
-                  Live
+                <span className="landing-more-button" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              </div>
+
+              <div className="landing-session-heading">
+                <div>
+                  <p>Product designer</p>
+                  <h2>A little practice goes a long way.</h2>
+                </div>
+                <div className="landing-session-avatar" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="none" className="h-5 w-5">
+                    <path d="M16 4.5v23M4.5 16h23M7.9 7.9l16.2 16.2m0-16.2L7.9 24.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    <circle cx="16" cy="16" r="4.5" fill="currentColor" fillOpacity=".16" stroke="currentColor" strokeWidth="1.4" />
+                  </svg>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#d2d2d7] bg-[#f5f5f7] p-4">
-                <p className="text-sm text-[#424245]">Question</p>
-                <p className="mt-2 text-base font-medium text-[#1d1d1f]">
-                  Tell me about a time you improved a system under pressure.
+              <div className="landing-question-card">
+                <div className="landing-question-meta">
+                  <span>YOUR NEXT QUESTION</span>
+                  <span>02 <i /> 06</span>
+                </div>
+                <p>
+                  Tell me about a time you made a complicated experience feel
+                  simple.
                 </p>
               </div>
 
-              <div className="mt-4 flex items-center justify-between text-sm text-[#6e6e73]">
-                <span>Question 3 of 8</span>
-                <span>18:42 remaining</span>
+              <div className="landing-listening-row">
+                <div className="landing-waveform" aria-hidden="true">
+                  {[12, 23, 16, 31, 20, 35, 15, 27, 12, 21, 32, 17, 26, 13, 22, 34, 16, 25, 12, 20, 30, 15, 24, 11, 19, 28, 14, 22, 10, 17].map((height, index) => (
+                    <span key={index} style={{ "--wave-height": `${height}px`, "--wave-delay": `${index * -45}ms` } as CSSProperties} />
+                  ))}
+                </div>
+                <div className="landing-listening-copy">
+                  <strong>Take your time</strong>
+                  <span>Your interviewer is listening</span>
+                </div>
+                <span className="landing-mic-mark" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">
+                    <rect x="7" y="2.5" width="6" height="10" rx="3" stroke="currentColor" strokeWidth="1.4" />
+                    <path d="M4.7 9.5a5.3 5.3 0 0 0 10.6 0M10 15v2.5m-3 0h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                  </svg>
+                </span>
               </div>
+            </article>
+
+            <div className="landing-insight glass-surface">
+              <span className="landing-insight-spark" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">
+                  <path d="M10 2.5v15M2.5 10h15M4.7 4.7l10.6 10.6m0-10.6L4.7 15.3" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+                </svg>
+              </span>
+              <div>
+                <strong>One answer at a time.</strong>
+                <span>Small steps. Real progress.</span>
+              </div>
+              <span className="landing-insight-check" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5">
+                  <path d="m3.5 8.2 2.8 2.7 6.2-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
             </div>
           </div>
         </div>
       </section>
 
-      <section aria-labelledby="grillr-flow-heading" className="mx-auto max-w-6xl px-4 pb-10 sm:px-6 sm:pb-12 lg:px-8">
-        <div className="border-b border-[#e7d8c5]/80 pb-10 sm:pb-12">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#7a5f48]">The Grillr flow</p>
-          <h2 id="grillr-flow-heading" className="mt-3 text-2xl font-semibold tracking-tight text-[#201a17] sm:text-3xl">Practice with purpose.</h2>
-          <p className="mt-3 max-w-xl text-base leading-7 text-[#5e4d40]">A focused loop designed to make every interview answer stronger.</p>
+      <section className="landing-method" aria-labelledby="landing-method-title">
+        <div className="landing-container">
+          <div className="landing-section-heading">
+            <div>
+              <p className="landing-section-kicker">A practice that feels human</p>
+              <h2 id="landing-method-title">More confidence, one conversation at a time.</h2>
+            </div>
+            <p className="landing-section-summary">
+              No scripts to memorize. Just a calm place to get clearer, more
+                  comfortable, and ready for what comes next.
+            </p>
+          </div>
 
-          <ol className="mt-8 grid gap-7 border-l border-[#dfcdb9] pl-5 sm:mt-10 sm:gap-8 sm:pl-6 md:grid-cols-4 md:gap-6 md:border-l-0 md:pl-0">
-            {flowSteps.map((step, index) => (
-              <li key={step.title} className="relative md:pr-4 last:pr-0 md:after:absolute md:after:left-12 md:after:right-0 md:after:top-4 md:after:border-t md:after:border-[#dfcdb9] md:last:after:hidden">
-                <div className="absolute -left-[2.1rem] top-0 flex h-8 w-8 items-center justify-center bg-[#f7f3ed] text-[#a27c5b] md:static md:h-auto md:w-auto md:justify-start md:bg-transparent">
-                  <FlowIcon icon={step.icon} />
-                </div>
-                <p className="relative z-10 text-xs font-semibold tracking-[0.16em] text-[#a27c5b]">0{index + 1}</p>
-                <h3 className="mt-3 text-base font-semibold text-[#201a17]">{step.title}</h3>
-                <p className="mt-2 max-w-[15rem] text-sm leading-6 text-[#5e4d40]">{step.description}</p>
+          <ol className="landing-steps">
+            {practiceSteps.map((step) => (
+              <li className="landing-step" key={step.number}>
+                <span className="landing-step-number">{step.number}</span>
+                <div className="landing-step-rule" aria-hidden="true" />
+                <h3>{step.title}</h3>
+                <p>{step.description}</p>
               </li>
             ))}
           </ol>
+        </div>
+      </section>
+
+      <section className="landing-bottom" aria-labelledby="landing-bottom-title">
+        <div className="landing-container">
+          <div className="landing-bottom-card glass-surface">
+            <div>
+              <p className="landing-section-kicker">Your next answer starts here</p>
+              <h2 id="landing-bottom-title">Ready when you are.</h2>
+            </div>
+            <Link href="/interview/setup" className="landing-button landing-button-secondary">
+              Start a practice session <ArrowIcon diagonal />
+            </Link>
+          </div>
         </div>
       </section>
     </main>
