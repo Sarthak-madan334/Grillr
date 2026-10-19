@@ -838,3 +838,91 @@ body:has(.landing-page) { background: #08090a; color: #f2f1ec; }
   .landing-preview:hover .landing-session { transform: none; }
   .site-footer-explore a:hover { transform: none; }
 }
+
+/* Landing navigation: a single floating capsule with a quiet active state. */
+.landing-page .grillr-nav-shell {
+  border: 0;
+  padding: 10px clamp(16px,2.2vw,40px) 0;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.landing-page .grillr-nav {
+  position: relative;
+  width: 100%;
+  max-width: 1760px;
+  min-height: 82px;
+  margin-inline: auto;
+  border: 1px solid rgba(231,237,225,.14);
+  border-radius: 999px;
+  padding-inline: clamp(18px,2vw,30px);
+  background: linear-gradient(110deg,rgba(31,36,34,.95),rgba(14,17,16,.95));
+  box-shadow: 0 14px 48px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.07);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  backdrop-filter: blur(24px) saturate(1.2);
+}
+.landing-page .grillr-brand-mark {
+  border: 1px solid rgba(208,243,106,.38);
+  background: rgba(208,243,106,.035);
+  box-shadow: none;
+}
+.landing-page .grillr-brand:hover .grillr-brand-mark { box-shadow: 0 0 22px rgba(208,243,106,.1); }
+.landing-page .grillr-nav-links {
+  position: absolute;
+  left: 50%;
+  height: 100%;
+  gap: clamp(6px,1vw,14px);
+  margin-left: 0;
+  transform: translateX(-50%);
+}
+.landing-page .grillr-nav-link {
+  display: inline-flex;
+  min-height: 54px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0 clamp(15px,1.4vw,22px);
+  color: #b9bdb5;
+  font-size: 13px;
+  font-weight: 540;
+  white-space: nowrap;
+}
+.landing-page .grillr-nav-link::after { display: none; }
+.landing-page .grillr-nav-link:hover { color: #f2f3ed; background: rgba(255,255,255,.045); }
+.landing-page .grillr-nav-link.is-active { border-color: rgba(255,255,255,.08); color: #f1f1eb; background: rgba(255,255,255,.075); box-shadow: inset 0 1px 0 rgba(255,255,255,.035); }
+.landing-page .grillr-nav-external { color: #aeb3a8; font-size: 16px; line-height: 1; }
+.landing-page .grillr-nav-signin { min-height: 58px; border: 1px solid rgba(232,238,225,.16); border-radius: 999px; padding-inline: 22px; color: #f0f0ea; background: rgba(255,255,255,.025); font-size: 13px; font-weight: 630; }
+.landing-page .grillr-nav-signin:hover { border-color: rgba(232,238,225,.3); color: #fff; background: rgba(255,255,255,.075); }
+.landing-page .grillr-nav-signup { min-height: 58px; gap: 16px; border: 0; border-radius: 999px; padding-inline: 24px; color: #15190e; background: #c9f55a; box-shadow: 0 8px 26px rgba(179,218,79,.12); font-size: 13px; font-weight: 680; }
+.landing-page .grillr-nav-signup:hover { color: #10130a; background: #d8ff79; box-shadow: 0 10px 30px rgba(179,218,79,.2); transform: translateY(-1px); }
+.landing-page .grillr-nav-cta-arrow { font-size: 18px; font-weight: 400; line-height: 1; transition: transform .2s ease; }
+.landing-page .grillr-nav-signup:hover .grillr-nav-cta-arrow { transform: translateX(3px); }
+
+/* Keep the lime as a signal, not a page-sized wash. */
+.landing-page { background-image: radial-gradient(ellipse at 78% 13%,rgba(117,145,63,.045),transparent 34rem),radial-gradient(ellipse at 8% 39%,rgba(69,92,111,.14),transparent 33rem),repeating-linear-gradient(90deg,transparent 0 119px,rgba(218,226,211,.018) 120px),linear-gradient(180deg,#090b0c 0%,#0c0e10 46%,#101211 100%); }
+.landing-orb-one { background: radial-gradient(circle,rgba(171,210,92,.055),rgba(150,185,87,.012) 60%,transparent 74%); }
+.landing-preview::before { border-color: rgba(208,243,106,.075); }
+.landing-preview::after { border-color: rgba(186,202,158,.08); box-shadow: 0 0 80px rgba(164,201,81,.025),inset 0 0 70px rgba(164,201,81,.02); }
+.landing-preview-glow { background: radial-gradient(ellipse,rgba(184,221,100,.075),rgba(98,125,81,.03) 42%,transparent 72%); }
+.landing-feedback::before { background: radial-gradient(circle,rgba(188,226,102,.055),transparent 70%); }
+.landing-quote { background: radial-gradient(ellipse at 50% 100%,rgba(138,171,63,.045),transparent 55%),linear-gradient(110deg,#0d1110,#111512 52%,#101110); }
+.landing-page .grillr-nav-signup,.landing-page .grillr-mobile-auth-primary { background-image: none; }
+@media (max-width: 1000px) and (min-width: 701px) {
+  .landing-page .grillr-nav-links { gap: 0; }
+  .landing-page .grillr-nav-link { padding-inline: 13px; font-size: 12px; }
+  .landing-page .grillr-nav-signin { padding-inline: 16px; }
+  .landing-page .grillr-nav-signup { gap: 9px; padding-inline: 18px; }
+}
+@media (max-width: 700px) {
+  .landing-page .grillr-nav-shell { padding: 9px 14px 0; }
+  .landing-page .grillr-nav { min-height: 66px; border-radius: 999px; padding-inline: 14px; }
+  .landing-page .grillr-nav-links { display: none; }
+  .landing-page .grillr-menu-button { width: 42px; height: 42px; border-radius: 50%; }
+  .landing-page .grillr-mobile-menu { top: calc(100% + 10px); border-radius: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-page .grillr-nav-cta-arrow { transition: none; }
+  .landing-page .grillr-nav-signup:hover .grillr-nav-cta-arrow { transform: none; }
+}

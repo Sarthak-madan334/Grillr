@@ -5,20 +5,34 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-client";
 
+type NavItem = {
+  href: string;
+  label: string;
+  external?: boolean;
+  activeOnHome?: boolean;
+};
+
 export function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/interview/setup", label: "Practice" },
-    { href: "/history", label: "History" },
-    { href: "/ai-core", label: "AI Core" },
-  ];
+  const navItems: NavItem[] = pathname === "/"
+    ? [
+        { href: "/#landing-title", label: "About", activeOnHome: true },
+        { href: "/#how-it-works", label: "How it works" },
+        { href: "https://github.com/Sarthak-madan334/Grillr", label: "Repository", external: true },
+      ]
+    : [
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/interview/setup", label: "Practice" },
+        { href: "/history", label: "History" },
+        { href: "/ai-core", label: "AI Core" },
+      ];
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href: string, activeOnHome = false) =>
+    (activeOnHome && pathname === "/") || pathname === href || pathname.startsWith(`${href}/`);
 
   const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "there";
   const greetingName = displayName.length > 12 ? `${displayName.slice(0, 12).trimEnd()}…` : displayName;
@@ -101,11 +115,18 @@ export function TopNav() {
         </Link>
 
         <nav className="grillr-nav-links hidden items-center md:flex" aria-label="Primary navigation">
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className={`grillr-nav-link ${isActive(item.href) ? "is-active" : ""}`}>
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const className = `grillr-nav-link ${isActive(item.href, item.activeOnHome) ? "is-active" : ""}`;
+            return item.external ? (
+              <a key={item.href} href={item.href} target="_blank" rel="noreferrer" className={className}>
+                {item.label}<span className="grillr-nav-external" aria-hidden="true">↗</span>
+              </a>
+            ) : (
+              <Link key={item.href} href={item.href} className={className}>
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -139,7 +160,7 @@ export function TopNav() {
                 href="/signup"
                 className="grillr-nav-signin grillr-nav-signup hidden sm:inline-flex"
               >
-                Create account
+                Get started <span className="grillr-nav-cta-arrow" aria-hidden="true">→</span>
               </Link>
             </>
           )}
@@ -179,11 +200,18 @@ export function TopNav() {
           {isMenuOpen ? (
             <nav id="mobile-navigation-menu" aria-label="Mobile navigation" className="grillr-mobile-menu absolute right-0 top-[calc(100%+0.75rem)] w-[min(18rem,calc(100vw-2rem))]">
               <div className="space-y-1">
-                {navItems.map((item) => (
-                  <Link key={item.href} href={item.href} onClick={closeMenu} className={`grillr-mobile-link ${isActive(item.href) ? "is-active" : ""}`}>
-                    {item.label}
-                  </Link>
-                ))}
+                {navItems.map((item) => {
+                  const className = `grillr-mobile-link ${isActive(item.href, item.activeOnHome) ? "is-active" : ""}`;
+                  return item.external ? (
+                    <a key={item.href} href={item.href} target="_blank" rel="noreferrer" onClick={closeMenu} className={className}>
+                      {item.label}<span aria-hidden="true"> ↗</span>
+                    </a>
+                  ) : (
+                    <Link key={item.href} href={item.href} onClick={closeMenu} className={className}>
+                      {item.label}
+                    </Link>
+                  );
+                })}
               </div>
               <div className="my-3 border-t border-[#e7d8c5]" />
               <div className="space-y-1">
@@ -204,7 +232,7 @@ export function TopNav() {
                       Sign in
                     </Link>
                     <Link href="/signup" onClick={closeMenu} className="grillr-mobile-auth grillr-mobile-auth-primary">
-                      Create account
+                      Get started <span aria-hidden="true">→</span>
                     </Link>
                   </>
                 )}
