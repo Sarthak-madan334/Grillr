@@ -9,6 +9,7 @@ import { TopNav } from "@/components/layout/top-nav";
 import { VoiceAnswerPanel } from "@/components/VoiceAnswerPanel";
 import type { TurnState } from "@/components/VoiceAnswerPanel";
 import { ConversationTurnBanner } from "@/components/ConversationTurnBanner";
+import { CodingWorkspace } from "@/components/interview/CodingWorkspace";
 import {
   getInterview,
   getQuestions,
@@ -193,6 +194,7 @@ export default function InterviewSessionPage() {
     () => (draft.trim() ? draft.trim().split(/\s+/).length : 0),
     [draft],
   );
+  const isCodingQuestion = question?.question_type === "coding";
 
   const handleVoiceCompleted = useCallback(async () => {
     try {
@@ -206,12 +208,12 @@ export default function InterviewSessionPage() {
   }, [sessionId]);
 
   const handleVoiceQuestionReady = useCallback(
-    (nextQuestion: { id: string; text: string; questionNumber: number; isFollowUp: boolean }) => {
+    (nextQuestion: { id: string; text: string; questionNumber: number; questionType: string; isFollowUp: boolean }) => {
       setQuestion({
         id: nextQuestion.id,
         question_number: nextQuestion.questionNumber,
         question_text: nextQuestion.text,
-        question_type: session?.interview_type ?? "behavioral",
+        question_type: nextQuestion.questionType,
         is_follow_up: nextQuestion.isFollowUp,
         answered_at: null,
       });
@@ -273,16 +275,17 @@ export default function InterviewSessionPage() {
                 />
                 <div className="interview-prompt">
                   <div className="interview-prompt-topline">
-                    <div className="interview-interviewer-mark" aria-hidden="true"><span>G</span><i /></div>
-                    <div className="interview-interviewer-copy"><span>Grillr interviewer</span><span>{formatInterviewType(session.personality)} · {formatInterviewType(session.interview_type)}</span></div>
+                    <div className="interview-question-mark" aria-hidden="true">{isCodingQuestion ? "{ }" : "Q"}</div>
+                    <div className="interview-interviewer-copy"><span>{isCodingQuestion ? "Coding challenge" : "Interview question"}</span><span>{formatInterviewType(session.personality)} style · {formatInterviewType(session.interview_type)} round</span></div>
                     <span className="interview-prompt-label">{question.is_follow_up ? "FOLLOW-UP" : `QUESTION ${String(question.question_number).padStart(2, "0")}`}</span>
                   </div>
                   <div className="interview-prompt-rule" />
-                  <p className="interview-overline">{question.is_follow_up ? "A follow-up for you" : "Your question"}</p>
+                  <p className="interview-overline">{question.is_follow_up ? "A follow-up for you" : isCodingQuestion ? "Your coding prompt" : "Your question"}</p>
                   <h2 id="question-heading">{question.question_text}</h2>
-                  <p className="interview-prompt-hint">Take a moment to collect your thoughts. Answer as you would in a real conversation; there is no need to rush.</p>
+                  <p className="interview-prompt-hint">{isCodingQuestion ? "Clarify the examples, talk through your approach, then work through the implementation at your own pace." : "Take a moment to collect your thoughts. Answer as you would in a real conversation; there is no need to rush."}</p>
                   <div className="interview-prompt-foot"><span><span className="interview-live-indicator" /> {turnState === "asking" ? "Interviewer is speaking" : turnState === "processing" ? "Reviewing your response" : "Interview in progress"}</span><span>{session.experience_level} level</span></div>
                 </div>
+                {isCodingQuestion ? <CodingWorkspace key={question.id} questionId={question.id} /> : null}
                 <ConversationTurnBanner state={turnState} />
                 <div className="interview-transcript" aria-label="Live answer transcript">
                   <div className="interview-answer-header"><div><p className="interview-overline">Your response</p><h3>{wordCount > 0 ? "Your answer, so far" : "Your words will appear here"}</h3></div><span className="interview-word-count"><strong>{wordCount}</strong> {wordCount === 1 ? "word" : "words"}</span></div>
@@ -290,9 +293,9 @@ export default function InterviewSessionPage() {
                 </div>
               </div>
               <aside className="interview-sidebar" aria-label="Interview guidance">
-                <div className="interview-sidebar-person"><div className="interview-avatar" aria-hidden="true"><span>G</span><div className="interview-avatar-orbit" /></div><p className="interview-overline">Your interviewer</p><h3>Grillr</h3><p className="interview-sidebar-personality">{formatInterviewType(session.personality)} style</p><span className="interview-listening-status"><i /> {turnState === "listening" ? "Ready for your answer" : turnState === "asking" ? "Speaking the question" : turnState === "processing" ? "Reviewing your answer" : "Session complete"}</span></div>
-                <div className="interview-sidebar-section"><p className="interview-overline">A useful answer</p><ol className="interview-answer-cues"><li><span>01</span><div><strong>Be direct</strong><small>Lead with your main point.</small></div></li><li><span>02</span><div><strong>Get specific</strong><small>Use a real example or detail.</small></div></li><li><span>03</span><div><strong>Close the loop</strong><small>Share the result or takeaway.</small></div></li></ol></div>
-                <div className="interview-sidebar-note"><span aria-hidden="true">i</span><p>Your spoken answer is transcribed and analyzed for clarity and delivery.</p></div>
+                <div className="interview-sidebar-section"><p className="interview-overline">In this round</p><h3 className="interview-sidebar-heading">{formatInterviewType(session.interview_type)}</h3><p className="interview-sidebar-copy">{session.experience_level} level · {formatInterviewType(session.personality)} interview style</p></div>
+                <div className="interview-sidebar-section"><p className="interview-overline">{isCodingQuestion ? "How to approach it" : "A useful answer"}</p><ol className="interview-answer-cues"><li><span>01</span><div><strong>{isCodingQuestion ? "Clarify" : "Be direct"}</strong><small>{isCodingQuestion ? "Confirm inputs and edge cases." : "Lead with your main point."}</small></div></li><li><span>02</span><div><strong>{isCodingQuestion ? "Explain" : "Get specific"}</strong><small>{isCodingQuestion ? "Share a simple plan before coding." : "Use a real example or detail."}</small></div></li><li><span>03</span><div><strong>{isCodingQuestion ? "Review" : "Close the loop"}</strong><small>{isCodingQuestion ? "Check complexity and edge cases." : "Share the result or takeaway."}</small></div></li></ol></div>
+                <div className="interview-sidebar-note"><span aria-hidden="true">i</span><p>{isCodingQuestion ? "Your code draft is saved only in this browser. Use the microphone to explain your reasoning." : "Take a breath between thoughts. The microphone picks up your answer as you speak."}</p></div>
               </aside>
             </section>
             <div className="interview-exit"><Link href="/dashboard">← <span>Exit interview</span></Link><span>One question at a time</span></div>

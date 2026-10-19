@@ -241,6 +241,7 @@ def test_websocket_continues_pipeline_after_transcript(client, monkeypatch):
                 break
         assert question_created is not None
         assert question_created["data"]["text"]
+        assert question_created["data"]["question_type"] == "coding"
         assert question_created["data"]["audio_url"].endswith("/audio")
 
     with SessionLocal() as db:

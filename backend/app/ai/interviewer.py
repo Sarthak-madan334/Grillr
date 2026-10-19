@@ -2,14 +2,15 @@ import logging
 import json
 from typing import Any
 
-from app.services.providers import AIInterviewer, FollowUpDecision
+from app.services.providers import AIInterviewer, FollowUpDecision, MockAIInterviewer
 from app.ai.core import AICore
 from app.ai.prompts import (
     build_interviewer_system_message,
     build_conversation_history,
     build_first_question_prompt,
     build_follow_up_decision_prompt,
-    build_next_question_prompt
+    build_next_question_prompt,
+    build_coding_question_prompt,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,17 @@ class LLMAIInterviewer(AIInterviewer):
         except Exception as e:
             logger.error(f"LLM AIInterviewer failed on next_question: {e}")
             return f"Thank you. Could you share another significant accomplishment as a {job_role}?"
+
+    def coding_question(self, job_role: str, question_number: int, *, difficulty: str = "medium") -> str:
+        messages = [
+            build_interviewer_system_message(job_role, "technical coding", difficulty=difficulty),
+            build_coding_question_prompt(job_role, question_number, difficulty),
+        ]
+        try:
+            return self.ai_core.generate_text(messages)
+        except Exception as exc:
+            logger.error("LLM coding question generation failed: %s", exc)
+            return MockAIInterviewer().coding_question(job_role, question_number, difficulty=difficulty)
 
     def decide_follow_up(
         self,

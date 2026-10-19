@@ -220,6 +220,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                         "text": next_question.question_text,
                         "question_text": next_question.question_text,
                         "question_number": next_question.question_number,
+                        "question_type": next_question.question_type,
                         "is_follow_up": next_question.is_follow_up,
                         "audio_url": f"/api/v1/questions/{next_question.id}/audio",
                     },

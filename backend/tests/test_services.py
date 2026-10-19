@@ -208,6 +208,27 @@ def test_mock_ai_interviewer():
     assert "DevOps Engineer" in nxt
 
 
+@pytest.mark.parametrize(
+    ("question_count", "expected"),
+    [(1, (1,)), (2, (2,)), (3, (2,)), (4, (2, 3)), (5, (2, 4)), (6, (2, 5))],
+)
+def test_technical_interviews_schedule_one_or_two_coding_questions(question_count, expected):
+    session = SimpleNamespace(interview_type="technical", question_count=question_count)
+    assert InterviewService._coding_question_numbers(session) == expected
+
+
+def test_non_technical_interviews_do_not_schedule_coding_questions():
+    session = SimpleNamespace(interview_type="behavioral", question_count=5)
+    assert InterviewService._coding_question_numbers(session) == ()
+
+
+def test_mock_ai_interviewer_generates_a_coding_prompt():
+    prompt = MockAIInterviewer().coding_question("Software Engineer", 2)
+    assert "Software Engineer" in prompt
+    assert "implement" in prompt
+    assert "complexity" in prompt
+
+
 def test_mock_interviewer_personality_and_difficulty_change_generation():
     ai = MockAIInterviewer()
 

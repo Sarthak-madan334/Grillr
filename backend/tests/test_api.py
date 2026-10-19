@@ -226,6 +226,29 @@ def test_question_count_progresses_and_completes(client):
     assert interview["current_question_number"] == 2
 
 
+def test_technical_interview_schedules_two_typed_coding_questions(client):
+    payload = interview_payload()
+    payload.update({"interview_type": "technical", "question_count": 5})
+    created = client.post("/api/v1/interviews", json=payload).json()
+    session_id = created["id"]
+    assert created["questions"][0]["question_type"] == "technical"
+    assert client.post(f"/api/v1/interviews/{session_id}/start").status_code == 200
+
+    planned_types = [created["questions"][0]["question_type"]]
+    for _ in range(3):
+        questions = client.get(f"/api/v1/interviews/{session_id}/questions").json()["items"]
+        current = next(item for item in questions if item["answered_at"] is None)
+        response = client.post(
+            f"/api/v1/interviews/questions/{current['id']}/answer",
+            json={"transcript": "I would clarify the inputs, explain the approach, and cover edge cases.", "duration": 12},
+        )
+        assert response.status_code == 201
+        questions = client.get(f"/api/v1/interviews/{session_id}/questions").json()["items"]
+        planned_types = [item["question_type"] for item in questions if not item["is_follow_up"]]
+
+    assert planned_types[:4] == ["technical", "coding", "technical", "coding"]
+
+
 def test_contextual_follow_up_is_persisted_and_limited(client, monkeypatch):
     class FollowUpAI:
         def first_question(self, job_role, interview_type):

@@ -23,6 +23,7 @@ WHISPER_SAMPLE_RATE = 16000
 class AIInterviewer(Protocol):
     def first_question(self, job_role: str, interview_type: str, *, personality: str = "professional", difficulty: str = "medium") -> str: ...
     def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]], *, personality: str = "professional", difficulty: str = "medium") -> str: ...
+    def coding_question(self, job_role: str, question_number: int, *, difficulty: str = "medium") -> str: ...
     def decide_follow_up(
         self,
         *,
@@ -258,6 +259,11 @@ class MockAIInterviewer:
         detail = "including trade-offs and measurable impact" if difficulty == "hard" else "with one concrete example" if difficulty == "medium" else "in one clear sentence"
         prefix = "Challenge yourself: " if personality == "challenging" else "Could you " if personality == "friendly" else ""
         return f"{prefix}describe your most meaningful contribution as a {job_role}, {detail}."
+
+    def coding_question(self, job_role: str, question_number: int, *, difficulty: str = "medium") -> str:
+        if question_number % 2 == 0:
+            return f"For a {job_role} role, implement a function that merges overlapping meeting intervals. Given a list of [start, end] pairs, return the smallest list of non-overlapping intervals that covers them all. Explain your time and space complexity."
+        return f"For a {job_role} role, implement a function that returns the first non-repeating character in a string, or null if every character repeats. Explain your time and space complexity."
 
     def decide_follow_up(self, **_: Any) -> FollowUpDecision:
         return FollowUpDecision(action="next_question", reason="The answer can proceed to the next planned question")

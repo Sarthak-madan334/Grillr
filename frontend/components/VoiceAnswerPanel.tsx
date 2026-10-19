@@ -16,7 +16,7 @@ type VoiceAnswerPanelProps = {
   onTranscript?: (transcript: string) => void;
   onTurnStateChange?: (state: TurnState) => void;
   onAnswerEvaluated?: () => void;
-  onQuestionReady?: (question: { id: string; text: string; questionNumber: number; isFollowUp: boolean }) => void;
+  onQuestionReady?: (question: { id: string; text: string; questionNumber: number; questionType: string; isFollowUp: boolean }) => void;
   onCompleted?: () => void;
 };
 
@@ -132,7 +132,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
         socket.addEventListener("open", () => socket?.send(JSON.stringify({ type: "auth", token })));
         socket.addEventListener("message", (event) => {
           try {
-            const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; state?: TurnState; message?: string; audio_base64?: string; media_type?: string; question_id?: string; question_number?: number; is_follow_up?: boolean } };
+            const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; state?: TurnState; message?: string; audio_base64?: string; media_type?: string; question_id?: string; question_number?: number; question_type?: string; is_follow_up?: boolean } };
             if (message.type === "auth.ok") {
               socketAuthenticatedRef.current = true;
               setIsSocketReady(true);
@@ -196,6 +196,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
                 id: message.data.question_id,
                 text: message.data.text,
                 questionNumber: message.data.question_number ?? 0,
+                questionType: message.data.question_type ?? "technical",
                 isFollowUp: Boolean(message.data.is_follow_up),
               });
             }

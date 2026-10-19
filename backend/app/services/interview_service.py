@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -15,6 +16,8 @@ from app.schemas.answer import AnswerCreate
 from app.schemas.interview import InterviewCreate
 from app.services.providers import FollowUpDecision, MockAIInterviewer, MockSpeechAnalyzer, TextToSpeech, create_answer_evaluator, create_text_to_speech
 from app.services.speech_controller import SpeechState
+
+logger = logging.getLogger(__name__)
 
 
 class AnswerEvaluationError(RuntimeError):
@@ -71,12 +74,52 @@ class InterviewService:
         except TypeError:
             return self.ai.next_question(job_role, question_number, history)
 
+    @staticmethod
+    def _coding_question_numbers(session: InterviewSession) -> tuple[int, ...]:
+        if session.interview_type != "technical":
+            return ()
+        count = session.question_count
+        coding_count = 1 if count < 4 else 2
+        return tuple(
+            sorted(
+                {
+                    max(1, min(count, round((index + 1) * (count + 1) / (coding_count + 1))))
+                    for index in range(coding_count)
+                }
+            )
+        )
+
+    def _planned_question(self, session: InterviewSession, question_number: int) -> tuple[str, str]:
+        if question_number in self._coding_question_numbers(session):
+            coding_generator = getattr(self.ai, "coding_question", None)
+            if callable(coding_generator):
+                try:
+                    return coding_generator(session.job_role, question_number, difficulty=session.difficulty), "coding"
+                except Exception:
+                    logger.warning("Coding prompt generation failed; using the local prompt fallback", exc_info=True)
+            fallback = MockAIInterviewer().coding_question(session.job_role, question_number, difficulty=session.difficulty)
+            return fallback, "coding"
+        return (
+            self._next_question(
+                session.job_role,
+                question_number,
+                self._history(session),
+                session.personality,
+                self._adaptive_difficulty(session),
+            ),
+            session.interview_type,
+        )
+
     def create(self, user_id: UUID, data: InterviewCreate) -> InterviewSession:
         session = InterviewSession(user_id=user_id, interview_type=data.interview_type.value, job_role=data.job_role, experience_level=data.experience_level, difficulty=data.difficulty, personality=data.personality, duration=data.duration, question_count=data.question_count, resume_url=str(data.resume_url) if data.resume_url else None, job_description=data.job_description)
         self.db.add(session)
         self.db.flush()
-        question_text = self._first_question(data.job_role, data.interview_type.value, data.personality, data.difficulty)
-        question = self._create_question(session.id, 1, question_text, data.interview_type.value)
+        if 1 in self._coding_question_numbers(session):
+            question_text, question_type = self._planned_question(session, 1)
+        else:
+            question_text = self._first_question(data.job_role, data.interview_type.value, data.personality, data.difficulty)
+            question_type = data.interview_type.value
+        question = self._create_question(session.id, 1, question_text, question_type)
         self.db.add(question)
         self.db.commit()
         created = self.repository.get_owned(session.id, user_id)
@@ -261,14 +304,8 @@ class InterviewService:
             return self.complete(session.id, user_id)
 
         next_question_number = len(planned) + 1
-        next_question_text = self._next_question(
-            session.job_role,
-            next_question_number,
-            self._history(session),
-            session.personality,
-            self._adaptive_difficulty(session),
-        )
-        next_question = self._create_question(session.id, 0, next_question_text, session.interview_type)
+        next_question_text, next_question_type = self._planned_question(session, next_question_number)
+        next_question = self._create_question(session.id, 0, next_question_text, next_question_type)
         self._insert_question(session, next_question)
         self.db.commit()
         return self.get(session.id, user_id)
@@ -363,14 +400,8 @@ class InterviewService:
             next_planned = next((item for item in planned if item.question_number > question.question_number and not item.answers), None)
             if next_planned is None and len(answered_planned) < question.session.question_count:
                 next_question_number = len(planned) + 1
-                next_question_text = self._next_question(
-                    question.session.job_role,
-                    next_question_number,
-                    self._history(question.session),
-                    question.session.personality,
-                    self._adaptive_difficulty(question.session),
-                )
-                next_question = self._create_question(question.session_id, 0, next_question_text, question.session.interview_type)
+                next_question_text, next_question_type = self._planned_question(question.session, next_question_number)
+                next_question = self._create_question(question.session_id, 0, next_question_text, next_question_type)
                 self._insert_question(question.session, next_question)
         self.db.commit()
         self.db.refresh(answer)

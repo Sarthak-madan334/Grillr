@@ -38,6 +38,17 @@ def build_next_question_prompt(question_number: int, difficulty: str = "medium")
     }
 
 
+def build_coding_question_prompt(job_role: str, question_number: int, difficulty: str = "medium") -> dict[str, str]:
+    return {
+        "role": "user",
+        "content": (
+            f"Create one concise, role-relevant coding interview problem for a {job_role} at {difficulty} difficulty. "
+            f"This is coding exercise {question_number}. State the task, expected input/output, and one useful constraint. "
+            "Ask the candidate to implement a solution and explain complexity. Do not provide the solution, hints, markdown code fences, or conversational filler."
+        ),
+    }
+
+
 def build_follow_up_decision_prompt(question: str, answer: str, evaluation: dict, follow_up_count: int, personality: str = "professional", difficulty: str = "medium") -> dict[str, str]:
     return {
         "role": "user",
