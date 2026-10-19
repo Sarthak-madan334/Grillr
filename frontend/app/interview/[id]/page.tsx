@@ -27,10 +27,11 @@ function formatInterviewType(value: string) {
 
 function LoadingState() {
   return (
-    <div aria-live="polite" className="space-y-5">
-      <div className="h-4 w-32 animate-pulse rounded-full bg-[#eadcc8] motion-reduce:animate-none" />
-      <div className="h-12 max-w-2xl animate-pulse rounded-2xl bg-[#eadcc8] motion-reduce:animate-none" />
-      <div className="h-32 animate-pulse rounded-[24px] bg-[#eadcc8] motion-reduce:animate-none" />
+    <div aria-live="polite" className="interview-loading">
+      <p className="interview-overline"><span className="interview-live-indicator" /> Preparing your interview room</p>
+      <div className="interview-loading-title motion-safe:animate-pulse motion-reduce:animate-none" />
+      <div className="interview-loading-panel motion-safe:animate-pulse motion-reduce:animate-none" />
+      <p className="interview-loading-note">Getting your next question ready…</p>
     </div>
   );
 }
@@ -39,10 +40,10 @@ function CompletionPanel({ summary }: { summary: Summary }) {
   return (
     <section
       aria-labelledby="completion-heading"
-      className="space-y-8"
+      className="interview-completion space-y-8"
       aria-live="polite"
     >
-      <div className="border-b border-[#e7d8c5] pb-8">
+      <div className="interview-completion-heading border-b border-[#e7d8c5] pb-8">
         <Badge className="border-[#d4eadb] bg-[#e5f6eb] text-[#26724d]">
           Interview complete
         </Badge>
@@ -57,7 +58,7 @@ function CompletionPanel({ summary }: { summary: Summary }) {
           improvement into your next answer.
         </p>
       </div>
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="interview-completion-stats grid gap-5 border-b border-[#e7d8c5] pb-8 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border-l-2 border-[#b8916d] pl-4">
           <p className="text-xs uppercase tracking-[0.14em] text-[#7a5f48]">
             Overall score
@@ -222,20 +223,10 @@ export default function InterviewSessionPage() {
   );
 
   return (
-    <main className="min-h-screen text-[#241d1a]">
+    <main className="interview-room min-h-screen text-[#241d1a]">
+      <a className="interview-skip-link" href="#interview-content">Skip to interview</a>
       <TopNav />
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        {session ? (
-          <VoiceAnswerPanel
-            sessionId={session.id}
-            hidden={state !== "ready"}
-            disabled={state !== "ready" || turnState === "asking" || turnState === "processing"}
-            onTranscript={setDraft}
-            onTurnStateChange={setTurnState}
-            onQuestionReady={handleVoiceQuestionReady}
-            onCompleted={handleVoiceCompleted}
-          />
-        ) : null}
+      <div id="interview-content" tabIndex={-1} className="interview-room-container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         {state === "loading" ? (
           <LoadingState />
         ) : state === "completed" && summary ? (
@@ -258,63 +249,53 @@ export default function InterviewSessionPage() {
           </section>
         ) : session && question ? (
           <>
-            <header className="mb-10 flex flex-col gap-6 border-b border-[#e7d8c5] pb-6 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7a5f48]">
-                  {formatInterviewType(session.interview_type)} interview
-                </p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#201a17]">
-                  {session.job_role}
-                </h1>
-                <p className="mt-2 text-sm text-[#5e4d40]">
-                  {formatInterviewType(session.personality)} interviewer ·{" "}
-                  {session.experience_level} level
-                </p>
+            <header className="interview-session-header">
+              <div className="interview-session-title">
+                <p className="interview-overline"><span className="interview-live-indicator" /> Live practice session <span className="interview-overline-separator">/</span> {formatInterviewType(session.interview_type)}</p>
+                <h1>{session.job_role}</h1>
+                <p className="interview-session-detail">{session.experience_level} level <span aria-hidden="true">·</span> {formatInterviewType(session.personality)} interviewer</p>
               </div>
-              <div className="w-full sm:max-w-xs">
-                <div className="flex justify-between text-sm font-medium text-[#5e4d40]">
-                  <span>
-                    Question {question.question_number} of{" "}
-                    {session.question_count}
-                  </span>
-                  <span>{Math.round(progress)}%</span>
-                </div>
-                <div
-                  className="mt-2 h-2 overflow-hidden rounded-full bg-[#eadcc8]"
-                  role="progressbar"
-                  aria-label="Interview progress"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.round(progress)}
-                >
-                  <div
-                    className="h-full rounded-full bg-[#a27c5b] transition-[width] duration-500 motion-reduce:transition-none"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
+              <div className="interview-progress">
+                <div className="interview-progress-label"><span>Question <strong>{String(question.question_number).padStart(2, "0")}</strong> <span className="interview-progress-total">of {String(session.question_count).padStart(2, "0")}</span></span><span>{Math.round(progress)}% complete</span></div>
+                <div className="interview-progress-track" role="progressbar" aria-label="Interview progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}><span style={{ width: `${progress}%` }} /></div>
               </div>
             </header>
-            <section aria-labelledby="question-heading" className="max-w-3xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7a5f48]">
-                  Grillr asks
-                </p>
-                <h2
-                  id="question-heading"
-                  className="mt-5 text-3xl font-semibold leading-tight tracking-tight text-[#201a17] sm:text-4xl"
-                >
-                  {question.question_text}
-                </h2>
-                <ConversationTurnBanner state={turnState} />
-                <div className="mt-8 rounded-[24px] border border-[#e7d8c5] bg-[rgba(255,255,255,0.56)] p-5 text-sm text-[#5e4d40]">
-                  <p className="font-semibold text-[#201a17]">Voice answer required</p>
-                  <p className="mt-2 leading-6">
-                    Please answer this question out loud. The interview expects a spoken response and will analyze your delivery as you talk.
-                  </p>
-                  <p className="mt-2 text-xs text-[#7a5f48]" aria-live="polite">
-                    Current transcript length: {wordCount} {wordCount === 1 ? "word" : "words"}
-                  </p>
+            <section aria-labelledby="question-heading" className="interview-workspace">
+              <div className="interview-main-column">
+                <VoiceAnswerPanel
+                  sessionId={session.id}
+                  hidden={state !== "ready"}
+                  disabled={state !== "ready" || turnState === "asking" || turnState === "processing"}
+                  onTranscript={setDraft}
+                  onTurnStateChange={setTurnState}
+                  onQuestionReady={handleVoiceQuestionReady}
+                  onCompleted={handleVoiceCompleted}
+                />
+                <div className="interview-prompt">
+                  <div className="interview-prompt-topline">
+                    <div className="interview-interviewer-mark" aria-hidden="true"><span>G</span><i /></div>
+                    <div className="interview-interviewer-copy"><span>Grillr interviewer</span><span>{formatInterviewType(session.personality)} · {formatInterviewType(session.interview_type)}</span></div>
+                    <span className="interview-prompt-label">{question.is_follow_up ? "FOLLOW-UP" : `QUESTION ${String(question.question_number).padStart(2, "0")}`}</span>
+                  </div>
+                  <div className="interview-prompt-rule" />
+                  <p className="interview-overline">{question.is_follow_up ? "A follow-up for you" : "Your question"}</p>
+                  <h2 id="question-heading">{question.question_text}</h2>
+                  <p className="interview-prompt-hint">Take a moment to collect your thoughts. Answer as you would in a real conversation; there is no need to rush.</p>
+                  <div className="interview-prompt-foot"><span><span className="interview-live-indicator" /> {turnState === "asking" ? "Interviewer is speaking" : turnState === "processing" ? "Reviewing your response" : "Interview in progress"}</span><span>{session.experience_level} level</span></div>
                 </div>
+                <ConversationTurnBanner state={turnState} />
+                <div className="interview-transcript" aria-label="Live answer transcript">
+                  <div className="interview-answer-header"><div><p className="interview-overline">Your response</p><h3>{wordCount > 0 ? "Your answer, so far" : "Your words will appear here"}</h3></div><span className="interview-word-count"><strong>{wordCount}</strong> {wordCount === 1 ? "word" : "words"}</span></div>
+                  <p className={wordCount > 0 ? "interview-transcript-copy" : "interview-transcript-placeholder"} aria-live="polite">{draft || "Start recording when you’re ready. Your transcript will appear here as you speak."}</p>
+                </div>
+              </div>
+              <aside className="interview-sidebar" aria-label="Interview guidance">
+                <div className="interview-sidebar-person"><div className="interview-avatar" aria-hidden="true"><span>G</span><div className="interview-avatar-orbit" /></div><p className="interview-overline">Your interviewer</p><h3>Grillr</h3><p className="interview-sidebar-personality">{formatInterviewType(session.personality)} style</p><span className="interview-listening-status"><i /> {turnState === "listening" ? "Ready for your answer" : turnState === "asking" ? "Speaking the question" : turnState === "processing" ? "Reviewing your answer" : "Session complete"}</span></div>
+                <div className="interview-sidebar-section"><p className="interview-overline">A useful answer</p><ol className="interview-answer-cues"><li><span>01</span><div><strong>Be direct</strong><small>Lead with your main point.</small></div></li><li><span>02</span><div><strong>Get specific</strong><small>Use a real example or detail.</small></div></li><li><span>03</span><div><strong>Close the loop</strong><small>Share the result or takeaway.</small></div></li></ol></div>
+                <div className="interview-sidebar-note"><span aria-hidden="true">i</span><p>Your spoken answer is transcribed and analyzed for clarity and delivery.</p></div>
+              </aside>
             </section>
+            <div className="interview-exit"><Link href="/dashboard">← <span>Exit interview</span></Link><span>One question at a time</span></div>
           </>
         ) : null}
       </div>
