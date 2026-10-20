@@ -25,8 +25,8 @@ class ChatProvider(Protocol):
 
 
 class OpenAIChatProvider:
-    def __init__(self, api_key: str | None = None):
-        self.client = OpenAI(api_key=api_key)
+    def __init__(self, api_key: str | None = None, base_url: str | None = None):
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
 
     def complete(self, *, model: str, messages: Sequence[Message], **kwargs: Any) -> Any:
         return self.client.chat.completions.create(model=model, messages=list(messages), **kwargs)
@@ -84,9 +84,10 @@ class AICore:
         provider: ChatProvider | None = None,
         max_attempts: int = 3,
         retry_delay: float = 0.5,
+        base_url: str | None = None,
     ):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
-        self.provider = provider or OpenAIChatProvider(self.api_key)
+        self.provider = provider or OpenAIChatProvider(self.api_key, base_url=base_url)
         self.max_attempts = max(1, max_attempts)
         self.retry_delay = max(0.0, retry_delay)
         self.model = model or os.environ.get("AI_MODEL", "gpt-4o-mini")

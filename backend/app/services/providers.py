@@ -22,7 +22,7 @@ WHISPER_SAMPLE_RATE = 16000
 
 class AIInterviewer(Protocol):
     def first_question(self, job_role: str, interview_type: str, *, personality: str = "professional", difficulty: str = "medium") -> str: ...
-    def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]], *, personality: str = "professional", difficulty: str = "medium") -> str: ...
+    def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]], *, personality: str = "professional", difficulty: str = "medium", interview_type: str = "behavioral") -> str: ...
     def coding_question(self, job_role: str, question_number: int, *, difficulty: str = "medium") -> str: ...
     def decide_follow_up(
         self,
@@ -251,22 +251,91 @@ class AnswerEvaluator(Protocol):
 
 class MockAIInterviewer:
     def first_question(self, job_role: str, interview_type: str, *, personality: str = "professional", difficulty: str = "medium") -> str:
-        tone = {"challenging": "I’d like you to defend", "friendly": "Let’s explore", "concise": "Briefly describe"}.get(personality, "Tell me about")
-        topic = {"easy": "your background", "hard": "a high-impact challenge you solved", "medium": f"your experience relevant to {job_role}"}.get(difficulty, f"your experience relevant to {job_role}")
-        return f"{tone} {topic}."
+        role = job_role.strip() or "this role"
+        role_lower = role.lower()
+        focus = next((label for tokens, label in (
+            (("frontend", "front-end", "web", "ui"), "building accessible, responsive user experiences"),
+            (("backend", "api", "server"), "designing reliable APIs and backend services"),
+            (("data", "analytics", "scientist", "machine learning", "ml"), "turning data into sound product or business decisions"),
+            (("product", "program manager"), "prioritizing work around user needs and measurable outcomes"),
+            (("design", "ux", "research"), "understanding users and validating design decisions"),
+            (("sales", "account executive"), "understanding customer needs and earning their trust"),
+            (("marketing", "content"), "reaching the right audience and measuring campaign impact"),
+            (("devops", "platform", "sre", "cloud"), "keeping services reliable while they scale"),
+        ) if any(token in role_lower for token in tokens)), "the core responsibilities of the role")
+        kind = interview_type.lower().replace("-", "_").replace(" ", "_")
+        questions = {
+            "technical": f"For a {role}, how would you approach {focus}? Walk me through the technical decisions you would make.",
+            "behavioral": f"Tell me about a time you used {focus} in your work as a {role}. What did you do and what changed?",
+            "hr": f"What interests you about this {role}, and what kind of team helps you do your best work?",
+            "system_design": f"How would you design a system for {focus}, and what would you prioritize as it grows?",
+            "company": f"As a {role}, how would you identify the most important customer or business problem to solve first?",
+        }
+        question = questions.get(kind, f"In your work as a {role}, how have you handled {focus}?")
+        if difficulty == "easy":
+            question += " Use one example to explain your approach."
+        elif difficulty == "hard":
+            question += " Include the trade-offs, constraints, and how you would measure success."
+        if personality == "friendly":
+            question = "Let’s start with this: " + question
+        elif personality == "challenging":
+            question = "Be specific and defend your choices: " + question
+        return question
 
-    def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]], *, personality: str = "professional", difficulty: str = "medium") -> str:
-        detail = "including trade-offs and measurable impact" if difficulty == "hard" else "with one concrete example" if difficulty == "medium" else "in one clear sentence"
-        prefix = "Challenge yourself: " if personality == "challenging" else "Could you " if personality == "friendly" else ""
-        return f"{prefix}describe your most meaningful contribution as a {job_role}, {detail}."
+    def next_question(self, job_role: str, question_number: int, history: list[dict[str, str]], *, personality: str = "professional", difficulty: str = "medium", interview_type: str = "behavioral") -> str:
+        answered = next((item["content"] for item in reversed(history) if item.get("role") == "user"), "")
+        topics_by_round = {
+            "technical": ["debugging a difficult issue", "choosing between two implementation approaches", "testing a change that could affect existing users", "improving performance under a real constraint", "handling a technical trade-off"],
+            "hr": ["what motivates you at work", "a time you received difficult feedback", "how you build trust with a new team", "what you want to learn in your next role", "how you handle a disagreement with a colleague"],
+            "system_design": ["scaling a system as usage grows", "keeping a service reliable during a dependency failure", "choosing between consistency and availability", "finding and reducing a system bottleneck", "monitoring a system after launch"],
+            "company": ["prioritizing a customer problem", "deciding how to measure product impact", "balancing customer needs with business goals", "learning from a product launch", "choosing what to improve with limited time"],
+            "behavioral": ["a difficult decision", "a time you worked across teams", "how you measure success", "a mistake that changed your approach", "how you prioritize under pressure"],
+        }
+        topics = topics_by_round.get(interview_type, topics_by_round["behavioral"])
+        topic = topics[(question_number - 2) % len(topics)]
+        if any(term in answered.lower() for term in ("customer", "user", "client")):
+            topic = "how you balanced user needs with technical or business constraints"
+        elif any(term in answered.lower() for term in ("team", "colleague", "stakeholder")):
+            topic = "how you handled disagreement while keeping the work moving"
+        elif any(term in answered.lower() for term in ("launch", "result", "impact", "%", "revenue")):
+            topic = "how you made the outcome repeatable or improved it further"
+        detail = "including the trade-offs and measurable impact" if difficulty == "hard" else "using a specific example" if difficulty == "medium" else "in a few clear sentences"
+        prefix = "Let’s explore " if personality == "friendly" else "Be precise: " if personality == "challenging" else ""
+        round_context = f"in this {interview_type.replace('_', ' ')} interview " if interview_type != "behavioral" else ""
+        return f"{prefix}{round_context}as a {job_role}, how have you handled {topic}? Explain {detail}."
 
     def coding_question(self, job_role: str, question_number: int, *, difficulty: str = "medium") -> str:
+        role = job_role.lower()
+        if any(term in role for term in ("data", "analytics", "scientist", "machine learning")):
+            return f"For a {job_role} role, implement a function that returns the most frequent event types from a stream, ordered by frequency and then name. Explain your time and space complexity."
+        if any(term in role for term in ("frontend", "front-end", "web", "ui")):
+            return f"For a {job_role} role, implement a function that flattens a nested menu tree into an ordered list of visible labels while skipping disabled items. Explain your time and space complexity."
+        if any(term in role for term in ("devops", "platform", "sre", "cloud")):
+            return f"For a {job_role} role, implement a function that groups overlapping service maintenance windows into the smallest set of non-overlapping windows. Explain your time and space complexity."
+        if any(term in role for term in ("backend", "api", "server")):
+            return f"For a {job_role} role, implement a function that tracks requests per user in a rolling time window and reports whether a request is within the limit. Explain your time and space complexity."
         if question_number % 2 == 0:
             return f"For a {job_role} role, implement a function that merges overlapping meeting intervals. Given a list of [start, end] pairs, return the smallest list of non-overlapping intervals that covers them all. Explain your time and space complexity."
         return f"For a {job_role} role, implement a function that returns the first non-repeating character in a string, or null if every character repeats. Explain your time and space complexity."
 
-    def decide_follow_up(self, **_: Any) -> FollowUpDecision:
-        return FollowUpDecision(action="next_question", reason="The answer can proceed to the next planned question")
+    def decide_follow_up(self, *, job_role: str, interview_type: str, experience_level: str, difficulty: str, personality: str, question: str, answer: str, evaluation: dict[str, Any], history: list[dict[str, str]], follow_up_count: int) -> FollowUpDecision:
+        if follow_up_count:
+            return FollowUpDecision(action="next_question", reason="A contextual follow-up has already been asked")
+        words = answer.split()
+        normalized = answer.lower()
+        if len(words) < 24:
+            return FollowUpDecision(
+                action="clarification",
+                question=f"Could you give one specific example from your work as a {job_role} and explain what you personally did?",
+                reason="The answer needs a concrete example and the candidate’s role in it",
+            )
+        if not any(term in normalized for term in ("result", "impact", "improved", "increased", "reduced", "saved", "launched", "measured", "percent", "%", "outcome")):
+            return FollowUpDecision(
+                action="follow_up",
+                question="What was the result of that work, and how did you know it was successful?",
+                reason="The answer described actions but did not include an outcome",
+            )
+        return FollowUpDecision(action="next_question", reason="The answer included enough detail to continue")
 
 
 class MockSpeechToText:

@@ -33,10 +33,18 @@ class InterviewService:
         if ai_interviewer is not None:
             self.ai = ai_interviewer
         else:
-            runtime_settings = get_settings()
-            if runtime_settings.openai_api_key:
+            openai_key = getattr(self.settings, "openai_api_key", None)
+            groq_key = getattr(self.settings, "groq_api_key", None)
+            if openai_key:
                 from app.ai.interviewer import LLMAIInterviewer
-                self.ai = LLMAIInterviewer(api_key=runtime_settings.openai_api_key)
+                self.ai = LLMAIInterviewer(api_key=openai_key)
+            elif groq_key:
+                from app.ai.interviewer import LLMAIInterviewer
+                self.ai = LLMAIInterviewer(
+                    api_key=groq_key,
+                    model=getattr(self.settings, "groq_model", None),
+                    base_url="https://api.groq.com/openai/v1",
+                )
             else:
                 self.ai = MockAIInterviewer()
                 
@@ -55,7 +63,13 @@ class InterviewService:
 
     def _adaptive_difficulty(self, session: InterviewSession) -> str:
         base = self._difficulty_level(session.difficulty)
-        evaluations = [answer.evaluation.overall_score for question in session.questions for answer in question.answers if answer.evaluation]
+        evaluations = [
+            answer.evaluation.overall_score
+            for question in session.questions
+            for answer in question.answers
+            if answer.evaluation
+            and not any("evaluation unavailable" in str(item).lower() for item in (answer.evaluation.weaknesses or []))
+        ]
         if not evaluations:
             return ("easy", "medium", "hard")[base]
         average = sum(evaluations) / len(evaluations)
@@ -68,11 +82,18 @@ class InterviewService:
         except TypeError:
             return self.ai.first_question(job_role, interview_type)
 
-    def _next_question(self, job_role: str, question_number: int, history: list[dict[str, str]], personality: str, difficulty: str) -> str:
+    def _next_session_question(self, session: InterviewSession, question_number: int) -> str:
         try:
-            return self.ai.next_question(job_role, question_number, history, personality=personality, difficulty=difficulty)
+            return self.ai.next_question(
+                session.job_role,
+                question_number,
+                self._history(session),
+                personality=session.personality,
+                difficulty=self._adaptive_difficulty(session),
+                interview_type=session.interview_type,
+            )
         except TypeError:
-            return self.ai.next_question(job_role, question_number, history)
+            return self.ai.next_question(session.job_role, question_number, self._history(session))
 
     @staticmethod
     def _coding_question_numbers(session: InterviewSession) -> tuple[int, ...]:
@@ -99,16 +120,7 @@ class InterviewService:
                     logger.warning("Coding prompt generation failed; using the local prompt fallback", exc_info=True)
             fallback = MockAIInterviewer().coding_question(session.job_role, question_number, difficulty=session.difficulty)
             return fallback, "coding"
-        return (
-            self._next_question(
-                session.job_role,
-                question_number,
-                self._history(session),
-                session.personality,
-                self._adaptive_difficulty(session),
-            ),
-            session.interview_type,
-        )
+        return self._next_session_question(session, question_number), session.interview_type
 
     def create(self, user_id: UUID, data: InterviewCreate) -> InterviewSession:
         session = InterviewSession(user_id=user_id, interview_type=data.interview_type.value, job_role=data.job_role, experience_level=data.experience_level, difficulty=data.difficulty, personality=data.personality, duration=data.duration, question_count=data.question_count, resume_url=str(data.resume_url) if data.resume_url else None, job_description=data.job_description)
@@ -300,9 +312,36 @@ class InterviewService:
             return self.complete(session.id, user_id)
 
         next_question_number = len(questions) + 1
-        next_question_text, next_question_type = self._planned_question(session, next_question_number)
-        next_question = self._create_question(session.id, 0, next_question_text, next_question_type)
-        self._insert_question(session, next_question)
+        answered_question = next((item for item in questions if item.id == answer.question_id), None)
+        if answered_question is not None and answer.evaluation is None:
+            try:
+                evaluation = self.evaluator.evaluate(answer.transcript, answered_question.question_text)
+                answer.evaluation = AnswerEvaluation(answer_id=answer.id, **evaluation)
+                self.db.add(answer.evaluation)
+                self.db.flush()
+            except Exception:
+                logger.warning("Answer evaluation was unavailable during question progression", exc_info=True)
+                evaluation = {}
+        else:
+            evaluation = answer.evaluation
+            if evaluation is not None and not isinstance(evaluation, dict):
+                evaluation = {
+                    "overall_score": evaluation.overall_score,
+                    "scores": evaluation.scores,
+                    "strengths": evaluation.strengths,
+                    "weaknesses": evaluation.weaknesses,
+                    "suggestions": evaluation.suggestions,
+                }
+        decision = self._follow_up_decision(answered_question, answer.transcript, evaluation or {}) if answered_question and len(questions) < session.question_count else FollowUpDecision(action="next_question", reason="No question slots remain")
+        if decision.action in {"follow_up", "clarification"} and decision.question:
+            follow_up = self._create_question(session.id, 0, decision.question, session.interview_type)
+            follow_up.is_follow_up = True
+            follow_up.parent_question_id = answered_question.parent_question_id or answered_question.id
+            self._insert_question(session, follow_up, after=next((item for item in questions if item.id == follow_up.parent_question_id), answered_question))
+        else:
+            next_question_text, next_question_type = self._planned_question(session, next_question_number)
+            next_question = self._create_question(session.id, 0, next_question_text, next_question_type)
+            self._insert_question(session, next_question)
         self.db.commit()
         return self.get(session.id, user_id)
 

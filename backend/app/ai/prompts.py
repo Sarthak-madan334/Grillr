@@ -28,13 +28,17 @@ def build_conversation_history(history: list[dict[str, str]]) -> list[dict[str, 
     # Just passing through for now, but provides a central point for truncation or filtering in the future.
     return [msg for msg in history if "role" in msg and "content" in msg]
 
-def build_next_question_prompt(question_number: int, difficulty: str = "medium") -> dict[str, str]:
+def build_next_question_prompt(question_number: int, difficulty: str = "medium", interview_type: str = "behavioral", job_role: str = "the selected role") -> dict[str, str]:
     """
     Build the final user prompt requesting the next follow-up question.
     """
     return {
         "role": "user", 
-        "content": f"Based on my last answer, generate question #{question_number} at {difficulty} difficulty. Keep the requested personality tone."
+        "content": (
+            f"Ask question #{question_number} in a {interview_type} interview for a {job_role} role at {difficulty} difficulty. "
+            "Use the answer history to avoid repetition and choose a new role-relevant area. Keep the requested personality tone. "
+            "Ask one concise question only."
+        )
     }
 
 
@@ -61,11 +65,17 @@ def build_follow_up_decision_prompt(question: str, answer: str, evaluation: dict
         ),
     }
 
-def build_first_question_prompt() -> dict[str, str]:
+def build_first_question_prompt(job_role: str = "the selected role", interview_type: str = "behavioral") -> dict[str, str]:
     """
     Build the final user prompt requesting the first question.
     """
     return {
         "role": "user", 
-        "content": "Please generate the first question to start the interview. Make it a broad introductory question relevant to the role."
+        "content": (
+            f"Write the opening question for a {interview_type} interview for a {job_role} role. "
+            "Make the question clearly specific to both the round and role: technical rounds assess a practical skill, "
+            "behavioral rounds ask for a past example, HR rounds explore motivation or collaboration, "
+            "system design rounds start with a realistic design problem, and company rounds connect the role to product or customer impact. "
+            "Avoid a generic 'tell me about yourself' opener. Ask one concise question only."
+        )
     }
