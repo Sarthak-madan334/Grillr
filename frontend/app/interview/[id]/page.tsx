@@ -237,7 +237,7 @@ export default function InterviewSessionPage() {
   );
 
   return (
-    <main className="interview-room min-h-screen text-[var(--foreground)]">
+    <main className="interview-room min-h-screen text-[var(--foreground)]" data-live-layout={state === "ready" ? "true" : undefined}>
       <a className="interview-skip-link" href="#interview-content">Skip to interview</a>
       <TopNav />
       <div id="interview-content" tabIndex={-1} className="interview-room-container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -277,17 +277,6 @@ export default function InterviewSessionPage() {
             </header>
             <section aria-labelledby="question-heading" className="interview-workspace">
               <div className="interview-main-column">
-                <VoiceAnswerPanel
-                  sessionId={session.id}
-                  questionText={question.question_text}
-                  hidden={state !== "ready"}
-                  disabled={state !== "ready" || turnState === "asking" || turnState === "processing"}
-                  onTranscript={setDraft}
-                  onRecordingChange={(recording) => { if (recording) setDraft(""); }}
-                  onTurnStateChange={setTurnState}
-                  onQuestionReady={handleVoiceQuestionReady}
-                  onCompleted={handleVoiceCompleted}
-                />
                 <div className="interview-prompt">
                   <div className="interview-prompt-topline">
                     <div className="interview-question-mark" aria-hidden="true">{isCodingQuestion ? "{ }" : "Q"}</div>
@@ -301,19 +290,30 @@ export default function InterviewSessionPage() {
                   <div className="interview-prompt-foot"><span><span className="interview-live-indicator" /> {turnState === "asking" ? "Interviewer is speaking" : turnState === "processing" ? "Reviewing your response" : "Interview in progress"}</span><span>{session.experience_level} level</span></div>
                 </div>
                 {isCodingQuestion ? <CodingWorkspace key={question.id} questionId={question.id} /> : null}
-                <ConversationTurnBanner state={turnState} />
-                <div className="interview-transcript" aria-label="Recorded answer transcript">
-                  <div className="interview-answer-header"><div><p className="interview-overline">Your response</p><h3>{wordCount > 0 ? "Your last recorded answer" : "Your words will appear here"}</h3></div><span className="interview-word-count"><strong>{wordCount}</strong> {wordCount === 1 ? "word" : "words"}</span></div>
-                  <p className={wordCount > 0 ? "interview-transcript-copy" : "interview-transcript-placeholder"} aria-live="polite">{draft || "Start recording when you’re ready. Your transcript will appear here after you stop recording."}</p>
-                </div>
+                {draft ? <details className="interview-transcript">
+                  <summary className="interview-transcript-summary"><span><span className="interview-overline">Your response</span><strong>Your last recorded answer</strong></span><span className="interview-word-count"><strong>{wordCount}</strong> {wordCount === 1 ? "word" : "words"}</span></summary>
+                  <p className="interview-transcript-copy" aria-live="polite">{draft}</p>
+                </details> : <p className="sr-only">Start recording when you’re ready. Your transcript will appear here after you stop recording.</p>}
               </div>
-              <aside className="interview-sidebar" aria-label="Interview guidance">
-                <div className="interview-sidebar-section"><p className="interview-overline">In this round</p><h3 className="interview-sidebar-heading">{formatInterviewType(session.interview_type)}</h3><p className="interview-sidebar-copy">{session.experience_level} level · {formatInterviewType(session.personality)} interview style</p></div>
-                <div className="interview-sidebar-section"><p className="interview-overline">{isCodingQuestion ? "How to approach it" : "A useful answer"}</p><ol className="interview-answer-cues"><li><span>01</span><div><strong>{isCodingQuestion ? "Clarify" : "Be direct"}</strong><small>{isCodingQuestion ? "Confirm inputs and edge cases." : "Lead with your main point."}</small></div></li><li><span>02</span><div><strong>{isCodingQuestion ? "Explain" : "Get specific"}</strong><small>{isCodingQuestion ? "Share a simple plan before coding." : "Use a real example or detail."}</small></div></li><li><span>03</span><div><strong>{isCodingQuestion ? "Review" : "Close the loop"}</strong><small>{isCodingQuestion ? "Check complexity and edge cases." : "Share the result or takeaway."}</small></div></li></ol></div>
-                <div className="interview-sidebar-note"><span aria-hidden="true">i</span><p>{isCodingQuestion ? "Your code draft is saved only in this browser. Use the microphone to explain your reasoning." : "Take a breath between thoughts. The microphone picks up your answer as you speak."}</p></div>
+              <aside className="interview-sidebar" aria-label="Interview details">
+                <div className="interview-sidebar-fact"><span className="interview-fact-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span><div><strong>{session.job_role}</strong><p>{session.experience_level} level · {formatInterviewType(session.personality)} interviewer</p></div></div>
+                <div className="interview-sidebar-fact"><span className="interview-fact-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span><div><strong>{session.question_count} questions</strong><p>{formatInterviewType(session.interview_type)} round</p></div></div>
+                <div className="interview-sidebar-fact"><span className="interview-fact-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><strong>~{session.duration} minutes</strong><p>Take your time and answer naturally</p></div></div>
+                <div className="interview-sidebar-fact"><span className="interview-fact-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 10v4m4-8v12m4-16v20m4-14v8m4-12v16"/></svg></span><div><strong>Answer by voice</strong><p>Speak naturally — no typing needed</p></div></div>
               </aside>
             </section>
-            <div className="interview-exit"><Link href="/dashboard">← <span>Exit interview</span></Link><span>One question at a time</span></div>
+            <VoiceAnswerPanel
+              sessionId={session.id}
+              questionText={question.question_text}
+              hidden={state !== "ready"}
+              disabled={state !== "ready" || turnState === "asking" || turnState === "processing"}
+              onTranscript={setDraft}
+              onRecordingChange={(recording) => { if (recording) setDraft(""); }}
+              onTurnStateChange={setTurnState}
+              onQuestionReady={handleVoiceQuestionReady}
+              onCompleted={handleVoiceCompleted}
+            />
+            <ConversationTurnBanner state={turnState} />
           </>
         ) : null}
       </div>
