@@ -111,3 +111,15 @@ Build and lint passed for the logo extraction.
 Dropdown choices and job-title suggestions now use flat, borderless rows instead of separate glass buttons. Shared glass styles explicitly exclude options and buttons inside options, including their hover, active, and unsupported-blur fallback states. A subtle fill shows hover, the selected value, keyboard activity, and focus without an outline box. Selection handlers and keyboard behavior are unchanged.
 
 Modern Web Guidance: I checked dropdown styling in modern-web-guidance; native customizable-select guidance was not applied because this correction preserves the existing custom listbox.
+
+## Open mountain CTA
+
+The former rounded CTA box is now an open, full-width mountain section. It retains “Start practicing today.”, the supporting copy, and the interview setup destination. Its mountain photo is a star-free edit of the original, saved as `/images/mountain-starless.webp`, with a neutral grayscale finish and no green tint.
+
+The denser white canvas sky uses slow shared drift, gentle asynchronous twinkling, and depth-based pointer parallax. Stars are kept in the upper part of the scene and fade near the mountain foreground. The landscape stays fixed, with no stars baked into its image. A glass Pause sky / Resume sky control freezes and resumes the animation. Motion pauses offscreen or when the tab is hidden; touch and reduced-motion users get static stars. No new dependencies were added.
+
+The final background is a 76 KB, 1536×1024 WebP served directly as an already optimized asset. Next Image reserves its full-section geometry and lazy-loads it. The original photograph is untouched. See [asset and exact edit prompt](STARLESS-MOUNTAIN-ASSET.md).
+
+[Local preview](ui-review/mountain-stars-cta.png)
+
+Modern Web Guidance — `motion`: I followed “Provide Pause mechanism” for the persistent sky animation, and “Use prefers-reduced-motion media queries to turn off heavy motion” for a static accessible alternative.

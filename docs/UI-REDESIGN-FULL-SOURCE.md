@@ -4,6 +4,8 @@ Complete files as implemented. Design tokens, checklist, assumptions, and valida
 
 ## Changed file manifest
 
+- `frontend/components/landing/PracticeStars.tsx`
+
 - `frontend/public/grillr-logo.svg`
 - `frontend/components/GrillrLogo.tsx`
 - `frontend/components/layout/top-nav.tsx`
@@ -94,13 +96,13 @@ Changed file — complete source.
 
 ````tsx
 import Image from "next/image";
-import Link from "next/link";
 import { HomeCTA } from "@/components/HomeCTA";
 import { TopNav } from "@/components/layout/top-nav";
 import { ArrowIcon } from "@/components/landing/ArrowIcon";
 import { FeedbackPreview } from "@/components/landing/FeedbackPreview";
 import { InterviewPreview } from "@/components/landing/InterviewPreview";
 import { ScrollReveal } from "@/components/landing/ScrollReveal";
+import { PracticeStars } from "@/components/landing/PracticeStars";
 
 const steps = [
   { number: "01", title: "Set the scene", description: "Choose your role, your experience, and your interview style. Make the practice your own.", path: "M4 7h16M7 4v6m-3 7h16m-7-3v6" },
@@ -143,7 +145,7 @@ export default function HomePage() {
         <div className="purpose-copy"><p className="eyebrow">PRACTICE WITH PURPOSE</p><h2 id="purpose-title">Good feedback.<br /><span>A better next answer.</span></h2><p>Understand how you come across, not just what you say. Turn a moment of reflection into something you can use in your next conversation.</p><a href="#feedback-format" className="home-text-link">Explore the feedback format <ArrowIcon /></a><div className="purpose-tags"><span>Clarity</span><span>Structure</span><span>Delivery</span></div></div>
         <FeedbackPreview />
       </section>
-      <section className="home-container home-cta-wrap reveal" aria-labelledby="start-title"><div className="home-cta-banner"><Image src="/images/quiet-stone.jpg" alt="" fill sizes="(max-width: 768px) 100vw, 1200px" quality={75} /><div className="cta-shade" aria-hidden="true" /><div className="home-cta-copy"><p className="eyebrow">YOUR NEXT CHAPTER STARTS HERE</p><h2 id="start-title">Start practicing today.</h2><p>A calmer mind. A clearer answer. A little more ready.</p><Link href="/interview/setup" className="glass-button glass-button--primary">Practice with Grillr <ArrowIcon /></Link></div></div></section>
+      <PracticeStars />
       <section className="home-container home-section home-faq reveal" aria-labelledby="faq-title"><div><p className="eyebrow">BEFORE YOU BEGIN</p><h2 id="faq-title">A few good questions.</h2></div><div>{questions.map((item) => <details key={item.question}><summary>{item.question}<span aria-hidden="true">+</span></summary><p>{item.answer}</p></details>)}</div></section>
     </main>
   );
@@ -1511,14 +1513,6 @@ main .glass-button--lg { min-height: 52px; padding-inline: 24px; }
 .feedback-tip svg { width: 18px; height: 18px; flex: 0 0 auto; color: #c4c4cd; }
 .feedback-tip p { margin: 0; color: var(--muted); font-size: .6875rem; line-height: 1.8; }
 .feedback-tip strong { display: block; margin-bottom: 3px; color: #d8d8df; font-weight: 500; }
-.home-cta-wrap { padding-top: 88px; }
-.home-cta-banner { position: relative; isolation: isolate; overflow: hidden; min-height: 330px; border: 1px solid var(--border-strong); border-radius: 28px; padding: 66px 55px; background: #171719; }
-.home-cta-banner > img { z-index: -3; object-fit: cover; object-position: 0 55%; filter: grayscale(1) brightness(.55); }
-.cta-shade { position: absolute; z-index: -2; inset: 0; background: linear-gradient(90deg,rgba(15,15,17,.1),rgba(15,15,17,.83) 50%,#101012 80%); }
-.home-cta-copy { width: fit-content; max-width: 560px; margin-left: auto; }
-.home-cta-copy .eyebrow { font-size: .5625rem; }
-.home-cta-copy h2 { margin: 15px 0 11px; font-size: clamp(2rem,1rem + 2.5vw,3.125rem); font-weight: 400; line-height: 1.15; }
-.home-cta-copy > p:not(.eyebrow) { margin: 0 0 25px; color: #adadb6; font-size: .8125rem; }
 .home-faq { display: grid; grid-template-columns: .85fr 1.15fr; gap: 80px; border-bottom: 0; }
 .home-faq h2 { font-size: clamp(1.75rem,1rem + 2vw,2.5rem); }
 .home-faq details { border-bottom: 1px solid var(--border); }
@@ -1576,10 +1570,6 @@ main .glass-button--lg { min-height: 52px; padding-inline: 24px; }
   .feedback-preview-content { min-height: 140px; }
   .feedback-tabs { gap: 3px; }
   .feedback-tabs .glass-button { padding-inline: 7px; font-size: .5625rem; }
-  .home-cta-wrap { padding-top: 56px; }
-  .home-cta-banner { min-height: 400px; display: flex; align-items: flex-end; padding: 34px 25px; }
-  .home-cta-copy { margin-left: 0; }
-  .cta-shade { background: linear-gradient(0deg,#101012 5%,rgba(15,15,17,.8) 50%,rgba(15,15,17,.1)); }
 }
 @media (max-width: 380px) {
   .landing-cta-row { flex-direction: column; }
@@ -2657,6 +2647,31 @@ main .dropdown-option:focus-visible { outline: none; }
   .dashboard-session-score { margin-left: auto; }
   .dashboard-stat > strong { font-size: 1.6rem; }
   .dashboard-stat small { font-size: .5625rem; margin-left: 2px; }
+}
+
+/* An open night sky replaces the former boxed CTA banner. */
+.practice-stars { position: relative; isolation: isolate; display: grid; place-items: center; width: 100%; min-height: 650px; margin-top: 96px; padding: 112px 0 104px; overflow: hidden; background: var(--background); }
+.practice-stars-mountain { z-index: -4; object-fit: cover; object-position: center 55%; filter: grayscale(1) brightness(.7); pointer-events: none; }
+.practice-stars-canvas { -webkit-mask-image: linear-gradient(#000 0%,#000 38%,transparent 72%); mask-image: linear-gradient(#000 0%,#000 38%,transparent 72%); position: absolute; inset: 0; z-index: -2; display: block; width: 100%; height: 100%; pointer-events: none; }
+.practice-stars-shade { position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(180deg,var(--background),rgba(10,10,11,.15) 20%,rgba(10,10,11,.25) 70%,var(--background)),radial-gradient(ellipse at 50% 40%,rgba(10,10,11,.45),transparent 70%); }
+.practice-stars-copy { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.practice-stars-copy .eyebrow { margin: 0 0 30px; font-size: .625rem; letter-spacing: .23em; color: #b3b3bb; }
+.practice-stars-copy h2 { margin: 0; max-width: 1160px; font-size: clamp(3rem,1rem + 4.4vw,5.75rem); font-weight: 450; line-height: 1.06; letter-spacing: -.06em; color: #f5f5f7; }
+.practice-stars-copy > p:not(.eyebrow) { max-width: 560px; margin: 30px 0 32px; font-size: clamp(.875rem,.75rem + .25vw,1.0625rem); line-height: 1.9; color: #b8b8c1; }
+.practice-stars-copy .glass-button { min-height: 52px; border-radius: 999px; padding-inline: 25px; font-size: .875rem; }
+@media (max-width: 768px) {
+  .practice-stars { min-height: 570px; margin-top: 56px; padding-block: 86px; }
+  .practice-stars-copy .eyebrow { font-size: .5625rem; letter-spacing: .17em; margin-bottom: 25px; }
+  .practice-stars-copy h2 { font-size: clamp(2.65rem,1.5rem + 5vw,4rem); line-height: 1.08; }
+  .practice-stars-copy > p:not(.eyebrow) { max-width: 360px; font-size: .875rem; margin-block: 25px 28px; }
+}
+@media (prefers-contrast: more) {
+  .practice-stars-copy > p:not(.eyebrow) { color: #d6d9dc; }
+  .practice-stars-canvas { opacity: .55; }
+}
+.practice-stars .practice-stars-motion { position: absolute; right: 28px; bottom: 24px; min-height: 44px; padding: 8px 14px; border-radius: 999px; font-size: .6875rem; color: #b8b8c1; }
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .practice-stars .practice-stars-motion { display: none; }
 }
 ````
 
@@ -5587,4 +5602,176 @@ Changed file - complete source.
   <path d="M17 24v8M22 20v16M27 17v22" stroke="#f4b860" stroke-width="2.4" stroke-linecap="round" opacity="0.95"/>
   <circle cx="39" cy="28" r="2.4" fill="#f4b860"/>
 </svg>
+````
+
+## frontend/components/landing/PracticeStars.tsx
+
+````tsx
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import { ArrowIcon } from "./ArrowIcon";
+
+type Star = { x: number; y: number; radius: number; alpha: number; depth: number; phase: number; twinkleSpeed: number; offsetX: number; offsetY: number };
+
+export function PracticeStars() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const motionControlRef = useRef<(paused: boolean) => void>(() => undefined);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!section || !canvas || !context) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+    let width = 0;
+    let height = 0;
+    let frame = 0;
+    let previousTime = 0;
+    let elapsed = 0;
+    let motionPaused = false;
+    let visible = true;
+    let stars: Star[] = [];
+    const pointer = { x: 0, y: 0, active: false };
+
+    function draw(time = 0) {
+      frame = 0;
+      const step = previousTime ? Math.min((time - previousTime) / 16.67, 2) : 1;
+      previousTime = time;
+      const smoothing = 1 - Math.pow(0.9, step);
+      const moving = !motionPaused && !reducedMotion.matches && finePointer.matches;
+      const interactive = pointer.active && moving;
+      if (moving) elapsed += step * 16.67;
+      context!.clearRect(0, 0, width, height);
+      for (const star of stars) {
+        // Slow shared sky drift; pointer parallax varies with depth.
+        const baseX = ((star.x + elapsed * 0.00000015) % 1) * width;
+        const baseY = star.y * height;
+        const dx = baseX - pointer.x;
+        const dy = baseY - pointer.y;
+        const distance = Math.hypot(dx, dy);
+        const proximity = interactive ? Math.max(0, 1 - distance / 200) : 0;
+        const force = proximity ** 2 * 18 * star.depth;
+        const targetX = interactive ? (pointer.x / width - 0.5) * 22 * star.depth + dx / Math.max(distance, 1) * force : 0;
+        const targetY = interactive ? (pointer.y / height - 0.5) * 12 * star.depth + dy / Math.max(distance, 1) * force : 0;
+        if (moving) {
+          star.offsetX += (targetX - star.offsetX) * smoothing;
+          star.offsetY += (targetY - star.offsetY) * smoothing;
+        }
+        const scintillation = 0.86 + 0.14 * Math.sin(elapsed * 0.001 * star.twinkleSpeed + star.phase);
+        context!.beginPath();
+        context!.fillStyle = `rgba(238,238,241,${Math.min(0.9, star.alpha * scintillation * (1 + proximity * 0.3))})`;
+        context!.arc(baseX + star.offsetX, baseY + star.offsetY, star.radius, 0, Math.PI * 2);
+        context!.fill();
+      }
+      if (moving && visible && !document.hidden) frame = requestAnimationFrame(draw);
+      else previousTime = 0;
+    }
+
+    function schedule() {
+      if (!frame && visible && !document.hidden) frame = requestAnimationFrame(draw);
+    }
+
+    function resize() {
+      const bounds = section!.getBoundingClientRect();
+      width = bounds.width;
+      height = bounds.height;
+      if (!width || !height) return;
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas!.width = Math.round(width * ratio);
+      canvas!.height = Math.round(height * ratio);
+      context!.setTransform(ratio, 0, 0, ratio, 0, 0);
+      let seed = 7413;
+      const random = () => {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        return seed / 4294967296;
+      };
+      stars = Array.from({ length: Math.min(1800, Math.max(300, Math.round(width * height / 430))) }, () => ({
+        x: random(), y: random() * 0.56, radius: 0.35 + random() ** 3 * 1.25,
+        alpha: 0.2 + random() * 0.6, depth: 0.2 + random() * 0.8,
+        phase: random() * Math.PI * 2, twinkleSpeed: 0.35 + random() * 0.6, offsetX: 0, offsetY: 0,
+      }));
+      section!.dataset.starsReady = "true";
+      schedule();
+    }
+
+    function move(event: PointerEvent) {
+      if (event.pointerType === "touch" || motionPaused || reducedMotion.matches || !finePointer.matches) return;
+      const bounds = section!.getBoundingClientRect();
+      pointer.x = event.clientX - bounds.left;
+      pointer.y = event.clientY - bounds.top;
+      pointer.active = true;
+      schedule();
+    }
+    function reset() { pointer.active = false; schedule(); }
+    motionControlRef.current = (nextPaused) => {
+      motionPaused = nextPaused;
+      pointer.active = false;
+      cancelAnimationFrame(frame);
+      frame = 0;
+      previousTime = 0;
+      schedule();
+    };
+    function visibilityChange() {
+      pointer.active = false;
+      if (document.hidden) { cancelAnimationFrame(frame); frame = 0; previousTime = 0; }
+      else schedule();
+    }
+
+    section.addEventListener("pointermove", move, { passive: true });
+    section.addEventListener("pointerleave", reset);
+    reducedMotion.addEventListener("change", reset);
+    finePointer.addEventListener("change", reset);
+    document.addEventListener("visibilitychange", visibilityChange);
+    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(resize) : null;
+    resizeObserver?.observe(section);
+    if (!resizeObserver) window.addEventListener("resize", resize);
+    const observer = typeof IntersectionObserver !== "undefined" ? new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible) schedule();
+      else { cancelAnimationFrame(frame); frame = 0; previousTime = 0; pointer.active = false; }
+    }) : null;
+    observer?.observe(section);
+    resize();
+
+    return () => {
+      cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      observer?.disconnect();
+      section.removeEventListener("pointermove", move);
+      section.removeEventListener("pointerleave", reset);
+      reducedMotion.removeEventListener("change", reset);
+      finePointer.removeEventListener("change", reset);
+      document.removeEventListener("visibilitychange", visibilityChange);
+      window.removeEventListener("resize", resize);
+      delete section.dataset.starsReady;
+      motionControlRef.current = () => undefined;
+    };
+  }, []);
+
+  return (
+    <section ref={sectionRef} className="practice-stars" aria-labelledby="start-title">
+      <Image src="/images/mountain-starless.webp" alt="" fill sizes="100vw" unoptimized className="practice-stars-mountain" />
+      <canvas ref={canvasRef} className="practice-stars-canvas" aria-hidden="true" />
+      <div className="practice-stars-shade" aria-hidden="true" />
+      <div className="practice-stars-copy home-container">
+        <p className="eyebrow">YOUR NEXT CHAPTER STARTS HERE</p>
+        <h2 id="start-title">Start practicing today.</h2>
+        <p>A calmer mind. A clearer answer. A little more ready.</p>
+        <Link href="/interview/setup" className="glass-button glass-button--primary">Practice with Grillr <ArrowIcon /></Link>
+      </div>
+      <button type="button" className="practice-stars-motion glass-button glass-button--ghost" aria-label={paused ? "Resume star animation" : "Pause star animation"} aria-pressed={paused} onClick={() => {
+        const nextPaused = !paused;
+        setPaused(nextPaused);
+        motionControlRef.current(nextPaused);
+      }}>{paused ? "Resume sky" : "Pause sky"}</button>
+    </section>
+  );
+}
 ````

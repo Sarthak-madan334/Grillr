@@ -1,11 +1,11 @@
 import Image from "next/image";
-import Link from "next/link";
 import { HomeCTA } from "@/components/HomeCTA";
 import { TopNav } from "@/components/layout/top-nav";
 import { ArrowIcon } from "@/components/landing/ArrowIcon";
 import { FeedbackPreview } from "@/components/landing/FeedbackPreview";
 import { InterviewPreview } from "@/components/landing/InterviewPreview";
 import { ScrollReveal } from "@/components/landing/ScrollReveal";
+import { PracticeStars } from "@/components/landing/PracticeStars";
 
 const steps = [
   { number: "01", title: "Set the scene", description: "Choose your role, your experience, and your interview style. Make the practice your own.", path: "M4 7h16M7 4v6m-3 7h16m-7-3v6" },
@@ -48,7 +48,7 @@ export default function HomePage() {
         <div className="purpose-copy"><p className="eyebrow">PRACTICE WITH PURPOSE</p><h2 id="purpose-title">Good feedback.<br /><span>A better next answer.</span></h2><p>Understand how you come across, not just what you say. Turn a moment of reflection into something you can use in your next conversation.</p><a href="#feedback-format" className="home-text-link">Explore the feedback format <ArrowIcon /></a><div className="purpose-tags"><span>Clarity</span><span>Structure</span><span>Delivery</span></div></div>
         <FeedbackPreview />
       </section>
-      <section className="home-container home-cta-wrap reveal" aria-labelledby="start-title"><div className="home-cta-banner"><Image src="/images/quiet-stone.jpg" alt="" fill sizes="(max-width: 768px) 100vw, 1200px" quality={75} /><div className="cta-shade" aria-hidden="true" /><div className="home-cta-copy"><p className="eyebrow">YOUR NEXT CHAPTER STARTS HERE</p><h2 id="start-title">Start practicing today.</h2><p>A calmer mind. A clearer answer. A little more ready.</p><Link href="/interview/setup" className="glass-button glass-button--primary">Practice with Grillr <ArrowIcon /></Link></div></div></section>
+      <PracticeStars />
       <section className="home-container home-section home-faq reveal" aria-labelledby="faq-title"><div><p className="eyebrow">BEFORE YOU BEGIN</p><h2 id="faq-title">A few good questions.</h2></div><div>{questions.map((item) => <details key={item.question}><summary>{item.question}<span aria-hidden="true">+</span></summary><p>{item.answer}</p></details>)}</div></section>
     </main>
   );
