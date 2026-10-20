@@ -1,9 +1,12 @@
 # Grillr UI redesign — full changed source
 
-Complete files as implemented. Design tokens, checklist, assumptions, and validation are in [UI-REDESIGN.md](UI-REDESIGN.md). The navbar is deliberately unchanged and is not listed as a changed component.
+Complete files as implemented. Design tokens, checklist, assumptions, and validation are in [UI-REDESIGN.md](UI-REDESIGN.md). The navbar layout and behavior are preserved; its original logo artwork is now a shared component.
 
 ## Changed file manifest
 
+- `frontend/public/grillr-logo.svg`
+- `frontend/components/GrillrLogo.tsx`
+- `frontend/components/layout/top-nav.tsx`
 - `frontend/components/ui/button.tsx`
 - `frontend/app/page.tsx`
 - `frontend/app/dashboard/page.tsx`
@@ -1027,11 +1030,12 @@ export default function InterviewSetupPage() {
 
 ## frontend/app/login/page.tsx
 
-Changed file — complete source.
+Changed file - complete source.
 
 ````tsx
 "use client";
 
+import { GrillrLogo, GrillrBrand } from "@/components/GrillrLogo";
 import Link from "next/link";
 import { OAuthButtons } from "@/components/OAuthButtons";
 import { useSearchParams } from "next/navigation";
@@ -1062,10 +1066,7 @@ function LoginContent() {
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-[var(--border)]" />
           <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full border border-[var(--border)]" />
           <div className="relative flex h-full flex-col">
-            <div className="flex items-center gap-3 text-sm font-semibold tracking-[0.18em] text-[var(--muted)]">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xl font-semibold text-[var(--foreground)]">G</span>
-              GRILLR
-            </div>
+            <GrillrBrand size={40} />
             <div className="my-auto max-w-md py-8 lg:py-6">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">Interview practice, with a pulse</p>
               <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Practice interviews that talk back.</h1>
@@ -1080,7 +1081,7 @@ function LoginContent() {
           <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full border border-[var(--border)]" />
           <div className="relative w-full max-w-md text-center">
             <Link href="/" className="auth-home">← Back to Grillr</Link>
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-2xl font-semibold text-[var(--muted)] shadow-[var(--shadow-soft)]">G</div>
+            <div className="mx-auto w-fit"><GrillrLogo size={56} /></div>
             <p className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">Welcome back</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--foreground)] sm:text-4xl">Your next answer starts here.</h1>
             <p className="mx-auto mt-4 max-w-sm text-sm leading-6 text-[var(--muted)]">Use your existing Google or GitHub account to continue practicing.</p>
@@ -1104,18 +1105,17 @@ export default function LoginPage() {
 
 ## frontend/app/onboarding/page.tsx
 
-Changed file — complete source.
+Changed file - complete source.
 
 ````tsx
 import Link from "next/link";
+import { GrillrBrand } from "@/components/GrillrLogo";
 
 export default function OnboardingPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--surface)] px-6 py-12">
       <section className="w-full max-w-xl rounded-[32px] border border-[var(--border)] bg-[var(--surface)] p-8 text-center shadow-[var(--shadow-soft)] sm:p-12">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
-          Grillr
-        </p>
+        <div className="flex justify-center"><GrillrBrand /></div>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--foreground)]">
           Your workspace is ready
         </h1>
@@ -1229,11 +1229,12 @@ export default function PrivacyPage() {
 
 ## frontend/app/signup/page.tsx
 
-Changed file — complete source.
+Changed file - complete source.
 
 ````tsx
 "use client";
 
+import { GrillrBrand, GrillrLogo } from "@/components/GrillrLogo";
 import Link from "next/link";
 import { OAuthButtons } from "@/components/OAuthButtons";
 import { useSearchParams } from "next/navigation";
@@ -1263,7 +1264,7 @@ function SignupContent() {
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-[var(--border)]" />
           <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full border border-[var(--border)]" />
           <div className="relative flex h-full flex-col">
-            <Link href="/" className="flex items-center gap-3 text-sm font-semibold tracking-[0.18em] text-[var(--muted)]"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)]"><svg viewBox="0 0 56 56" aria-label="Grillr logo" role="img" className="h-8 w-8"><defs><linearGradient id="signup-grillr-g-glow" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f9f5f1" /><stop offset="100%" stopColor="#b9b9c2" /></linearGradient></defs><rect x="4" y="4" width="48" height="48" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" /><path d="M37 13.5c-4.1-3.2-9.4-4.2-14.5-3.2-7 1.4-12.7 7.2-13.8 14.3-1.2 8.4 3.4 16.3 11.2 18.8 5.8 1.8 12.1.7 16.5-3.2" fill="none" stroke="url(#signup-grillr-g-glow)" strokeLinecap="round" strokeWidth="4.3" /><path d="M30 28h11" stroke="url(#signup-grillr-g-glow)" strokeLinecap="round" strokeWidth="3.7" /><path d="M17 24v8M22 20v16M27 17v22" stroke="#b9b9c2" strokeLinecap="round" strokeWidth="2.4" /><circle cx="39" cy="28" r="2.4" fill="#b9b9c2" /></svg></span>GRILLR</Link>
+            <Link href="/" aria-label="Grillr home"><GrillrBrand size={40} /></Link>
             <div className="my-auto max-w-md py-8 lg:py-6">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">Interview practice, with a pulse</p>
               <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Practice interviews that talk back.</h1>
@@ -1277,6 +1278,7 @@ function SignupContent() {
         <section className="flex min-h-full items-center justify-center px-6 py-10 sm:px-12 sm:py-12 lg:px-14 lg:py-8">
           <div className="w-full max-w-md text-center">
             <Link href="/" className="auth-home">← Back to Grillr</Link>
+            <div className="mx-auto mb-6 w-fit"><GrillrLogo size={56} /></div>
             <p className="eyebrow justify-center">MAKE ROOM TO GROW</p>
             <h2 className="auth-title">Find your voice.</h2>
             <p className="auth-subtitle mt-4 text-sm leading-6">Your next great answer starts with a little practice.</p>
@@ -2467,20 +2469,30 @@ main button[aria-haspopup="listbox"] { justify-content: space-between; backgroun
   .preview-brand { flex-shrink: 0; }
 }
 .hero-copy h1 span { white-space: nowrap; }
+
+/* One navbar-derived logo and wordmark across every surface. */
+.grillr-logo { border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.055); box-shadow: inset 0 1px 0 rgba(255,255,255,.12); vertical-align: middle; }
+.grillr-logo-lockup { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; text-align: left; }
+.grillr-logo-wordmark { display: grid; gap: 4px; }
+.grillr-logo-wordmark strong { color: #f1f1eb; font-size: .625rem; font-weight: 800; letter-spacing: .18em; line-height: 1; }
+.grillr-logo-wordmark small { color: #9a9aa2; font-size: .4375rem; font-weight: 700; letter-spacing: .18em; line-height: 1; }
+.preview-brand.grillr-logo-lockup { gap: 6px; }
+.preview-brand .grillr-logo-wordmark strong { font-size: .5rem; }
 ````
 
 ## frontend/app/error.tsx
 
-Changed file — complete source.
+Changed file - complete source.
 
 ````tsx
 "use client";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { GrillrBrand } from "@/components/GrillrLogo";
 
 export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  return <main className="flex min-h-screen items-center justify-center px-6 py-16"><section className="surface-card w-full max-w-lg p-8 text-center" role="alert"><p className="eyebrow justify-center">GRILLR</p><h1 className="mt-5 text-3xl font-normal">A small pause in the conversation.</h1><p className="mt-5 text-sm leading-7 text-[var(--muted)]">Something didn’t load as expected. Try again when you’re ready.</p><div className="mt-8 flex flex-wrap justify-center gap-3"><Button onClick={reset}>Try again</Button><Link href="/" className="glass-button glass-button--secondary">Back home</Link></div></section></main>;
+  return <main className="flex min-h-screen items-center justify-center px-6 py-16"><section className="surface-card w-full max-w-lg p-8 text-center" role="alert"><div className="flex justify-center"><GrillrBrand /></div><h1 className="mt-5 text-3xl font-normal">A small pause in the conversation.</h1><p className="mt-5 text-sm leading-7 text-[var(--muted)]">Something didn’t load as expected. Try again when you’re ready.</p><div className="mt-8 flex flex-wrap justify-center gap-3"><Button onClick={reset}>Try again</Button><Link href="/" className="glass-button glass-button--secondary">Back home</Link></div></section></main>;
 }
 ````
 
@@ -2640,11 +2652,12 @@ export function HomeCTA() {
 
 ## frontend/components/interview/InterviewSessionView.tsx
 
-Changed file — complete source.
+Changed file - complete source.
 
 ````tsx
 "use client";
 
+import { GrillrLogo } from "@/components/GrillrLogo";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -2780,9 +2793,9 @@ export default function InterviewSessionView() {
     <main className="interview-room min-h-screen bg-[var(--surface)] text-[var(--foreground)]"><TopNav /><div className="interview-room-container mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
       {state === "loading" ? <LoadingState /> : state === "completed" && summary ? <CompletionPanel summary={summary} /> : state === "error" ? <section role="alert" className="max-w-xl border-l-2 border-[var(--border)] pl-5"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Interview room</p><h1 className="mt-3 text-2xl font-semibold text-[var(--foreground)]">We could not open this interview.</h1><p className="mt-3 leading-7 text-[var(--muted)]">{error}</p><div className="mt-6 flex flex-wrap gap-3"><Button onClick={() => void loadSession()}>Try again</Button><Link href="/dashboard"><Button variant="secondary">Back to dashboard</Button></Link></div></section> : session && question ? <>
   <header className="interview-session-header"><div className="interview-session-title"><p className="interview-overline"><span className="interview-live-indicator" /> Live practice session <span className="interview-overline-separator">/</span> {formatLabel(session.interview_type)}</p><h1>{session.job_role}</h1><p className="interview-session-detail">{formatLabel(session.experience_level)} level <span aria-hidden="true">·</span> {formatLabel(session.personality)} interviewer</p></div><div className="interview-progress"><div className="interview-progress-label"><span>Question <strong>{String(question.question_number).padStart(2, "0")}</strong> <span className="interview-progress-total">of {String(session.question_count).padStart(2, "0")}</span></span><span>{Math.round(progress)}% complete</span></div><div className="interview-progress-track" role="progressbar" aria-label="Interview progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}><span style={{ width: `${progress}%` }} /></div></div></header>
-        {state === "feedback" && feedback && answer ? <FeedbackPanel feedback={feedback} answer={answer} isFinal={isFinal} onContinue={() => void continueAfterFeedback()} /> : <section aria-labelledby="question-heading" className="interview-workspace"><div className="interview-main-column"><div className="interview-prompt"><div className="interview-prompt-topline"><div className="interview-interviewer-mark" aria-hidden="true"><span>G</span><i /></div><div className="interview-interviewer-copy"><span>Grillr interviewer</span><span>{formatLabel(session.personality)} · {formatLabel(session.interview_type)}</span></div><span className="interview-prompt-label">QUESTION {String(question.question_number).padStart(2, "0")}</span></div><div className="interview-prompt-rule" /><p className="interview-overline">Let’s get into it</p><h2 id="question-heading">{question.question_text}</h2><p className="interview-prompt-hint">Take a moment to think. A clear answer with one concrete example is usually stronger than a perfect one.</p><div className="interview-prompt-foot"><span><span className="interview-live-indicator" /> Interview in progress</span><span>{formatLabel(session.experience_level)} level</span></div></div>
+        {state === "feedback" && feedback && answer ? <FeedbackPanel feedback={feedback} answer={answer} isFinal={isFinal} onContinue={() => void continueAfterFeedback()} /> : <section aria-labelledby="question-heading" className="interview-workspace"><div className="interview-main-column"><div className="interview-prompt"><div className="interview-prompt-topline"><div className="interview-interviewer-mark" aria-hidden="true"><GrillrLogo size={32} decorative /><i /></div><div className="interview-interviewer-copy"><span>Grillr interviewer</span><span>{formatLabel(session.personality)} · {formatLabel(session.interview_type)}</span></div><span className="interview-prompt-label">QUESTION {String(question.question_number).padStart(2, "0")}</span></div><div className="interview-prompt-rule" /><p className="interview-overline">Let’s get into it</p><h2 id="question-heading">{question.question_text}</h2><p className="interview-prompt-hint">Take a moment to think. A clear answer with one concrete example is usually stronger than a perfect one.</p><div className="interview-prompt-foot"><span><span className="interview-live-indicator" /> Interview in progress</span><span>{formatLabel(session.experience_level)} level</span></div></div>
           <div className="interview-answer"><div className="interview-answer-header"><div><p className="interview-overline">Your response</p><h3>{state === "submitting" ? "Reviewing your answer" : "Take the floor"}</h3></div><span className="interview-word-count"><strong>{wordCount}</strong> words</span></div><textarea value={draft} onChange={(event) => setDraft(event.target.value)} disabled={state === "submitting"} aria-label="Your interview answer" placeholder="Start with the situation, then explain what you did and what changed..." className="interview-answer-input" /><div className="interview-answer-footer"><p>{state === "submitting" ? "Your response is being reviewed. This usually takes a few seconds." : "Be specific. You can take a breath and organize your thoughts before submitting."}</p><Button size="lg" disabled={!draft.trim() || state === "submitting"} onClick={() => void handleSubmit()}>{state === "submitting" ? "Reviewing..." : "Submit answer"}<span aria-hidden="true" className="ml-2">→</span></Button></div></div></div>
-          <aside className="interview-sidebar"><div className="interview-sidebar-person"><div className="interview-avatar" aria-hidden="true"><span>G</span><div className="interview-avatar-orbit" /></div><p className="interview-overline">Your interviewer</p><h3>Grillr</h3><p className="interview-sidebar-personality">{formatLabel(session.personality)} style</p><span className="interview-listening-status"><i /> Ready for your answer</span></div><div className="interview-sidebar-section"><p className="interview-overline">A useful answer</p><ol className="interview-answer-cues"><li><span>01</span><div><strong>Be direct</strong><small>Lead with your main point.</small></div></li><li><span>02</span><div><strong>Get specific</strong><small>Use a real example or detail.</small></div></li><li><span>03</span><div><strong>Close the loop</strong><small>Share the result or takeaway.</small></div></li></ol></div><div className="interview-sidebar-note"><span aria-hidden="true">i</span><p>Your answer is evaluated for clarity, structure, and relevance.</p></div></aside></section>}
+          <aside className="interview-sidebar"><div className="interview-sidebar-person"><div className="interview-avatar" aria-hidden="true"><GrillrLogo size={48} decorative /><div className="interview-avatar-orbit" /></div><p className="interview-overline">Your interviewer</p><h3>Grillr</h3><p className="interview-sidebar-personality">{formatLabel(session.personality)} style</p><span className="interview-listening-status"><i /> Ready for your answer</span></div><div className="interview-sidebar-section"><p className="interview-overline">A useful answer</p><ol className="interview-answer-cues"><li><span>01</span><div><strong>Be direct</strong><small>Lead with your main point.</small></div></li><li><span>02</span><div><strong>Get specific</strong><small>Use a real example or detail.</small></div></li><li><span>03</span><div><strong>Close the loop</strong><small>Share the result or takeaway.</small></div></li></ol></div><div className="interview-sidebar-note"><span aria-hidden="true">i</span><p>Your answer is evaluated for clarity, structure, and relevance.</p></div></aside></section>}
         {state !== "feedback" ? <div className="interview-exit"><Link href="/dashboard">← <span>Exit interview</span></Link><span>One question at a time</span></div> : null}
       </> : null}
     </div></main>
@@ -3185,6 +3198,7 @@ Changed file - complete source.
 ````tsx
 "use client";
 
+import { GrillrBrand } from "@/components/GrillrLogo";
 import { useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -3200,7 +3214,7 @@ export function InterviewPreview() {
       <div className="laptop-device">
         <div className="laptop-screen">
           <div className="laptop-camera" aria-hidden="true" />
-          <div className="preview-toolbar"><span className="preview-brand">G <span>grillr</span></span><span className="preview-time">04:32</span><span className="preview-live"><i />{ended ? "Finished" : paused ? "Paused" : "Live"}</span></div>
+          <div className="preview-toolbar"><GrillrBrand size={20} tagline={false} className="preview-brand" /><span className="preview-time">04:32</span><span className="preview-live"><i />{ended ? "Finished" : paused ? "Paused" : "Live"}</span></div>
           <div className="preview-question"><span className="eyebrow">{ended ? "A LITTLE MORE READY" : "QUESTION 02 / 05"}</span><h2>{ended ? "Every answer is a step forward." : "Tell me about a challenge you turned into an opportunity."}</h2><p>{ended ? "Your next conversation starts with practice." : "Take a breath. There’s room to think."}</p></div>
           <div className={`preview-waveform ${paused || ended || muted ? "is-paused" : ""}`} aria-hidden="true">{heights.map((height, index) => <span key={index} style={{ "--bar-height": `${height}px`, "--bar-delay": `${index * -91}ms` } as CSSProperties} />)}</div>
           <p className="preview-listening" role="status">{ended ? "Demo complete" : paused ? "Take your time" : muted ? "Microphone muted in this demo" : "Listening to your answer…"}</p>
@@ -3251,9 +3265,10 @@ export function ScrollReveal() {
 
 ## frontend/components/layout/footer.tsx
 
-Changed file — complete source.
+Changed file - complete source.
 
 ````tsx
+import { GrillrBrand } from "@/components/GrillrLogo";
 import Link from "next/link";
 
 export function Footer() {
@@ -3261,7 +3276,7 @@ export function Footer() {
     <footer className="site-footer">
       <div className="site-footer-main">
         <div className="site-footer-brand">
-          <Link href="/" className="site-footer-wordmark" aria-label="Grillr home"><span className="site-footer-mark" aria-hidden="true">G</span><span>grillr.</span></Link>
+          <Link href="/" className="site-footer-wordmark" aria-label="Grillr home"><GrillrBrand /></Link>
           <p>Practice. Reflect. Grow.</p>
         </div>
         <nav className="site-footer-explore" aria-label="Footer navigation">
@@ -4471,11 +4486,12 @@ export function TranscriptPanel({ entries }: TranscriptPanelProps) {
 
 ## frontend/src/components/live-interview/VoiceInterviewPanel.tsx
 
-Changed file — complete source.
+Changed file - complete source.
 
 ````tsx
 "use client";
 
+import { GrillrLogo } from "@/components/GrillrLogo";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AudioVisualizer } from "@/components/live-interview/AudioVisualizer";
@@ -4743,9 +4759,7 @@ export function VoiceInterviewPanel() {
     <div className="w-full max-w-6xl overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)] ring-1 ring-[var(--focus-ring)]">
       <header className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-5 py-4 backdrop-blur md:px-8">
         <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface)] text-sm font-semibold text-[var(--foreground)] shadow-sm shadow-[var(--shadow-soft)]">
-            G
-          </div>
+          <GrillrLogo size={40} />
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
               Grillr
@@ -5015,4 +5029,280 @@ export function VoiceInterviewPanel() {
     </div>
   );
 }
+````
+
+## frontend/components/layout/top-nav.tsx
+
+Changed file - complete source.
+
+````tsx
+"use client";
+
+import { GrillrLogo } from "@/components/GrillrLogo";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "@/lib/auth-client";
+
+type NavItem = {
+  href: string;
+  label: string;
+  external?: boolean;
+  activeOnHome?: boolean;
+};
+
+export function TopNav() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, isAuthenticated, signOut } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const navItems: NavItem[] = pathname === "/"
+    ? [
+        { href: "/#landing-title", label: "About", activeOnHome: true },
+        { href: "/#how-it-works", label: "How it works" },
+        { href: "https://github.com/Sarthak-madan334/Grillr", label: "Repository", external: true },
+      ]
+    : [
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/interview/setup", label: "Practice" },
+        { href: "/history", label: "History" },
+        { href: "/ai-core", label: "AI Core" },
+      ];
+
+  const isActive = (href: string, activeOnHome = false) =>
+    (activeOnHome && pathname === "/") || pathname === href || pathname.startsWith(`${href}/`);
+
+  const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "there";
+  const greetingName = displayName.length > 12 ? `${displayName.slice(0, 12).trimEnd()}…` : displayName;
+  const greetingInitial = (displayName?.[0] ?? "G").toUpperCase();
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  function closeMenu() {
+    setIsMenuOpen(false);
+  }
+
+  async function handleSignOut() {
+    await signOut();
+    setIsMenuOpen(false);
+    router.push("/login");
+    router.refresh();
+  }
+
+  return (
+    <header className="grillr-nav-shell sticky top-0 z-30">
+      <div className="grillr-nav mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <Link href="/" aria-label="Grillr home" className="grillr-brand group flex min-w-0 items-center gap-2.5">
+          <GrillrLogo />
+          <div className="max-[359px]:hidden">
+            <div className="grillr-brand-name">GRILLR</div>
+            <div className="grillr-brand-tagline">INTERVIEW COACH</div>
+          </div>
+        </Link>
+
+        <nav className="grillr-nav-links hidden items-center md:flex" aria-label="Primary navigation">
+          {navItems.map((item) => {
+            const className = `grillr-nav-link ${isActive(item.href, item.activeOnHome) ? "is-active" : ""}`;
+            return item.external ? (
+              <a key={item.href} href={item.href} target="_blank" rel="noreferrer" className={className}>
+                {item.label}<span className="grillr-nav-external" aria-hidden="true">↗</span>
+              </a>
+            ) : (
+              <Link key={item.href} href={item.href} className={className}>
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="hidden items-center gap-3 md:flex">
+          {isAuthenticated && user ? (
+            <div className="flex min-w-0 max-w-[12rem] items-center gap-2 rounded-full border border-[#d7e0ee] bg-white/80 px-2.5 py-1.5 shadow-[0_2px_10px_rgba(16,35,63,0.03)]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#edf4ff] text-[10px] font-bold text-[#365bb4]">
+                {greetingInitial}
+              </span>
+              <span className="min-w-0 truncate text-[11px] font-semibold text-[#4b5d77]">
+                Welcome back, {greetingName}
+              </span>
+            </div>
+          ) : null}
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="grillr-nav-action grillr-nav-action-muted"
+            >
+              Log out
+            </button>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="grillr-nav-signin hidden sm:inline-flex"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/signup"
+                className="grillr-nav-signin grillr-nav-signup hidden sm:inline-flex"
+              >
+                Get started <span className="grillr-nav-cta-arrow" aria-hidden="true">→</span>
+              </Link>
+            </>
+          )}
+        </div>
+
+        <div ref={menuRef} className="relative flex items-center gap-2 md:hidden">
+          {isAuthenticated && user ? (
+            <div className="flex max-w-[8rem] min-w-0 items-center gap-1.5 rounded-full border border-[#d7e0ee] bg-white/80 px-2 py-1 shadow-[0_2px_10px_rgba(16,35,63,0.03)]">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#edf4ff] text-[9px] font-bold text-[#365bb4]">
+                {greetingInitial}
+              </span>
+              <span className="min-w-0 truncate text-[10px] font-semibold text-[#4b5d77]">
+                {greetingName}
+              </span>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={isMenuOpen}
+            aria-controls="mobile-navigation-menu"
+            onClick={() => setIsMenuOpen((open) => !open)}
+            className="grillr-menu-button"
+          >
+            <span className="sr-only">{isMenuOpen ? "Close menu" : "Open menu"}</span>
+            {isMenuOpen ? (
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="m6 6 12 12M18 6 6 18" />
+              </svg>
+            ) : (
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            )}
+          </button>
+
+          {isMenuOpen ? (
+            <nav id="mobile-navigation-menu" aria-label="Mobile navigation" className="grillr-mobile-menu absolute right-0 top-[calc(100%+0.75rem)] w-[min(18rem,calc(100vw-2rem))]">
+              <div className="space-y-1">
+                {navItems.map((item) => {
+                  const className = `grillr-mobile-link ${isActive(item.href, item.activeOnHome) ? "is-active" : ""}`;
+                  return item.external ? (
+                    <a key={item.href} href={item.href} target="_blank" rel="noreferrer" onClick={closeMenu} className={className}>
+                      {item.label}<span aria-hidden="true"> ↗</span>
+                    </a>
+                  ) : (
+                    <Link key={item.href} href={item.href} onClick={closeMenu} className={className}>
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+              <div className="my-3 border-t border-[#e7d8c5]" />
+              <div className="space-y-1">
+                {isAuthenticated ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeMenu();
+                      void handleSignOut();
+                    }}
+                    className="grillr-mobile-auth grillr-mobile-auth-button"
+                  >
+                    Sign out
+                  </button>
+                ) : (
+                  <>
+                    <Link href="/login" onClick={closeMenu} className="grillr-mobile-auth">
+                      Sign in
+                    </Link>
+                    <Link href="/signup" onClick={closeMenu} className="grillr-mobile-auth grillr-mobile-auth-primary">
+                      Get started <span aria-hidden="true">→</span>
+                    </Link>
+                  </>
+                )}
+              </div>
+            </nav>
+          ) : null}
+        </div>
+      </div>
+    </header>
+  );
+}
+````
+
+## frontend/components/GrillrLogo.tsx
+
+Changed file - complete source.
+
+````tsx
+import Image from "next/image";
+
+interface GrillrLogoProps {
+  size?: number;
+  className?: string;
+  decorative?: boolean;
+}
+
+/** Canonical navbar artwork, shared by every product logo. */
+export function GrillrLogo({ size = 36, className = "", decorative = false }: GrillrLogoProps) {
+  const artworkSize = Math.round(size * 8 / 9);
+  return (
+    <span
+      className={`grillr-brand-mark grillr-logo relative inline-flex shrink-0 items-center justify-center overflow-hidden ${className}`}
+      style={{ width: size, height: size, borderRadius: size * 11 / 36 }}
+      aria-hidden={decorative || undefined}
+    >
+      <span className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_transparent_55%)]" />
+      <Image src="/grillr-logo.svg" width={artworkSize} height={artworkSize} alt={decorative ? "" : "Grillr logo"} loading="eager" className="relative drop-shadow-[0_3px_10px_rgba(73,55,47,0.12)]" />
+    </span>
+  );
+}
+
+export function GrillrBrand({ size = 36, className = "", tagline = true }: { size?: number; className?: string; tagline?: boolean }) {
+  return <span className={`grillr-logo-lockup ${className}`}><GrillrLogo size={size} decorative /><span className="grillr-logo-wordmark"><strong>GRILLR</strong>{tagline ? <small>INTERVIEW COACH</small> : null}</span></span>;
+}
+````
+
+## frontend/public/grillr-logo.svg
+
+Changed file - complete source.
+
+````svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" fill="none">
+  <defs>
+    <linearGradient id="grillr-g-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#b8d1ff"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="48" height="48" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.24)"/>
+  <path d="M37 13.5c-4.1-3.2-9.4-4.2-14.5-3.2-7 1.4-12.7 7.2-13.8 14.3-1.2 8.4 3.4 16.3 11.2 18.8 5.8 1.8 12.1.7 16.5-3.2" stroke="url(#grillr-g-glow)" stroke-width="4.3" stroke-linecap="round"/>
+  <path d="M30 28h11" stroke="url(#grillr-g-glow)" stroke-width="3.7" stroke-linecap="round"/>
+  <path d="M17 24v8M22 20v16M27 17v22" stroke="#f4b860" stroke-width="2.4" stroke-linecap="round" opacity="0.95"/>
+  <circle cx="39" cy="28" r="2.4" fill="#f4b860"/>
+</svg>
 ````

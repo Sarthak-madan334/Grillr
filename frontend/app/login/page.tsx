@@ -1,5 +1,6 @@
 "use client";
 
+import { GrillrLogo, GrillrBrand } from "@/components/GrillrLogo";
 import Link from "next/link";
 import { OAuthButtons } from "@/components/OAuthButtons";
 import { useSearchParams } from "next/navigation";
@@ -30,10 +31,7 @@ function LoginContent() {
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-[var(--border)]" />
           <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full border border-[var(--border)]" />
           <div className="relative flex h-full flex-col">
-            <div className="flex items-center gap-3 text-sm font-semibold tracking-[0.18em] text-[var(--muted)]">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xl font-semibold text-[var(--foreground)]">G</span>
-              GRILLR
-            </div>
+            <GrillrBrand size={40} />
             <div className="my-auto max-w-md py-8 lg:py-6">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">Interview practice, with a pulse</p>
               <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Practice interviews that talk back.</h1>
@@ -48,7 +46,7 @@ function LoginContent() {
           <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full border border-[var(--border)]" />
           <div className="relative w-full max-w-md text-center">
             <Link href="/" className="auth-home">← Back to Grillr</Link>
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-2xl font-semibold text-[var(--muted)] shadow-[var(--shadow-soft)]">G</div>
+            <div className="mx-auto w-fit"><GrillrLogo size={56} /></div>
             <p className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">Welcome back</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--foreground)] sm:text-4xl">Your next answer starts here.</h1>
             <p className="mx-auto mt-4 max-w-sm text-sm leading-6 text-[var(--muted)]">Use your existing Google or GitHub account to continue practicing.</p>

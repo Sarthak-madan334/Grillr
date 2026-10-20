@@ -1,5 +1,6 @@
 "use client";
 
+import { GrillrBrand } from "@/components/GrillrLogo";
 import { useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -15,7 +16,7 @@ export function InterviewPreview() {
       <div className="laptop-device">
         <div className="laptop-screen">
           <div className="laptop-camera" aria-hidden="true" />
-          <div className="preview-toolbar"><span className="preview-brand">G <span>grillr</span></span><span className="preview-time">04:32</span><span className="preview-live"><i />{ended ? "Finished" : paused ? "Paused" : "Live"}</span></div>
+          <div className="preview-toolbar"><GrillrBrand size={20} tagline={false} className="preview-brand" /><span className="preview-time">04:32</span><span className="preview-live"><i />{ended ? "Finished" : paused ? "Paused" : "Live"}</span></div>
           <div className="preview-question"><span className="eyebrow">{ended ? "A LITTLE MORE READY" : "QUESTION 02 / 05"}</span><h2>{ended ? "Every answer is a step forward." : "Tell me about a challenge you turned into an opportunity."}</h2><p>{ended ? "Your next conversation starts with practice." : "Take a breath. There’s room to think."}</p></div>
           <div className={`preview-waveform ${paused || ended || muted ? "is-paused" : ""}`} aria-hidden="true">{heights.map((height, index) => <span key={index} style={{ "--bar-height": `${height}px`, "--bar-delay": `${index * -91}ms` } as CSSProperties} />)}</div>
           <p className="preview-listening" role="status">{ended ? "Demo complete" : paused ? "Take your time" : muted ? "Microphone muted in this demo" : "Listening to your answer…"}</p>

@@ -1,5 +1,6 @@
 "use client";
 
+import { GrillrLogo } from "@/components/GrillrLogo";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AudioVisualizer } from "@/components/live-interview/AudioVisualizer";
@@ -267,9 +268,7 @@ export function VoiceInterviewPanel() {
     <div className="w-full max-w-6xl overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)] ring-1 ring-[var(--focus-ring)]">
       <header className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-5 py-4 backdrop-blur md:px-8">
         <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface)] text-sm font-semibold text-[var(--foreground)] shadow-sm shadow-[var(--shadow-soft)]">
-            G
-          </div>
+          <GrillrLogo size={40} />
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
               Grillr

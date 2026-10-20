@@ -1165,3 +1165,12 @@ main button[aria-haspopup="listbox"] { justify-content: space-between; backgroun
   .preview-brand { flex-shrink: 0; }
 }
 .hero-copy h1 span { white-space: nowrap; }
+
+/* One navbar-derived logo and wordmark across every surface. */
+.grillr-logo { border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.055); box-shadow: inset 0 1px 0 rgba(255,255,255,.12); vertical-align: middle; }
+.grillr-logo-lockup { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; text-align: left; }
+.grillr-logo-wordmark { display: grid; gap: 4px; }
+.grillr-logo-wordmark strong { color: #f1f1eb; font-size: .625rem; font-weight: 800; letter-spacing: .18em; line-height: 1; }
+.grillr-logo-wordmark small { color: #9a9aa2; font-size: .4375rem; font-weight: 700; letter-spacing: .18em; line-height: 1; }
+.preview-brand.grillr-logo-lockup { gap: 6px; }
+.preview-brand .grillr-logo-wordmark strong { font-size: .5rem; }

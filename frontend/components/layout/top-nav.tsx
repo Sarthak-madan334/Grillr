@@ -1,5 +1,6 @@
 "use client";
 
+import { GrillrLogo } from "@/components/GrillrLogo";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -76,38 +77,7 @@ export function TopNav() {
     <header className="grillr-nav-shell sticky top-0 z-30">
       <div className="grillr-nav mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" aria-label="Grillr home" className="grillr-brand group flex min-w-0 items-center gap-2.5">
-          <div className="grillr-brand-mark relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-[11px]">
-            <span className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_transparent_55%)]" />
-            <svg
-              viewBox="0 0 56 56"
-              className="relative h-8 w-8 drop-shadow-[0_3px_10px_rgba(73,55,47,0.12)]"
-              aria-label="Grillr logo"
-              role="img"
-            >
-              <defs>
-                <linearGradient id="grillr-g-glow" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#ffffff" />
-                  <stop offset="100%" stopColor="#b8d1ff" />
-                </linearGradient>
-              </defs>
-
-              <rect x="4" y="4" width="48" height="48" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.24)" />
-
-              <path
-                d="M37 13.5c-4.1-3.2-9.4-4.2-14.5-3.2-7 1.4-12.7 7.2-13.8 14.3-1.2 8.4 3.4 16.3 11.2 18.8 5.8 1.8 12.1.7 16.5-3.2"
-                fill="none"
-                stroke="url(#grillr-g-glow)"
-                strokeWidth="4.3"
-                strokeLinecap="round"
-              />
-
-              <path d="M30 28h11" stroke="url(#grillr-g-glow)" strokeWidth="3.7" strokeLinecap="round" />
-
-              <path d="M17 24v8M22 20v16M27 17v22" stroke="#f4b860" strokeWidth="2.4" strokeLinecap="round" opacity="0.95" />
-
-              <circle cx="39" cy="28" r="2.4" fill="#f4b860" />
-            </svg>
-          </div>
+          <GrillrLogo />
           <div className="max-[359px]:hidden">
             <div className="grillr-brand-name">GRILLR</div>
             <div className="grillr-brand-tagline">INTERVIEW COACH</div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { GrillrBrand, GrillrLogo } from "@/components/GrillrLogo";
 import Link from "next/link";
 import { OAuthButtons } from "@/components/OAuthButtons";
 import { useSearchParams } from "next/navigation";
@@ -29,7 +30,7 @@ function SignupContent() {
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-[var(--border)]" />
           <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full border border-[var(--border)]" />
           <div className="relative flex h-full flex-col">
-            <Link href="/" className="flex items-center gap-3 text-sm font-semibold tracking-[0.18em] text-[var(--muted)]"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)]"><svg viewBox="0 0 56 56" aria-label="Grillr logo" role="img" className="h-8 w-8"><defs><linearGradient id="signup-grillr-g-glow" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f9f5f1" /><stop offset="100%" stopColor="#b9b9c2" /></linearGradient></defs><rect x="4" y="4" width="48" height="48" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" /><path d="M37 13.5c-4.1-3.2-9.4-4.2-14.5-3.2-7 1.4-12.7 7.2-13.8 14.3-1.2 8.4 3.4 16.3 11.2 18.8 5.8 1.8 12.1.7 16.5-3.2" fill="none" stroke="url(#signup-grillr-g-glow)" strokeLinecap="round" strokeWidth="4.3" /><path d="M30 28h11" stroke="url(#signup-grillr-g-glow)" strokeLinecap="round" strokeWidth="3.7" /><path d="M17 24v8M22 20v16M27 17v22" stroke="#b9b9c2" strokeLinecap="round" strokeWidth="2.4" /><circle cx="39" cy="28" r="2.4" fill="#b9b9c2" /></svg></span>GRILLR</Link>
+            <Link href="/" aria-label="Grillr home"><GrillrBrand size={40} /></Link>
             <div className="my-auto max-w-md py-8 lg:py-6">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">Interview practice, with a pulse</p>
               <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Practice interviews that talk back.</h1>
@@ -43,6 +44,7 @@ function SignupContent() {
         <section className="flex min-h-full items-center justify-center px-6 py-10 sm:px-12 sm:py-12 lg:px-14 lg:py-8">
           <div className="w-full max-w-md text-center">
             <Link href="/" className="auth-home">← Back to Grillr</Link>
+            <div className="mx-auto mb-6 w-fit"><GrillrLogo size={56} /></div>
             <p className="eyebrow justify-center">MAKE ROOM TO GROW</p>
             <h2 className="auth-title">Find your voice.</h2>
             <p className="auth-subtitle mt-4 text-sm leading-6">Your next great answer starts with a little practice.</p>

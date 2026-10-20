@@ -78,7 +78,7 @@ Pages audited: landing, login, signup, onboarding, dashboard, history, interview
 - Browser review: 48 page/viewport combinations across 360, 768, 1024, and 1440px; no horizontal overflow or broken images; visible non-navbar buttons meet the 44px minimum.
 - Browser interaction checks: feedback tab keyboard navigation, demo pause/end/replay, job autocomplete, custom dropdown keyboard selection, mobile menu/Escape, and reduced motion passed.
 - No page JavaScript errors in the browser review.
-- Navbar source is identical. Before the follow-up color request, compared navbar dimensions, spacing, fonts, colors, backgrounds, and shadows matched the original CSS at all four widths. The authorized follow-up updates only visual navbar colors, translucency, blur, and shadows.
+- Navbar links, layout, and behavior are preserved. The original logo markup was extracted into a shared component for consistent branding. Before the follow-up color request, compared navbar dimensions, spacing, fonts, colors, backgrounds, and shadows matched the original CSS at all four widths. The authorized follow-up updates only visual navbar colors, translucency, blur, and shadows.
 - A syntax-tree comparison confirmed that non-render behavior in 26 existing TSX files is unchanged. Backend, API handlers, auth libraries, data models, and routing/proxy files were not modified.
 - `git diff --check`: passed.
 
@@ -97,3 +97,11 @@ The navbar component, links, order, layout, and behavior are preserved. Its colo
 
 - `typography`: I combined rem and viewport units in fluid headings and applied balanced wrapping only to headings, following “DON'T use vw alone for font-size without clamp()”.
 - `visual-effects`: I retained an ordinary gradient fallback and enabled explicit Oklab interpolation only when supported, following “Some pre-2024 browsers do not support gradient color interpolation space.”
+
+## Shared logo update
+
+The navbar artwork is the canonical `frontend/public/grillr-logo.svg`. `GrillrLogo` and `GrillrBrand` reuse it in the navbar, footer, laptop preview, sign-in, sign-up, onboarding, error view, and interview/demo branding. Both favicon files are generated from the same artwork. Sign-up displays the logo on small screens too.
+
+Build and lint passed for the logo extraction.
+
+- `icons`: I used one shared SVG asset with a root-relative URL, following “use a root-relative URL”, so nested routes cannot resolve the logo against the wrong directory.
