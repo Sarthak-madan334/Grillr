@@ -24,3 +24,11 @@ The dashboard was visually reviewed with sample data in temporary local fixtures
 Browser layout checks at 360, 768, 1024, and 1440 pixels reported zero horizontal overflow. Tests cover populated and empty accounts, partial request failures, retries, zero/missing scores, cancelled sessions, and signed-in/loading/guest landing actions.
 
 Modern Web Guidance: I checked responsive dashboard and progress guidance. No guide was applied directly: skill scores are scalar measurements represented by meters, rather than task-completion progress bars.
+
+## Session response correction
+
+The backend `/api/v1/users/me` returns a flat user object, while login/signup return `{ user: ... }`. The AuthProvider previously read only the wrapped shape, so a valid session was treated as signed out after loading. The provider now validates and normalizes both response shapes, including nullable names, and disables request caching for account state. Guest controls still depend on a validated user response; cookie presence alone is not treated as authentication.
+
+New tests render the real AuthProvider with the navbar and landing actions, exercising the backend's actual flat response format, wrapped responses, invalid sessions, malformed payloads, login, and logout. Test-file isolation prevents mocked auth hooks from leaking into provider tests. Earlier dashboard visibility tests mocked auth state and did not catch this response mismatch.
+
+Modern Web Guidance: I checked session/sign-in guidance; no matching guide covered this response-format correction, and existing authentication mechanisms were retained.

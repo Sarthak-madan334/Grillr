@@ -24,7 +24,7 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
 };
 
-type AuthResponse = {
+type AuthResponse = Partial<AuthUser> & {
   user?: { id: string; email: string; name?: string | null };
   requires_email_confirmation?: boolean;
   error?: { code?: string; message?: string };
@@ -32,11 +32,19 @@ type AuthResponse = {
 };
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// /users/me returns a user directly; login and signup wrap it in `user`.
+function readUser(data: AuthResponse): AuthUser | null {
+  const candidate = data.user ?? data;
+  if (typeof candidate.id !== "string" || !candidate.id || typeof candidate.email !== "string" || !candidate.email) return null;
+  return { id: candidate.id, email: candidate.email, name: typeof candidate.name === "string" ? candidate.name : null };
+}
+
 async function request(
   path: string,
   init?: RequestInit,
 ): Promise<AuthResponse> {
   const response = await fetch(path, {
+    cache: "no-store",
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
     credentials: "include",
@@ -58,9 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void request("/api/auth/me")
       .then((data) => {
-        setUser(
-          data.user ? { ...data.user, name: data.user.name ?? null } : null,
-        );
+        setUser(readUser(data));
       })
       .catch(() => setUser(null))
       .finally(() => setIsLoading(false));
@@ -76,21 +82,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           method: "POST",
           body: JSON.stringify({ email, password }),
         });
-        setUser(
-          data.user ? { ...data.user, name: data.user.name ?? null } : null,
-        );
+        setUser(readUser(data));
       },
       signUp: async (input) => {
         const data = await request("/api/auth/signup", {
           method: "POST",
           body: JSON.stringify(input),
         });
-        if (!data.requires_email_confirmation && data.user)
-          setUser({
-            id: data.user.id,
-            email: data.user.email,
-            name: data.user.name ?? null,
-          });
+        if (!data.requires_email_confirmation) setUser(readUser(data));
         return {
           requires_email_confirmation: data.requires_email_confirmation,
         };
