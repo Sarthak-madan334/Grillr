@@ -49,6 +49,13 @@ def test_development_allows_development_defaults():
     )
 
     assert settings.is_production is False
+    assert settings.groq_model == "openai/gpt-oss-20b"
+
+
+def test_deprecated_groq_model_setting_is_upgraded():
+    settings = Settings(groq_model="llama-3.1-8b-instant")
+
+    assert settings.groq_model == "openai/gpt-oss-20b"
 
 
 def test_existing_production_security_validation_is_preserved():

@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     supabase_jwks_url: str | None = None
     rime_api_key: str | None = None
     groq_api_key: str | None = None
-    groq_model: str = "llama-3.1-8b-instant"
+    groq_model: str = "openai/gpt-oss-20b"
     auth_required: bool = False
     sql_echo: bool = False
     auto_create_schema: bool = True
@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     def parse_origins(cls, value: str | list[str]) -> list[str]:
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
+
+    @field_validator("groq_model", mode="before")
+    @classmethod
+    def replace_deprecated_groq_model(cls, value: str) -> str:
+        if isinstance(value, str) and value.strip() == "llama-3.1-8b-instant":
+            return "openai/gpt-oss-20b"
         return value
 
     @property

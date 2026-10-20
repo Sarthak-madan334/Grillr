@@ -61,7 +61,7 @@ Backend settings are loaded by Pydantic from `backend/.env`. Frontend server rou
 | `OPENAI_API_KEY` | No | empty | Optional OpenAI STT/interviewer provider |
 | `RIME_API_KEY` | No in development | empty | Rime question-audio provider |
 | `GROQ_API_KEY` | No | empty | Optional answer-evaluation provider |
-| `GROQ_MODEL` | No | `llama-3.1-8b-instant` | Groq evaluation model |
+| `GROQ_MODEL` | No | `openai/gpt-oss-20b` | Groq evaluation model; deprecated `llama-3.1-8b-instant` values are upgraded automatically |
 | `STT_PROVIDER` | No | `whisper` | Free local STT provider selection (`whisper` is the default no-key route) |
 | `WHISPER_MODEL_SIZE` | No | `base` | Local Whisper model size |
 | `STT_TIMEOUT_SECONDS` | No | `20` | STT timeout |
