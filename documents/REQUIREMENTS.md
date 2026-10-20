@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the functional and technical requirements for The Interview Coach.
+This document defines the functional and technical requirements for Grillr.
 
 The system must provide realistic AI-powered interview practice through voice interaction, adaptive questioning, answer evaluation, and measurable improvement.
 

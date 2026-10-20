@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The Interview Coach uses a modern full-stack architecture optimized for real-time voice interaction, AI processing, and scalable application development.
+Grillr uses a modern full-stack architecture optimized for real-time voice interaction, AI processing, and scalable application development.
 
 ## 2. Frontend
 

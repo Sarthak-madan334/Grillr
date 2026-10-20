@@ -2,11 +2,11 @@
 
 ## Product
 
-The Interview Coach
+Grillr
 
 ## Purpose
 
-The Interview Coach is an AI-powered interview practice platform that simulates realistic interviews through voice interaction.
+Grillr is an AI-powered interview practice platform that simulates realistic interviews through voice interaction.
 
 It helps users improve both the quality of their answers and their communication skills through repeated practice and structured feedback.
 

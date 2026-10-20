@@ -98,12 +98,12 @@ export function Select({ id, name, value, options, onChange }: SelectProps) {
         aria-controls={listboxId}
         onClick={() => (isOpen ? setIsOpen(false) : openList())}
         onKeyDown={handleKeyDown}
-        className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-[#111513] px-3.5 py-3 text-left text-sm text-[#e9e9e1] outline-none backdrop-blur-sm transition focus:border-[#c9f55a]/60 focus:ring-2 focus:ring-[#c9f55a]/15"
+        className="flex w-full items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-left text-sm text-[var(--foreground)] outline-none backdrop-blur-sm transition focus:border-[var(--border)] focus:ring-2 focus:ring-[var(--focus-ring)]"
       >
         <span>{selectedOption.label}</span>
         <span
           aria-hidden="true"
-          className={`ml-3 text-xs text-[#a3a99b] transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`ml-3 text-xs text-[var(--muted)] transition-transform ${isOpen ? "rotate-180" : ""}`}
         >
           &#9662;
         </span>
@@ -114,7 +114,7 @@ export function Select({ id, name, value, options, onChange }: SelectProps) {
           id={listboxId}
           role="listbox"
           aria-labelledby={id}
-          className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-[#151917]/[0.98] p-1.5 text-sm text-[#e9e9e1] shadow-[0_18px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+          className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 text-sm text-[var(--foreground)] shadow-[var(--shadow-soft)] backdrop-blur-xl"
         >
           {options.map((option, index) => {
             const isSelected = option.value === value;
@@ -128,7 +128,7 @@ export function Select({ id, name, value, options, onChange }: SelectProps) {
                 aria-selected={isSelected}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => selectOption(index)}
-                className={`w-full rounded-xl px-3 py-2.5 text-left font-medium transition-colors ${isActive || isSelected ? "bg-[#c9f55a]/10 text-[#d9f794]" : "text-[#b4b9af] hover:bg-white/[0.05] hover:text-[#f2f3ed]"}`}
+                className={`w-full rounded-xl px-3 py-2.5 text-left font-medium transition-colors ${isActive || isSelected ? "bg-[var(--surface)] text-[var(--foreground)]" : "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"}`}
               >
                 {option.label}
               </button>

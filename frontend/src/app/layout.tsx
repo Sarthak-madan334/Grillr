@@ -6,15 +6,17 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Interview Coach",
+  title: "Grillr",
   description:
     "Voice-first AI interview practice with realtime interaction and mock mock live transcript flow.",
 };

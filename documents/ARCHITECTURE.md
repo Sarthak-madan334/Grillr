@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The Interview Coach uses a client-server architecture with real-time communication between the frontend, backend, AI services, and database.
+Grillr uses a client-server architecture with real-time communication between the frontend, backend, AI services, and database.
 
 The architecture is designed around the following flow:
 

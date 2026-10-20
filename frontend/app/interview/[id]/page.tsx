@@ -10,6 +10,8 @@ import { VoiceAnswerPanel } from "@/components/VoiceAnswerPanel";
 import type { TurnState } from "@/components/VoiceAnswerPanel";
 import { ConversationTurnBanner } from "@/components/ConversationTurnBanner";
 import { CodingWorkspace } from "@/components/interview/CodingWorkspace";
+import { SessionClock } from "@/components/interview/SessionClock";
+import { ScoreBar } from "@/components/interview/ScoreBar";
 import {
   getInterview,
   getQuestions,
@@ -44,69 +46,70 @@ function CompletionPanel({ summary }: { summary: Summary }) {
       className="interview-completion space-y-8"
       aria-live="polite"
     >
-      <div className="interview-completion-heading border-b border-[#e7d8c5] pb-8">
-        <Badge className="border-[#d4eadb] bg-[#e5f6eb] text-[#26724d]">
+      <div className="interview-completion-heading border-b border-[var(--border)] pb-8">
+        <Badge className="border-[var(--success)] bg-[var(--success-surface)] text-[var(--success)]">
           Interview complete
         </Badge>
         <h1
           id="completion-heading"
-          className="mt-4 text-3xl font-semibold tracking-tight text-[#201a17]"
+          className="mt-4 text-3xl font-semibold tracking-tight text-[var(--foreground)]"
         >
           Your practice signal is ready.
         </h1>
-        <p className="mt-3 max-w-2xl leading-7 text-[#5e4d40]">
+        <p className="mt-3 max-w-2xl leading-7 text-[var(--muted)]">
           Review the patterns from this session, then carry one clear
           improvement into your next answer.
         </p>
       </div>
-      <div className="interview-completion-stats grid gap-5 border-b border-[#e7d8c5] pb-8 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="border-l-2 border-[#b8916d] pl-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-[#7a5f48]">
+      <ScoreBar value={summary.overall_score} />
+      <div className="interview-completion-stats grid gap-5 border-b border-[var(--border)] pb-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="border-l-2 border-[var(--border)] pl-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
             Overall score
           </p>
-          <p className="mt-2 text-3xl font-semibold text-[#201a17]">
+          <p className="mt-2 text-3xl font-semibold text-[var(--foreground)]">
             {summary.overall_score}
           </p>
         </div>
-        <div className="border-l-2 border-[#dfcdb9] pl-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-[#7a5f48]">
+        <div className="border-l-2 border-[var(--border)] pl-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
             Questions
           </p>
-          <p className="mt-2 text-3xl font-semibold text-[#201a17]">
+          <p className="mt-2 text-3xl font-semibold text-[var(--foreground)]">
             {summary.total_questions}
           </p>
         </div>
-        <div className="border-l-2 border-[#dfcdb9] pl-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-[#7a5f48]">
+        <div className="border-l-2 border-[var(--border)] pl-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
             Average WPM
           </p>
-          <p className="mt-2 text-3xl font-semibold text-[#201a17]">
+          <p className="mt-2 text-3xl font-semibold text-[var(--foreground)]">
             {summary.average_wpm}
           </p>
         </div>
-        <div className="border-l-2 border-[#dfcdb9] pl-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-[#7a5f48]">
+        <div className="border-l-2 border-[var(--border)] pl-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
             Pauses
           </p>
-          <p className="mt-2 text-3xl font-semibold text-[#201a17]">
+          <p className="mt-2 text-3xl font-semibold text-[var(--foreground)]">
             {summary.total_pauses}
           </p>
         </div>
       </div>
-      <div className="grid gap-6 border-t border-[#e7d8c5] pt-8 sm:grid-cols-2">
+      <div className="grid gap-6 border-t border-[var(--border)] pt-8 sm:grid-cols-2">
         <div>
-          <h2 className="text-lg font-semibold text-[#201a17]">What worked</h2>
-          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-[#5e4d40]">
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">What worked</h2>
+          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-[var(--muted)]">
             {summary.strengths.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-[#201a17]">
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">
             Recommendations
           </h2>
-          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-[#5e4d40]">
+          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-[var(--muted)]">
             {summary.recommendations.map((item) => (
               <li key={item}>{item}</li>
             ))}
@@ -225,7 +228,7 @@ export default function InterviewSessionPage() {
   );
 
   return (
-    <main className="interview-room min-h-screen text-[#241d1a]">
+    <main className="interview-room min-h-screen text-[var(--foreground)]">
       <a className="interview-skip-link" href="#interview-content">Skip to interview</a>
       <TopNav />
       <div id="interview-content" tabIndex={-1} className="interview-room-container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -236,12 +239,12 @@ export default function InterviewSessionPage() {
         ) : state === "error" ? (
           <section
             role="alert"
-            className="max-w-xl border-l-2 border-[#b8916d] pl-5"
+            className="max-w-xl border-l-2 border-[var(--border)] pl-5"
           >
-            <h1 className="text-2xl font-semibold text-[#201a17]">
+            <h1 className="text-2xl font-semibold text-[var(--foreground)]">
               We could not open this interview.
             </h1>
-            <p className="mt-3 leading-7 text-[#5e4d40]">{error}</p>
+            <p className="mt-3 leading-7 text-[var(--muted)]">{error}</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button onClick={() => void loadSession()}>Try again</Button>
               <Link href="/dashboard">
@@ -258,6 +261,7 @@ export default function InterviewSessionPage() {
                 <p className="interview-session-detail">{session.experience_level} level <span aria-hidden="true">·</span> {formatInterviewType(session.personality)} interviewer</p>
               </div>
               <div className="interview-progress">
+                <SessionClock startedAt={session.started_at} />
                 <div className="interview-progress-label"><span>Question <strong>{String(question.question_number).padStart(2, "0")}</strong> <span className="interview-progress-total">of {String(session.question_count).padStart(2, "0")}</span></span><span>{Math.round(progress)}% complete</span></div>
                 <div className="interview-progress-track" role="progressbar" aria-label="Interview progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}><span style={{ width: `${progress}%` }} /></div>
               </div>

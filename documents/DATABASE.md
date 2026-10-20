@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The Interview Coach uses PostgreSQL as the primary relational database.
+Grillr uses PostgreSQL as the primary relational database.
 
 Supabase may be used for managed PostgreSQL, authentication, and storage.
 

@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The Interview Coach API is provided by the FastAPI backend.
+Grillr API is provided by the FastAPI backend.
 
 The API uses:
 

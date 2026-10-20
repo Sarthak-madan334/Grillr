@@ -73,16 +73,16 @@ export default function InterviewSetupPage() {
   }
 
   return (
-    <main className="min-h-screen text-[#241d1a]">
+    <main className="min-h-screen text-[var(--foreground)]">
       <TopNav />
 
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7a5f48]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
               Interview setup
             </p>
-            <h1 className="mt-2 text-3xl font-semibold text-[#201a17]">
+            <h1 className="mt-2 text-3xl font-semibold text-[var(--foreground)]">
               Start your mock interview
             </h1>
           </div>
@@ -102,7 +102,7 @@ export default function InterviewSetupPage() {
             <div className="space-y-2">
               <label
                 htmlFor="interviewType"
-                className="text-sm font-medium text-[#5e4d40]"
+                className="text-sm font-medium text-[var(--muted)]"
               >
                 Interview type
               </label>
@@ -127,11 +127,11 @@ export default function InterviewSetupPage() {
             <div className="space-y-2">
               <label
                 htmlFor="jobTitle"
-                className="text-sm font-medium text-[#5e4d40]"
+                className="text-sm font-medium text-[var(--muted)]"
               >
                 Job title
               </label>
-              <p className="-mt-1 text-xs leading-5 text-[#8b715c]">
+              <p className="-mt-1 text-xs leading-5 text-[var(--muted)]">
                 What role are you preparing for?
               </p>
               <JobTitleAutocomplete
@@ -143,7 +143,7 @@ export default function InterviewSetupPage() {
             <div className="space-y-2">
               <label
                 htmlFor="experienceLevel"
-                className="text-sm font-medium text-[#5e4d40]"
+                className="text-sm font-medium text-[var(--muted)]"
               >
                 Experience level
               </label>
@@ -168,7 +168,7 @@ export default function InterviewSetupPage() {
             <div className="space-y-2">
               <label
                 htmlFor="difficulty"
-                className="text-sm font-medium text-[#5e4d40]"
+                className="text-sm font-medium text-[var(--muted)]"
               >
                 Difficulty
               </label>
@@ -193,7 +193,7 @@ export default function InterviewSetupPage() {
             <div className="space-y-2">
               <label
                 htmlFor="personality"
-                className="text-sm font-medium text-[#5e4d40]"
+                className="text-sm font-medium text-[var(--muted)]"
               >
                 AI personality
               </label>
@@ -218,7 +218,7 @@ export default function InterviewSetupPage() {
             <div className="space-y-2">
               <label
                 htmlFor="duration"
-                className="text-sm font-medium text-[#5e4d40]"
+                className="text-sm font-medium text-[var(--muted)]"
               >
                 Duration
               </label>
@@ -240,7 +240,7 @@ export default function InterviewSetupPage() {
             <div className="space-y-2">
               <label
                 htmlFor="questionCount"
-                className="text-sm font-medium text-[#5e4d40]"
+                className="text-sm font-medium text-[var(--muted)]"
               >
                 Number of questions
               </label>
@@ -251,7 +251,7 @@ export default function InterviewSetupPage() {
                 onChange={(event) =>
                   updateField("questionCount", Number(event.target.value))
                 }
-                className="w-full rounded-2xl border border-[#e7d8c5] bg-[rgba(255,255,255,0.62)] px-3.5 py-3 text-sm text-[#201a17] outline-none backdrop-blur-sm focus:border-[#b8916d]"
+                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm text-[var(--foreground)] outline-none backdrop-blur-sm focus:border-[var(--border)]"
               >
                 {Array.from({ length: 20 }, (_, index) => index + 1).map(
                   (count) => (
@@ -266,7 +266,7 @@ export default function InterviewSetupPage() {
             <div className="space-y-2 md:col-span-2">
               <label
                 htmlFor="jobDescription"
-                className="text-sm font-medium text-[#5e4d40]"
+                className="text-sm font-medium text-[var(--muted)]"
               >
                 Job description
               </label>
@@ -278,7 +278,7 @@ export default function InterviewSetupPage() {
                   updateField("jobDescription", event.target.value)
                 }
                 rows={5}
-                className="w-full rounded-2xl border border-[#e7d8c5] bg-[rgba(255,255,255,0.62)] px-3.5 py-3 text-sm text-[#201a17] outline-none backdrop-blur-sm focus:border-[#b8916d]"
+                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm text-[var(--foreground)] outline-none backdrop-blur-sm focus:border-[var(--border)]"
                 placeholder="Paste the job description or key responsibilities here..."
               />
             </div>
@@ -286,7 +286,7 @@ export default function InterviewSetupPage() {
             {error ? (
               <p
                 role="alert"
-                className="md:col-span-2 border-l-2 border-[#b8916d] pl-3 text-sm leading-6 text-[#8a4f36]"
+                className="md:col-span-2 border-l-2 border-[var(--border)] pl-3 text-sm leading-6 text-[var(--error)]"
               >
                 {error}
               </p>
@@ -295,7 +295,7 @@ export default function InterviewSetupPage() {
             <div className="flex flex-col gap-3 md:col-span-2 sm:flex-row sm:items-center sm:justify-end">
               <Link
                 href="/dashboard"
-                className="text-center text-sm font-medium text-[#755d4a] hover:text-[#201a17]"
+                className="text-center text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
               >
                 Cancel
               </Link>
@@ -303,6 +303,7 @@ export default function InterviewSetupPage() {
                 size="lg"
                 type="submit"
                 disabled={!formState.jobTitle.trim() || isSubmitting}
+                loading={isSubmitting}
               >
                 {isSubmitting ? "Creating interview..." : "Begin interview"}
               </Button>

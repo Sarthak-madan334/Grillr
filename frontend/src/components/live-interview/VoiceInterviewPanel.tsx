@@ -264,50 +264,50 @@ export function VoiceInterviewPanel() {
   };
 
   return (
-    <div className="w-full max-w-6xl overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.08)] ring-1 ring-slate-100">
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white/90 px-5 py-4 backdrop-blur md:px-8">
+    <div className="w-full max-w-6xl overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)] ring-1 ring-[var(--focus-ring)]">
+      <header className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-5 py-4 backdrop-blur md:px-8">
         <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-sm font-semibold text-white shadow-sm shadow-indigo-200">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface)] text-sm font-semibold text-[var(--foreground)] shadow-sm shadow-[var(--shadow-soft)]">
             G
           </div>
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">
               Grillr
             </div>
-            <h1 className="text-base font-semibold text-slate-900">
+            <h1 className="text-base font-semibold text-[var(--foreground)]">
               Interview room
             </h1>
           </div>
         </div>
 
-        <div className="hidden items-center gap-6 text-sm text-slate-600 md:flex">
+        <div className="hidden items-center gap-6 text-sm text-[var(--muted)] md:flex">
           <div className="text-center">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">
               Progress
             </div>
-            <div className="mt-1 font-medium text-slate-900">02 / 05</div>
+            <div className="mt-1 font-medium text-[var(--foreground)]">02 / 05</div>
           </div>
-          <div className="h-8 w-px bg-slate-200" />
+          <div className="h-8 w-px bg-[var(--surface)]" />
           <div className="flex items-center gap-2">
             <span
-              className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"
+              className="inline-flex h-2.5 w-2.5 rounded-full bg-[var(--success-surface)]"
               aria-hidden="true"
             />
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-[var(--foreground)]">
               {connectionState}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-2 py-1.5 shadow-sm">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+        <div className="flex items-center gap-3 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 shadow-sm">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface)] text-xs font-semibold text-[var(--foreground)]">
             SA
           </div>
           <div className="hidden text-left sm:block">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">
               Profile
             </div>
-            <div className="text-sm font-medium text-slate-700">Sarthak</div>
+            <div className="text-sm font-medium text-[var(--foreground)]">Sarthak</div>
           </div>
         </div>
       </header>
@@ -315,14 +315,14 @@ export function VoiceInterviewPanel() {
       <main className="px-5 py-6 md:px-8 md:py-8">
         <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
           <section className="space-y-6">
-            <div className="rounded-[26px] border border-slate-200 bg-slate-50 p-5 shadow-[0_12px_30px_rgba(15,23,42,0.04)] md:p-6">
-              <div className="mb-5 flex items-center justify-between text-sm text-slate-500">
-                <span className="font-medium text-slate-700">
+            <div className="rounded-[26px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-soft)] md:p-6">
+              <div className="mb-5 flex items-center justify-between text-sm text-[var(--muted)]">
+                <span className="font-medium text-[var(--foreground)]">
                   Question 2 of 5
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-600">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 font-medium text-[var(--muted)]">
                   <span
-                    className="h-2 w-2 rounded-full bg-indigo-500"
+                    className="h-2 w-2 rounded-full bg-[var(--surface)]"
                     aria-hidden="true"
                   />
                   03:45
@@ -330,16 +330,16 @@ export function VoiceInterviewPanel() {
               </div>
 
               <div className="space-y-3">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-slate-400">
+                <p className="text-[11px] uppercase tracking-[0.28em] text-[var(--muted)]">
                   Interview prompt
                 </p>
-                <h2 className="max-w-3xl text-2xl font-semibold leading-tight text-slate-900 md:text-[2rem]">
+                <h2 className="max-w-3xl text-2xl font-semibold leading-tight text-[var(--foreground)] md:text-[2rem]">
                   {question}
                 </h2>
               </div>
             </div>
 
-            <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_14px_32px_rgba(148,163,184,0.12)] md:p-6">
+            <div className="rounded-[26px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-soft)] md:p-6">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-4">
                   <button
@@ -348,28 +348,28 @@ export function VoiceInterviewPanel() {
                       isMicOn ? "Stop microphone" : "Start microphone"
                     }
                     onClick={requestMicAccess}
-                    className={`flex h-20 w-20 items-center justify-center rounded-full border text-xl font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-200 ${
+                    className={`flex h-20 w-20 items-center justify-center rounded-full border text-xl font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] ${
                       isMicOn
-                        ? "border-indigo-200 bg-indigo-600 text-white shadow-lg shadow-indigo-200"
-                        : "border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                        ? "border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-lg shadow-[var(--shadow-soft)]"
+                        : "border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--surface)]"
                     }`}
                   >
                     {isMicOn ? "●" : "◉"}
                   </button>
 
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400">
+                    <div className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
                       Voice state
                     </div>
-                    <div className="mt-1 text-xl font-semibold text-slate-900">
+                    <div className="mt-1 text-xl font-semibold text-[var(--foreground)]">
                       {currentStatus}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                <div className="flex items-center gap-3 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted)]">
                   <span
-                    className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"
+                    className="inline-flex h-2.5 w-2.5 rounded-full bg-[var(--success-surface)]"
                     aria-hidden="true"
                   />
                   {currentStatus}
@@ -379,28 +379,28 @@ export function VoiceInterviewPanel() {
                 </div>
               </div>
 
-              <div className="mt-6 rounded-[22px] border border-slate-200 bg-slate-50 p-4 md:p-5">
+              <div className="mt-6 rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-4 md:p-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div className="text-sm font-medium text-slate-600">
+                  <div className="text-sm font-medium text-[var(--muted)]">
                     Live waveform
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-400">
-                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">
+                  <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.22em] text-[var(--muted)]">
+                    <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-1">
                       AI speaking
                     </span>
-                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">
+                    <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-1">
                       Listening
                     </span>
-                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">
+                    <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-1">
                       You’re speaking
                     </span>
-                    <span className="rounded-full border border-slate-200 bg-white px-2 py-1">
+                    <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-1">
                       Processing
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-5 flex items-center justify-center rounded-[20px] border border-slate-200 bg-white px-4 py-5 shadow-inner shadow-slate-100">
+                <div className="mt-5 flex items-center justify-center rounded-[20px] border border-[var(--border)] bg-[var(--surface)] px-4 py-5 shadow-inner shadow-[var(--shadow-soft)]">
                   <AudioVisualizer
                     level={audioLevel}
                     active={
@@ -420,24 +420,24 @@ export function VoiceInterviewPanel() {
                     aria-label={playbackSnapshot.state === "playing" ? "Pause AI question" : "Resume AI question"}
                     disabled={!playbackSnapshot.generationId}
                     onClick={() => playbackSnapshot.state === "playing" ? playback.pause() : undefined}
-                    className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {playbackSnapshot.state === "playing" ? "Pause" : "AI audio idle"}
                   </button>
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label="AI audio progress" aria-valuemin={0} aria-valuemax={playbackSnapshot.duration || 1} aria-valuenow={playbackSnapshot.currentTime}>
-                    <div className="h-full bg-indigo-500 transition-[width] duration-150 motion-reduce:transition-none" style={{ width: `${playbackSnapshot.duration ? (playbackSnapshot.currentTime / playbackSnapshot.duration) * 100 : 0}%` }} />
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--surface)]" role="progressbar" aria-label="AI audio progress" aria-valuemin={0} aria-valuemax={playbackSnapshot.duration || 1} aria-valuenow={playbackSnapshot.currentTime}>
+                    <div className="h-full bg-[var(--surface)] transition-[width] duration-150 motion-reduce:transition-none" style={{ width: `${playbackSnapshot.duration ? (playbackSnapshot.currentTime / playbackSnapshot.duration) * 100 : 0}%` }} />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-[26px] border border-slate-200 bg-white p-4 shadow-[0_12px_28px_rgba(15,23,42,0.04)] md:p-5">
+            <div className="rounded-[26px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-soft)] md:p-5">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400">
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
                     Controls
                   </div>
-                  <h3 className="mt-1 text-lg font-semibold text-slate-900">
+                  <h3 className="mt-1 text-lg font-semibold text-[var(--foreground)]">
                     Answer actions
                   </h3>
                 </div>
@@ -447,7 +447,7 @@ export function VoiceInterviewPanel() {
                 <button
                   type="button"
                   aria-label="Start or stop answer"
-                  className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
+                  className="rounded-full bg-[var(--surface)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)]"
                 >
                   {isMicOn ? "Stop answer" : "Start answer"}
                 </button>
@@ -455,21 +455,21 @@ export function VoiceInterviewPanel() {
                   type="button"
                   aria-label="Interrupt interviewer"
                   onClick={handleInterrupt}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
+                  className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:border-[var(--border)] hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)]"
                 >
                   Interrupt interviewer
                 </button>
                 <button
                   type="button"
                   aria-label="Mute microphone"
-                  className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-200"
+                  className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:border-[var(--border)] hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)]"
                 >
                   Mute
                 </button>
                 <button
                   type="button"
                   aria-label="End interview"
-                  className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-700 transition hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-200"
+                  className="rounded-full border border-[var(--error)] bg-[var(--error-surface)] px-4 py-2.5 text-sm font-medium text-[var(--error)] transition hover:bg-[var(--error-surface)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--error)]"
                 >
                   End interview
                 </button>
@@ -478,43 +478,43 @@ export function VoiceInterviewPanel() {
           </section>
 
           <aside className="space-y-6">
-            <div className="rounded-[26px] border border-slate-200 bg-slate-50 p-4 shadow-[0_12px_24px_rgba(15,23,42,0.04)] md:p-5">
+            <div className="rounded-[26px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-soft)] md:p-5">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.24em] text-slate-400">
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-[var(--muted)]">
                     Session
                   </div>
-                  <h3 className="mt-1 text-lg font-semibold text-slate-900">
+                  <h3 className="mt-1 text-lg font-semibold text-[var(--foreground)]">
                     State
                   </h3>
                 </div>
-                <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">
                   {voiceState.stage}
                 </span>
               </div>
 
-              <ul className="space-y-3 text-sm text-slate-600">
+              <ul className="space-y-3 text-sm text-[var(--muted)]">
                 <li className="flex items-center justify-between">
                   <span>Microphone</span>
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-[var(--foreground)]">
                     {isMicOn ? "Active" : "Standby"}
                   </span>
                 </li>
                 <li className="flex items-center justify-between">
                   <span>AI audio</span>
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-[var(--foreground)]">
                     {voiceState.stage === "ai_speaking" ? "Speaking" : "Idle"}
                   </span>
                 </li>
                 <li className="flex items-center justify-between">
                   <span>Realtime</span>
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-[var(--foreground)]">
                     {connectionState}
                   </span>
                 </li>
                 <li className="flex items-center justify-between">
                   <span>Last event</span>
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-[var(--foreground)]">
                     {voiceState.lastEvent ?? "idle"}
                   </span>
                 </li>
@@ -523,7 +523,7 @@ export function VoiceInterviewPanel() {
 
             {errorMessage ? (
               <div
-                className="rounded-[22px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"
+                className="rounded-[22px] border border-[var(--error)] bg-[var(--error-surface)] p-4 text-sm text-[var(--error)]"
                 role="alert"
               >
                 {errorMessage}

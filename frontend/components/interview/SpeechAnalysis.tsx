@@ -72,10 +72,10 @@ function speechSummary(metrics: SpeechMetrics) {
 
 function Metric({ label, value, supporting, primary = false }: { label: string; value: string; supporting: string; primary?: boolean }) {
   return (
-    <div className={primary ? "border-l-2 border-[#b8916d] pl-5" : "border-l border-[#e4d7c8] pl-4"}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8b715c]">{label}</p>
-      <p className={`mt-2 font-semibold tracking-tight text-[#201a17] ${primary ? "text-4xl" : "text-2xl"}`}>{value}</p>
-      <p className="mt-1 text-sm text-[#7a685b]">{supporting}</p>
+    <div className={primary ? "border-l-2 border-[var(--border)] pl-5" : "border-l border-[var(--border)] pl-4"}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">{label}</p>
+      <p className={`mt-2 font-semibold tracking-tight text-[var(--foreground)] ${primary ? "text-4xl" : "text-2xl"}`}>{value}</p>
+      <p className="mt-1 text-sm text-[var(--muted)]">{supporting}</p>
     </div>
   );
 }
@@ -83,8 +83,8 @@ function Metric({ label, value, supporting, primary = false }: { label: string; 
 function DetailStat({ label, value, unavailable = false }: { label: string; value: string; unavailable?: boolean }) {
   return (
     <div>
-      <p className="text-xs text-[#8b715c]">{label}</p>
-      <p className={`mt-1 text-lg font-semibold ${unavailable ? "text-[#9b8b7c]" : "text-[#201a17]"}`}>{value}</p>
+      <p className="text-xs text-[var(--muted)]">{label}</p>
+      <p className={`mt-1 text-lg font-semibold ${unavailable ? "text-[var(--muted)]" : "text-[var(--foreground)]"}`}>{value}</p>
     </div>
   );
 }
@@ -93,12 +93,12 @@ function PaceScale({ wpm }: { wpm: number }) {
   const position = Math.min(96, Math.max(4, ((wpm - 70) / 130) * 100));
   return (
     <div aria-label={`${Math.round(wpm)} words per minute, ${paceLabel(wpm)}`} className="mt-5">
-      <div className="relative h-2 rounded-full bg-[#eadfd3]">
-        <div className="absolute inset-y-0 left-1/3 right-1/3 border-x border-[#d5c4b3]" aria-hidden="true" />
-        <span className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-[#fffdf9] bg-[#a27c5b] shadow-[0_0_0_1px_#a27c5b]" style={{ left: `${position}%` }} aria-hidden="true" />
+      <div className="relative h-2 rounded-full bg-[var(--surface)]">
+        <div className="absolute inset-y-0 left-1/3 right-1/3 border-x border-[var(--border)]" aria-hidden="true" />
+        <span className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)]" style={{ left: `${position}%` }} aria-hidden="true" />
       </div>
-      <div className="mt-3 flex justify-between text-xs text-[#8b715c]"><span>Slower pace</span><span>Balanced</span><span>Faster pace</span></div>
-      <p className="mt-3 text-sm text-[#5e4d40]">{paceLabel(wpm)} at <strong className="font-semibold text-[#201a17]">{Math.round(wpm)} WPM</strong></p>
+      <div className="mt-3 flex justify-between text-xs text-[var(--muted)]"><span>Slower pace</span><span>Balanced</span><span>Faster pace</span></div>
+      <p className="mt-3 text-sm text-[var(--muted)]">{paceLabel(wpm)} at <strong className="font-semibold text-[var(--foreground)]">{Math.round(wpm)} WPM</strong></p>
     </div>
   );
 }
@@ -118,71 +118,71 @@ function InsightList({ metrics }: { metrics: SpeechMetrics }) {
       : "The available analysis did not detect repeated points.",
   ];
 
-  return <ul className="mt-4 space-y-3 text-sm leading-6 text-[#4f3d35]">{insights.map((insight) => <li key={insight} className="flex gap-3"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#b8916d]" aria-hidden="true" />{insight}</li>)}</ul>;
+  return <ul className="mt-4 space-y-3 text-sm leading-6 text-[var(--muted)]">{insights.map((insight) => <li key={insight} className="flex gap-3"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--surface)]" aria-hidden="true" />{insight}</li>)}</ul>;
 }
 
 export function SpeechAnalysis({ answer }: SpeechAnalysisProps) {
   const metrics = answer.speech_metrics;
 
   return (
-    <section aria-labelledby="speech-analysis-heading" className="border-y border-[#e7d8c5] py-8 sm:py-10">
+    <section aria-labelledby="speech-analysis-heading" className="border-y border-[var(--border)] py-8 sm:py-10">
       <div className="max-w-3xl">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8b715c]">Speech analysis</p>
-        <h3 id="speech-analysis-heading" className="mt-2 text-2xl font-semibold tracking-tight text-[#201a17] sm:text-3xl">How effectively did you communicate?</h3>
-        <p className="mt-3 text-sm leading-6 text-[#5e4d40]">Your speaking patterns during this answer, translated into a few practical signals.</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Speech analysis</p>
+        <h3 id="speech-analysis-heading" className="mt-2 text-2xl font-semibold tracking-tight text-[var(--foreground)] sm:text-3xl">How effectively did you communicate?</h3>
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Your speaking patterns during this answer, translated into a few practical signals.</p>
       </div>
 
       {!metrics ? (
-        <div className="mt-8 border-l-2 border-[#d4c1ac] bg-[#fbf6ef] px-5 py-4 text-sm leading-6 text-[#5e4d40]">
-          <p className="font-medium text-[#201a17]">Speech timing is unavailable for this answer.</p>
+        <div className="mt-8 border-l-2 border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-sm leading-6 text-[var(--muted)]">
+          <p className="font-medium text-[var(--foreground)]">Speech timing is unavailable for this answer.</p>
           <p className="mt-1">Your transcript and interview feedback are still available. We do not estimate speech metrics when timing data is missing.</p>
         </div>
       ) : (
         <>
-          <p className="mt-6 max-w-2xl text-base leading-7 text-[#4f3d35]">{speechSummary(metrics)}</p>
-          <div className="mt-8 grid gap-8 border-y border-[#eee3d8] py-7 sm:grid-cols-3">
+          <p className="mt-6 max-w-2xl text-base leading-7 text-[var(--muted)]">{speechSummary(metrics)}</p>
+          <div className="mt-8 grid gap-8 border-y border-[var(--border)] py-7 sm:grid-cols-3">
             <Metric label="Speaking pace" value={`${Math.round(metrics.words_per_minute)} WPM`} supporting="Active speaking time" primary />
             <Metric label="Response duration" value={formatSpeechDuration(answer.duration)} supporting="Total answer duration" />
             <Metric label="Word count" value={String(metrics.word_count)} supporting="Words spoken" />
           </div>
 
           <div className="grid gap-8 pt-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="border border-[#e7d8c5] bg-[#fffdf9] p-5 sm:p-6">
-              <h4 className="text-base font-semibold text-[#201a17]">Speaking pace</h4>
-              <p className="mt-1 text-sm text-[#7a685b]">A simple view of your speaking rhythm.</p>
+            <div className="border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6">
+              <h4 className="text-base font-semibold text-[var(--foreground)]">Speaking pace</h4>
+              <p className="mt-1 text-sm text-[var(--muted)]">A simple view of your speaking rhythm.</p>
               <PaceScale wpm={metrics.words_per_minute} />
             </div>
-            <div className="border border-[#e7d8c5] bg-[#fffdf9] p-5 sm:p-6">
-              <h4 className="text-base font-semibold text-[#201a17]">Pause behavior</h4>
-              <p className="mt-1 text-sm text-[#7a685b]">Significant pauses detected in the answer.</p>
+            <div className="border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6">
+              <h4 className="text-base font-semibold text-[var(--foreground)]">Pause behavior</h4>
+              <p className="mt-1 text-sm text-[var(--muted)]">Significant pauses detected in the answer.</p>
               <div className="mt-6 grid grid-cols-2 gap-y-5"><DetailStat label="Significant pauses" value={String(metrics.pause_count)} /><DetailStat label="Total pause time" value="Unavailable" unavailable /><DetailStat label="Longest pause" value="Unavailable" unavailable /><DetailStat label="Pause timeline" value="Not recorded" unavailable /></div>
             </div>
           </div>
 
-          <div className="mt-8 grid gap-8 border-t border-[#eee3d8] pt-8 sm:grid-cols-2">
+          <div className="mt-8 grid gap-8 border-t border-[var(--border)] pt-8 sm:grid-cols-2">
             <div>
-              <h4 className="text-base font-semibold text-[#201a17]">Filler words</h4>
-              <p className="mt-1 text-sm leading-6 text-[#7a685b]">{metrics.filler_count > 0 ? "Reducing filler words may make your answers sound more deliberate." : "No filler words were detected in the available analysis."}</p>
-              <div className="mt-5 flex items-end gap-3"><span className="text-3xl font-semibold text-[#201a17]">{metrics.filler_count}</span><span className="pb-1 text-sm text-[#8b715c]">detected</span></div>
-              <p className="mt-3 text-xs text-[#9b8b7c]">Most frequent terms are not returned by the current speech-analysis API.</p>
+              <h4 className="text-base font-semibold text-[var(--foreground)]">Filler words</h4>
+              <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{metrics.filler_count > 0 ? "Reducing filler words may make your answers sound more deliberate." : "No filler words were detected in the available analysis."}</p>
+              <div className="mt-5 flex items-end gap-3"><span className="text-3xl font-semibold text-[var(--foreground)]">{metrics.filler_count}</span><span className="pb-1 text-sm text-[var(--muted)]">detected</span></div>
+              <p className="mt-3 text-xs text-[var(--muted)]">Most frequent terms are not returned by the current speech-analysis API.</p>
             </div>
             <div>
-              <h4 className="text-base font-semibold text-[#201a17]">Repetition</h4>
-              <p className="mt-1 text-sm leading-6 text-[#7a685b]">Repeated patterns that may be worth tightening.</p>
-              <div className="mt-5 flex items-end gap-3"><span className="text-3xl font-semibold text-[#201a17]">{metrics.repetition_count}</span><span className="pb-1 text-sm text-[#8b715c]">detected</span></div>
-              <p className="mt-3 text-xs text-[#9b8b7c]">Repeated words and phrases are not returned individually by the current API.</p>
+              <h4 className="text-base font-semibold text-[var(--foreground)]">Repetition</h4>
+              <p className="mt-1 text-sm leading-6 text-[var(--muted)]">Repeated patterns that may be worth tightening.</p>
+              <div className="mt-5 flex items-end gap-3"><span className="text-3xl font-semibold text-[var(--foreground)]">{metrics.repetition_count}</span><span className="pb-1 text-sm text-[var(--muted)]">detected</span></div>
+              <p className="mt-3 text-xs text-[var(--muted)]">Repeated words and phrases are not returned individually by the current API.</p>
             </div>
           </div>
 
-          <div className="mt-8 grid gap-8 border-t border-[#eee3d8] pt-8 lg:grid-cols-[0.85fr_1.15fr]">
+          <div className="mt-8 grid gap-8 border-t border-[var(--border)] pt-8 lg:grid-cols-[0.85fr_1.15fr]">
             <div>
-              <h4 className="text-base font-semibold text-[#201a17]">Focus signal</h4>
-              <p className="mt-1 text-sm leading-6 text-[#7a685b]">A calm coaching signal based on the available speech fields.</p>
-              <p className="mt-4 text-lg font-semibold text-[#201a17]">{metrics.repetition_count > 0 || metrics.filler_count > 0 ? "Could be tighter" : "Focused"}</p>
-              <p className="mt-2 text-sm leading-6 text-[#5e4d40]">{metrics.repetition_count > 0 || metrics.filler_count > 0 ? "Some repetition or filler usage was detected. The signal is directional, not a score of communication quality." : "The available signals suggest your answer stayed focused and structured."}</p>
+              <h4 className="text-base font-semibold text-[var(--foreground)]">Focus signal</h4>
+              <p className="mt-1 text-sm leading-6 text-[var(--muted)]">A calm coaching signal based on the available speech fields.</p>
+              <p className="mt-4 text-lg font-semibold text-[var(--foreground)]">{metrics.repetition_count > 0 || metrics.filler_count > 0 ? "Could be tighter" : "Focused"}</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{metrics.repetition_count > 0 || metrics.filler_count > 0 ? "Some repetition or filler usage was detected. The signal is directional, not a score of communication quality." : "The available signals suggest your answer stayed focused and structured."}</p>
             </div>
             <div>
-              <h4 className="text-base font-semibold text-[#201a17]">What this means</h4>
+              <h4 className="text-base font-semibold text-[var(--foreground)]">What this means</h4>
               <InsightList metrics={metrics} />
             </div>
           </div>

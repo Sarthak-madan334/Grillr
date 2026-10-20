@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The Interview Coach interface should prioritize realistic interview interaction, clear feedback, and minimal distractions.
+Grillr interface should prioritize realistic interview interaction, clear feedback, and minimal distractions.
 
 The primary experience is voice-first.
 

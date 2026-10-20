@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The Interview Coach must protect user accounts, interview data, transcripts, resumes, job descriptions, and AI service credentials.
+Grillr must protect user accounts, interview data, transcripts, resumes, job descriptions, and AI service credentials.
 
 Security should be implemented across:
 

@@ -1,4 +1,4 @@
-# The Interview Coach
+# Grillr
 
 AI-powered mock interviews with real-time voice interaction, adaptive questioning, and structured feedback
 
@@ -24,7 +24,7 @@ Run the backend with `python -m uvicorn app.main:app --reload --host 127.0.0.1 -
 
 ## Overview
 
-The Interview Coach simulates realistic job interviews using voice. It asks questions, listens to answers, analyzes response quality and communication, asks follow-up questions, and provides actionable feedback.
+Grillr simulates realistic job interviews using voice. It asks questions, listens to answers, analyzes response quality and communication, asks follow-up questions, and provides actionable feedback.
 
 Core loop:
 

@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The Interview Coach must support natural, real-time voice interaction between the user and AI interviewer.
+Grillr must support natural, real-time voice interaction between the user and AI interviewer.
 
 The system should allow:
 

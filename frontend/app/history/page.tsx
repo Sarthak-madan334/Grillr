@@ -55,27 +55,27 @@ export default function HistoryPage() {
     }
   }
   return (
-    <main className="min-h-screen bg-[#f8fafc] text-slate-900">
+    <main className="min-h-screen bg-[var(--surface)] text-[var(--foreground)]">
       <TopNav />
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Interview history</p>
-            <h1 className="mt-2 text-3xl font-semibold text-slate-900">Your recent sessions</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Interview history</p>
+            <h1 className="mt-2 text-3xl font-semibold text-[var(--foreground)]">Your recent sessions</h1>
           </div>
           <Link href="/interview/setup">
             <Button>New interview</Button>
           </Link>
         </div>
 
-        {error ? <p role="alert" className="mb-6 rounded-2xl border border-[#e7b8a9] bg-[#fff1ed] px-4 py-3 text-sm text-[#9a4635]">{error}</p> : null}
+        {error ? <p role="alert" className="mb-6 rounded-2xl border border-[var(--error)] bg-[var(--error-surface)] px-4 py-3 text-sm text-[var(--error)]">{error}</p> : null}
 
-        {isLoading ? <p className="text-sm text-slate-500">Loading your interview history...</p> : null}
+        {isLoading ? <div role="status" aria-label="Loading your interview history" className="space-y-4"><p className="text-sm text-[var(--muted)]">Loading your interview history...</p>{[0, 1, 2].map((item) => <div key={item} className="h-32 rounded-[24px] bg-[var(--surface-raised)] motion-safe:animate-pulse" aria-hidden="true" />)}</div> : null}
 
         {!isLoading && !error && interviews.length === 0 ? (
           <Card className="p-8 text-center">
-            <h2 className="text-xl font-semibold text-slate-900">You haven&apos;t completed a practice interview yet</h2>
-            <p className="mt-2 text-sm text-slate-500">Start a session to build your history and track your progress.</p>
+            <h2 className="text-xl font-semibold text-[var(--foreground)]">You haven&apos;t completed a practice interview yet</h2>
+            <p className="mt-2 text-sm text-[var(--muted)]">Start a session to build your history and track your progress.</p>
             <Link href="/interview/setup" className="mt-5 inline-flex">
               <Button>Start an interview</Button>
             </Link>
@@ -88,17 +88,17 @@ export default function HistoryPage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="mb-2 flex items-center gap-3">
-                    <Badge className="bg-slate-100 text-slate-700">{formatLabel(item.interview_type)}</Badge>
-                    <span className="text-sm text-slate-500">{formatDate(item.completed_at ?? item.created_at)}</span>
+                    <Badge className="bg-[var(--surface)] text-[var(--foreground)]">{formatLabel(item.interview_type)}</Badge>
+                    <span className="text-sm text-[var(--muted)]">{formatDate(item.completed_at ?? item.created_at)}</span>
                   </div>
-                  <p className="text-xl font-semibold text-slate-900">{item.job_role}</p>
-                  <p className="mt-1 text-sm capitalize text-slate-500">{formatLabel(item.status)}</p>
+                  <p className="text-xl font-semibold text-[var(--foreground)]">{item.job_role}</p>
+                  <p className="mt-1 text-sm capitalize text-[var(--muted)]">{formatLabel(item.status)}</p>
                 </div>
 
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="text-sm text-slate-500">Score</p>
-                    <p className="text-2xl font-semibold text-slate-900">{item.overall_score ?? "-"}</p>
+                    <p className="text-sm text-[var(--muted)]">Score</p>
+                    <p className="text-2xl font-semibold text-[var(--foreground)]">{item.overall_score ?? "-"}</p>
                   </div>
                   <Link href={`/interview/${item.id}`}>
                     <Button variant="secondary">View results</Button>

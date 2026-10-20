@@ -14,7 +14,7 @@ function HighlightedTitle({ title, query }: { title: string; query: string }) {
   if (!query.trim() || matchStart < 0) return <>{title}</>;
 
   const matchEnd = matchStart + query.trim().length;
-  return <>{title.slice(0, matchStart)}<strong className="font-semibold text-[#4f5f9c]">{title.slice(matchStart, matchEnd)}</strong>{title.slice(matchEnd)}</>;
+  return <>{title.slice(0, matchStart)}<strong className="font-semibold text-[var(--muted)]">{title.slice(matchStart, matchEnd)}</strong>{title.slice(matchEnd)}</>;
 }
 
 export function JobTitleAutocomplete({ value, onChange }: JobTitleAutocompleteProps) {
@@ -76,21 +76,21 @@ export function JobTitleAutocomplete({ value, onChange }: JobTitleAutocompletePr
         aria-expanded={showSuggestions}
         aria-controls={showSuggestions ? listboxId : undefined}
         aria-activedescendant={showSuggestions && activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined}
-        className="min-h-12 rounded-xl border-[#d9d7ed] bg-[#fffefd] text-[#201a17] shadow-none transition-colors hover:border-[#b9b5d0] focus:border-[#8f98cf] focus:ring-2 focus:ring-[#e7e8f7] motion-reduce:transition-none"
+        className="min-h-12 rounded-xl border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-none transition-colors hover:border-[var(--border)] focus:border-[var(--border)] focus:ring-2 focus:ring-[var(--focus-ring)] motion-reduce:transition-none"
       />
       {showSuggestions ? (
-        <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-xl border border-[#e4e1ee] bg-[#fffefd] shadow-[0_12px_28px_rgba(78,69,101,0.12)] motion-safe:animate-[fade-in_120ms_ease-out]" role="presentation">
+        <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)] motion-safe:animate-[fade-in_120ms_ease-out]" role="presentation">
           {suggestions.length ? (
             <ul id={listboxId} role="listbox" aria-label="Suggested job titles" className="max-h-64 overflow-y-auto p-1.5">
               {suggestions.map((title, index) => (
                 <li key={title} id={`${listboxId}-option-${index}`} role="option" aria-selected={index === activeIndex}>
-                  <button type="button" className={`flex min-h-11 w-full items-center rounded-xl px-3 text-left text-sm text-[#3f3833] transition-colors motion-reduce:transition-none ${index === activeIndex ? "bg-[#f1f0f8] text-[#28243d]" : "hover:bg-[#f7f5fa]"}`} onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActiveIndex(index)} onClick={() => selectTitle(title)}>
+                  <button type="button" className={`flex min-h-11 w-full items-center rounded-xl px-3 text-left text-sm text-[var(--muted)] transition-colors motion-reduce:transition-none ${index === activeIndex ? "bg-[var(--surface)] text-[var(--foreground)]" : "hover:bg-[var(--surface)]"}`} onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActiveIndex(index)} onClick={() => selectTitle(title)}>
                     <HighlightedTitle title={title} query={value} />
                   </button>
                 </li>
               ))}
             </ul>
-          ) : <p className="px-4 py-3 text-sm text-[#8d8178]">No matching roles</p>}
+          ) : <p className="px-4 py-3 text-sm text-[var(--muted)]">No matching roles</p>}
         </div>
       ) : null}
     </div>

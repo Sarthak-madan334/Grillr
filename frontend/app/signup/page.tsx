@@ -23,27 +23,31 @@ function SignupContent() {
   }
 
   return (
-    <main onPointerMove={moveBackground} className="signup-page min-h-screen bg-white px-3 py-3 text-[#1d1d1f] sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-      <div className="signup-surface mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-7xl overflow-hidden rounded-[30px] border border-[#d2d2d7] bg-white shadow-[0_28px_100px_rgba(0,0,0,0.1)] sm:min-h-[calc(100vh-3rem)] lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="relative hidden overflow-hidden bg-[#2d241d] px-6 py-10 text-[#f9f5f1] lg:block sm:px-10 sm:py-12 lg:px-12 lg:py-10">
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-[#cda67f]/20" />
-          <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full border border-[#cda67f]/15" />
+    <main onPointerMove={moveBackground} className="signup-page min-h-screen bg-[var(--surface)] px-3 py-3 text-[var(--foreground)] sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+      <div className="signup-surface mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-7xl overflow-hidden rounded-[30px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)] sm:min-h-[calc(100vh-3rem)] lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="relative hidden overflow-hidden bg-[var(--surface)] px-6 py-10 text-[var(--foreground)] lg:block sm:px-10 sm:py-12 lg:px-12 lg:py-10">
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-[var(--border)]" />
+          <div className="absolute -bottom-32 -left-24 h-80 w-80 rounded-full border border-[var(--border)]" />
           <div className="relative flex h-full flex-col">
-            <Link href="/" className="flex items-center gap-3 text-sm font-semibold tracking-[0.18em] text-[#e9c8a6]"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#cda67f]/40 bg-[#4a392d]"><svg viewBox="0 0 56 56" aria-label="Grillr logo" role="img" className="h-8 w-8"><defs><linearGradient id="signup-grillr-g-glow" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f9f5f1" /><stop offset="100%" stopColor="#d6a97b" /></linearGradient></defs><rect x="4" y="4" width="48" height="48" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(205,166,127,0.35)" /><path d="M37 13.5c-4.1-3.2-9.4-4.2-14.5-3.2-7 1.4-12.7 7.2-13.8 14.3-1.2 8.4 3.4 16.3 11.2 18.8 5.8 1.8 12.1.7 16.5-3.2" fill="none" stroke="url(#signup-grillr-g-glow)" strokeLinecap="round" strokeWidth="4.3" /><path d="M30 28h11" stroke="url(#signup-grillr-g-glow)" strokeLinecap="round" strokeWidth="3.7" /><path d="M17 24v8M22 20v16M27 17v22" stroke="#d6a97b" strokeLinecap="round" strokeWidth="2.4" /><circle cx="39" cy="28" r="2.4" fill="#d6a97b" /></svg></span>GRILLR</Link>
+            <Link href="/" className="flex items-center gap-3 text-sm font-semibold tracking-[0.18em] text-[var(--muted)]"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)]"><svg viewBox="0 0 56 56" aria-label="Grillr logo" role="img" className="h-8 w-8"><defs><linearGradient id="signup-grillr-g-glow" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#f9f5f1" /><stop offset="100%" stopColor="#b9b9c2" /></linearGradient></defs><rect x="4" y="4" width="48" height="48" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" /><path d="M37 13.5c-4.1-3.2-9.4-4.2-14.5-3.2-7 1.4-12.7 7.2-13.8 14.3-1.2 8.4 3.4 16.3 11.2 18.8 5.8 1.8 12.1.7 16.5-3.2" fill="none" stroke="url(#signup-grillr-g-glow)" strokeLinecap="round" strokeWidth="4.3" /><path d="M30 28h11" stroke="url(#signup-grillr-g-glow)" strokeLinecap="round" strokeWidth="3.7" /><path d="M17 24v8M22 20v16M27 17v22" stroke="#b9b9c2" strokeLinecap="round" strokeWidth="2.4" /><circle cx="39" cy="28" r="2.4" fill="#b9b9c2" /></svg></span>GRILLR</Link>
             <div className="my-auto max-w-md py-8 lg:py-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d5a77d]">Interview practice, with a pulse</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">Interview practice, with a pulse</p>
               <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Practice interviews that talk back.</h1>
-              <p className="mt-4 max-w-sm text-base leading-7 text-[#d9c9bb]">Build the clarity, confidence, and composure to make your next answer count.</p>
-              <ul className="mt-7 space-y-3">{["Real-time AI-generated follow-up questions", "Live speech analysis for pace and clarity", "Honest, structured feedback after each session", "Retry-based coaching that tracks improvement"].map((feature) => <li key={feature} className="flex items-start gap-3 text-sm leading-6 text-[#eee3d9]"><span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#cda67f] text-xs font-bold text-[#2d241d]">✓</span>{feature}</li>)}</ul>
+              <p className="mt-4 max-w-sm text-base leading-7 text-[var(--muted)]">Build the clarity, confidence, and composure to make your next answer count.</p>
+              <ul className="mt-7 space-y-3">{["Real-time AI-generated follow-up questions", "Live speech analysis for pace and clarity", "Honest, structured feedback after each session", "Retry-based coaching that tracks improvement"].map((feature) => <li key={feature} className="flex items-start gap-3 text-sm leading-6 text-[var(--foreground)]"><span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--surface)] text-xs font-bold text-[var(--foreground)]">✓</span>{feature}</li>)}</ul>
             </div>
-            <p className="text-xs text-[#aa9582]">A calmer way to get interview-ready.</p>
+            <p className="text-xs text-[var(--muted)]">A calmer way to get interview-ready.</p>
           </div>
         </section>
 
         <section className="flex min-h-full items-center justify-center px-6 py-10 sm:px-12 sm:py-12 lg:px-14 lg:py-8">
           <div className="w-full max-w-md text-center">
-            {message ? <div role="alert" className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-left text-sm text-rose-700">{message}</div> : null}
-            <p className="mt-2 text-sm leading-6 text-[#6e6e73]">Use your existing Google or GitHub account to get started.</p>
+            <Link href="/" className="auth-home">← Back to Grillr</Link>
+            <p className="eyebrow justify-center">MAKE ROOM TO GROW</p>
+            <h2 className="auth-title">Find your voice.</h2>
+            <p className="auth-subtitle mt-4 text-sm leading-6">Your next great answer starts with a little practice.</p>
+            {message ? <div role="alert" className="mb-5 rounded-2xl border border-[var(--error)] bg-[var(--error-surface)] px-4 py-3 text-left text-sm text-[var(--error)]">{message}</div> : null}
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Use your existing Google or GitHub account to get started.</p>
             <div className="mx-auto mt-7 w-full max-w-sm"><OAuthButtons /></div>
           </div>
         </section>
@@ -53,5 +57,5 @@ function SignupContent() {
 }
 
 export default function SignupPage() {
-  return <Suspense fallback={null}><SignupContent /></Suspense>;
+  return <Suspense fallback={<div className="auth-skeleton" role="status" aria-label="Loading sign-up"><div /><div /><div /></div>}><SignupContent /></Suspense>;
 }

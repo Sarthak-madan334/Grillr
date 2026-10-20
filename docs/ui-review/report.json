@@ -1,0 +1,1697 @@
+{
+  "reports": [
+    {
+      "screen": "home",
+      "width": 1440,
+      "scroll": 1440,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Create your account",
+          "label": null,
+          "height": 48,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "See how it works",
+          "label": null,
+          "height": 48,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Mute demo microphone",
+          "height": 45.1932373046875,
+          "bg": "rgba(255, 255, 255, 0.035)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Pause demo",
+          "height": 45.5322265625,
+          "bg": "rgba(255, 255, 255, 0.035)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "End",
+          "label": null,
+          "height": 46.3388671875,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Summary",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.11)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Strengths",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Improvements",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Next steps",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Practice with Grillr",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "home",
+      "width": 1024,
+      "scroll": 1024,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Create your account",
+          "label": null,
+          "height": 48,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "See how it works",
+          "label": null,
+          "height": 48,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Mute demo microphone",
+          "height": 45.1932373046875,
+          "bg": "rgba(255, 255, 255, 0.035)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Pause demo",
+          "height": 45.53216552734375,
+          "bg": "rgba(255, 255, 255, 0.035)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "End",
+          "label": null,
+          "height": 46.33880615234375,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Summary",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.11)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Strengths",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Improvements",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Next steps",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Practice with Grillr",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "home",
+      "width": 768,
+      "scroll": 768,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Create your account",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "See how it works",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Mute demo microphone",
+          "height": 45.1932373046875,
+          "bg": "rgba(255, 255, 255, 0.035)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Pause demo",
+          "height": 45.5322265625,
+          "bg": "rgba(255, 255, 255, 0.035)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "End",
+          "label": null,
+          "height": 46.3388671875,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Summary",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.11)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Strengths",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Improvements",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Next steps",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Practice with Grillr",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "home",
+      "width": 360,
+      "scroll": 360,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Create your account",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "See how it works",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Mute demo microphone",
+          "height": 45.3309326171875,
+          "bg": "rgba(255, 255, 255, 0.035)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Pause demo",
+          "height": 45.3262939453125,
+          "bg": "rgba(255, 255, 255, 0.035)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "End",
+          "label": null,
+          "height": 45.7261962890625,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Summary",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.11)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Strengths",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Improvements",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Next steps",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.024)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Practice with Grillr",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/login",
+      "width": 1440,
+      "scroll": 1440,
+      "images": [],
+      "buttons": [
+        {
+          "text": "GSign in with Google",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "GHSign in with GitHub",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/login",
+      "width": 1024,
+      "scroll": 1024,
+      "images": [],
+      "buttons": [
+        {
+          "text": "GSign in with Google",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "GHSign in with GitHub",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/login",
+      "width": 768,
+      "scroll": 768,
+      "images": [],
+      "buttons": [
+        {
+          "text": "GSign in with Google",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "GHSign in with GitHub",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/login",
+      "width": 360,
+      "scroll": 360,
+      "images": [],
+      "buttons": [
+        {
+          "text": "GSign in with Google",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "GHSign in with GitHub",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/signup",
+      "width": 1440,
+      "scroll": 1440,
+      "images": [],
+      "buttons": [
+        {
+          "text": "GSign in with Google",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "GHSign in with GitHub",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/signup",
+      "width": 1024,
+      "scroll": 1024,
+      "images": [],
+      "buttons": [
+        {
+          "text": "GSign in with Google",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "GHSign in with GitHub",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/signup",
+      "width": 768,
+      "scroll": 768,
+      "images": [],
+      "buttons": [
+        {
+          "text": "GSign in with Google",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "GHSign in with GitHub",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/signup",
+      "width": 360,
+      "scroll": 360,
+      "images": [],
+      "buttons": [
+        {
+          "text": "GSign in with Google",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "GHSign in with GitHub",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/onboarding",
+      "width": 1440,
+      "scroll": 1440,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Start an interview",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/onboarding",
+      "width": 1024,
+      "scroll": 1024,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Start an interview",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/onboarding",
+      "width": 768,
+      "scroll": 768,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Start an interview",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/onboarding",
+      "width": 360,
+      "scroll": 360,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Start an interview",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/privacy",
+      "width": 1440,
+      "scroll": 1440,
+      "images": [],
+      "buttons": []
+    },
+    {
+      "screen": "/privacy",
+      "width": 1024,
+      "scroll": 1024,
+      "images": [],
+      "buttons": []
+    },
+    {
+      "screen": "/privacy",
+      "width": 768,
+      "scroll": 768,
+      "images": [],
+      "buttons": []
+    },
+    {
+      "screen": "/privacy",
+      "width": 360,
+      "scroll": 360,
+      "images": [],
+      "buttons": []
+    },
+    {
+      "screen": "/ai-core",
+      "width": 1440,
+      "scroll": 1440,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Workspace settings",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Clear",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Copy",
+          "label": "Copy code",
+          "height": 44,
+          "bg": "rgba(0, 0, 0, 0)",
+          "color": "rgb(154, 154, 162)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Add context",
+          "label": "Attach context",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Send message",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "AAtlas 2.1Fast · 128k context",
+          "label": null,
+          "height": 55.796875,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "?",
+          "label": "About system prompts",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "✦Interview coachFocused and constructive",
+          "label": null,
+          "height": 55.796875,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Create prompt",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "JSON",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/ai-core",
+      "width": 1024,
+      "scroll": 1024,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Workspace settings",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Clear",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Copy",
+          "label": "Copy code",
+          "height": 44,
+          "bg": "rgba(0, 0, 0, 0)",
+          "color": "rgb(154, 154, 162)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Add context",
+          "label": "Attach context",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Send message",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "AAtlas 2.1Fast · 128k context",
+          "label": null,
+          "height": 55.796875,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "?",
+          "label": "About system prompts",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "✦Interview coachFocused and constructive",
+          "label": null,
+          "height": 55.796875,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Create prompt",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "JSON",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/ai-core",
+      "width": 768,
+      "scroll": 768,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Workspace settings",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Clear",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Copy",
+          "label": "Copy code",
+          "height": 44,
+          "bg": "rgba(0, 0, 0, 0)",
+          "color": "rgb(154, 154, 162)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Add context",
+          "label": "Attach context",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Send message",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "AAtlas 2.1Fast · 128k context",
+          "label": null,
+          "height": 96.796875,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "?",
+          "label": "About system prompts",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "✦Interview coachFocused and constructive",
+          "label": null,
+          "height": 55.796875,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Create prompt",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "JSON",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/ai-core",
+      "width": 360,
+      "scroll": 360,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Workspace settings",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Clear",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Copy",
+          "label": "Copy code",
+          "height": 44,
+          "bg": "rgba(0, 0, 0, 0)",
+          "color": "rgb(154, 154, 162)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Add context",
+          "label": "Attach context",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "",
+          "label": "Send message",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "AAtlas 2.1Fast · 128k context",
+          "label": null,
+          "height": 55.796875,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "?",
+          "label": "About system prompts",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "✦Interview coachFocused and constructive",
+          "label": null,
+          "height": 55.796875,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Create prompt",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "JSON",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/a-page-that-does-not-exist",
+      "width": 1440,
+      "scroll": 1440,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back to Grillr",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/a-page-that-does-not-exist",
+      "width": 1024,
+      "scroll": 1024,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back to Grillr",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/a-page-that-does-not-exist",
+      "width": 768,
+      "scroll": 768,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back to Grillr",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/a-page-that-does-not-exist",
+      "width": 360,
+      "scroll": 360,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back to Grillr",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/dashboard",
+      "width": 1440,
+      "scroll": 1440,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Start interview",
+          "label": null,
+          "height": 52,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "View history",
+          "label": null,
+          "height": 52,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/dashboard",
+      "width": 1024,
+      "scroll": 1024,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Start interview",
+          "label": null,
+          "height": 52,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "View history",
+          "label": null,
+          "height": 52,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/dashboard",
+      "width": 768,
+      "scroll": 768,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Start interview",
+          "label": null,
+          "height": 52,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "View history",
+          "label": null,
+          "height": 52,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/dashboard",
+      "width": 360,
+      "scroll": 360,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Start interview",
+          "label": null,
+          "height": 52,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "View history",
+          "label": null,
+          "height": 52,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/history",
+      "width": 1440,
+      "scroll": 1440,
+      "images": [],
+      "buttons": [
+        {
+          "text": "New interview",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "View results",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/history",
+      "width": 1024,
+      "scroll": 1024,
+      "images": [],
+      "buttons": [
+        {
+          "text": "New interview",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "View results",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/history",
+      "width": 768,
+      "scroll": 768,
+      "images": [],
+      "buttons": [
+        {
+          "text": "New interview",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "View results",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/history",
+      "width": 360,
+      "scroll": 360,
+      "images": [],
+      "buttons": [
+        {
+          "text": "New interview",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "View results",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/interview/setup",
+      "width": 1440,
+      "scroll": 1440,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back to dashboard",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Technical▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Mid▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Medium▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Professional▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "30 minutes▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Begin interview",
+          "label": null,
+          "height": 52,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/interview/setup",
+      "width": 1024,
+      "scroll": 1024,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back to dashboard",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Technical▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Mid▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Medium▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Professional▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "30 minutes▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Begin interview",
+          "label": null,
+          "height": 52,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/interview/setup",
+      "width": 768,
+      "scroll": 768,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back to dashboard",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Technical▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Mid▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Medium▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Professional▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "30 minutes▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Begin interview",
+          "label": null,
+          "height": 52,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/interview/setup",
+      "width": 360,
+      "scroll": 360,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back to dashboard",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Technical▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Mid▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Medium▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Professional▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "30 minutes▾",
+          "label": null,
+          "height": 44,
+          "bg": "rgb(16, 16, 18)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Begin interview",
+          "label": null,
+          "height": 52,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/interview/visual-review",
+      "width": 1440,
+      "scroll": 1440,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Start recording",
+          "label": "Start recording",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/interview/visual-review",
+      "width": 1024,
+      "scroll": 1024,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Start recording",
+          "label": "Start recording",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/interview/visual-review",
+      "width": 768,
+      "scroll": 768,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Start recording",
+          "label": "Start recording",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/interview/visual-review",
+      "width": 360,
+      "scroll": 360,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Start recording",
+          "label": "Start recording",
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/interview/completed-review",
+      "width": 1440,
+      "scroll": 1440,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back to dashboard",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Practice again",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/interview/completed-review",
+      "width": 1024,
+      "scroll": 1024,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back to dashboard",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Practice again",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/interview/completed-review",
+      "width": 768,
+      "scroll": 768,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back to dashboard",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Practice again",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    },
+    {
+      "screen": "/interview/completed-review",
+      "width": 360,
+      "scroll": 360,
+      "images": [],
+      "buttons": [
+        {
+          "text": "Back to dashboard",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.92)",
+          "color": "rgb(17, 17, 19)",
+          "blur": "blur(18px) saturate(1.4)"
+        },
+        {
+          "text": "Practice again",
+          "label": null,
+          "height": 44,
+          "bg": "rgba(255, 255, 255, 0.075)",
+          "color": "rgb(245, 245, 247)",
+          "blur": "blur(18px) saturate(1.4)"
+        }
+      ]
+    }
+  ],
+  "errors": []
+}
