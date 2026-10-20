@@ -79,7 +79,7 @@ class InterviewSession(Base):
 
     @property
     def overall_score(self) -> int | None:
-        return self.summary.overall_score if self.summary is not None else None
+        return self.summary.overall_score if self.summary is not None and self.summary.score_available else None
 
 
 class Question(Base):
@@ -176,3 +176,7 @@ class InterviewSummary(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     session: Mapped[InterviewSession] = relationship(back_populates="summary")
+
+    @property
+    def score_available(self) -> bool:
+        return not any("evaluation unavailable" in str(item).lower() for item in (self.weaknesses or []))

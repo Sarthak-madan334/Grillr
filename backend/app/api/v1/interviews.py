@@ -10,7 +10,7 @@ from app.db.session import get_db
 from app.models import Answer, AnswerEvaluation, InterviewSession, Question, SessionStatus
 from app.schemas.answer import AnswerCreate, AnswerResponse, AttemptsResponse
 from app.schemas.common import RetryRequest
-from app.schemas.interview import DashboardStatsResponse, InterviewCreate, InterviewListResponse, InterviewResponse, QuestionsResponse, RetryResponse, SummaryResponse
+from app.schemas.interview import DashboardStatsResponse, InterviewCreate, InterviewListResponse, InterviewResponse, QuestionsResponse, QuestionFeedbackResponse, RetryResponse, SummaryResponse
 from app.services.interview_service import InterviewService
 
 router = APIRouter()
@@ -54,7 +54,7 @@ def dashboard_stats(identity: CurrentUser = Depends(get_current_user), db: Sessi
             InterviewSession.status == SessionStatus.COMPLETED,
         )
     ).all()
-    scores = [session.summary.overall_score for session in completed if session.summary is not None]
+    scores = [session.summary.overall_score for session in completed if session.summary is not None and session.summary.score_available]
     dimension_columns = {
         "relevance": AnswerEvaluation.relevance_score,
         "clarity": AnswerEvaluation.clarity_score,
@@ -66,16 +66,17 @@ def dashboard_stats(identity: CurrentUser = Depends(get_current_user), db: Sessi
     }
     dimensions: dict[str, float | None] = {}
     for name, column in dimension_columns.items():
-        value = db.scalar(
-            select(func.avg(column))
+        values = db.scalars(
+            select(AnswerEvaluation)
             .join(Answer, AnswerEvaluation.answer_id == Answer.id)
             .join(InterviewSession, Answer.session_id == InterviewSession.id)
             .where(
                 InterviewSession.user_id == identity.id,
                 InterviewSession.status == SessionStatus.COMPLETED,
             )
-        )
-        dimensions[name] = round(float(value), 1) if value is not None else None
+        ).all()
+        scored = [getattr(item, column.key) for item in values if not any("evaluation unavailable" in str(note).lower() for note in (item.weaknesses or []))]
+        dimensions[name] = round(sum(scored) / len(scored), 1) if scored else None
 
     return {
         "average_score": round(sum(scores) / len(scores), 1) if scores else None,
@@ -116,7 +117,23 @@ def get_feedback(session_id: UUID, identity: CurrentUser = Depends(get_current_u
     if interview.summary is None:
         from app.core.errors import NotFoundError
         raise NotFoundError("Interview feedback")
-    return interview.summary
+    summary = interview.summary
+    question_feedback = []
+    for question in sorted(interview.questions, key=lambda item: item.question_number)[:interview.question_count]:
+        answer = max(question.answers, key=lambda item: item.attempt_number, default=None)
+        evaluation = answer.evaluation if answer is not None else None
+        question_feedback.append(QuestionFeedbackResponse(
+            question_number=question.question_number,
+            question_text=question.question_text,
+            is_follow_up=question.is_follow_up,
+            transcript=answer.transcript if answer else None,
+            duration=answer.duration if answer else None,
+            overall_score=evaluation.overall_score if evaluation else None,
+            strengths=evaluation.strengths if evaluation else [],
+            weaknesses=evaluation.weaknesses if evaluation else [],
+            suggestions=evaluation.suggestions if evaluation else [],
+        ))
+    return {**{field: getattr(summary, field) for field in ("overall_score", "total_questions", "total_duration", "average_wpm", "total_filler_words", "total_pauses", "strengths", "weaknesses", "recommendations")}, "score_available": summary.score_available, "question_feedback": question_feedback}
 
 
 @router.post("/questions/{question_id}/answer", response_model=AnswerResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(answer_rate_limit)])

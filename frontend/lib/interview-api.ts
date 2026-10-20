@@ -67,6 +67,7 @@ export type Answer = {
 
 export type Summary = {
   overall_score: number;
+  score_available: boolean;
   total_questions: number;
   total_duration: number;
   average_wpm: number;
@@ -75,6 +76,19 @@ export type Summary = {
   strengths: string[];
   weaknesses: string[];
   recommendations: string[];
+  question_feedback: QuestionFeedback[];
+};
+
+export type QuestionFeedback = {
+  question_number: number;
+  question_text: string;
+  is_follow_up: boolean;
+  transcript: string | null;
+  duration: number | null;
+  overall_score: number | null;
+  strengths: string[];
+  weaknesses: string[];
+  suggestions: string[];
 };
 
 export type InterviewCreateInput = {

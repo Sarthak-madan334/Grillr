@@ -61,14 +61,14 @@ function CompletionPanel({ summary }: { summary: Summary }) {
           improvement into your next answer.
         </p>
       </div>
-      <ScoreBar value={summary.overall_score} />
+      {summary.score_available ? <ScoreBar value={summary.overall_score} /> : <p role="status" className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 leading-7 text-[var(--muted)]">AI scoring was unavailable for this session, so there is no overall score yet. Your answers were saved below and can still guide your next practice.</p>}
       <div className="interview-completion-stats grid gap-5 border-b border-[var(--border)] pb-8 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border-l-2 border-[var(--border)] pl-4">
           <p className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
             Overall score
           </p>
           <p className="mt-2 text-3xl font-semibold text-[var(--foreground)]">
-            {summary.overall_score}
+            {summary.score_available ? summary.overall_score : "—"}
           </p>
         </div>
         <div className="border-l-2 border-[var(--border)] pl-4">
@@ -116,6 +116,16 @@ function CompletionPanel({ summary }: { summary: Summary }) {
           </ul>
         </div>
       </div>
+      <section aria-labelledby="answer-review-heading" className="space-y-5">
+        <div><p className="interview-overline">Your answers</p><h2 id="answer-review-heading" className="mt-2 text-2xl font-semibold text-[var(--foreground)]">Question by question</h2></div>
+        {summary.question_feedback.map((item) => (
+          <article key={item.question_number} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-7">
+            <div className="flex flex-wrap items-start justify-between gap-3"><h3 className="max-w-3xl text-lg font-semibold leading-7 text-[var(--foreground)]">{String(item.question_number).padStart(2, "0")} · {item.question_text}</h3><span className="rounded-full border border-[var(--border)] px-3 py-1 text-sm text-[var(--muted)]">{item.overall_score === null ? "Not scored" : `${item.overall_score}/100`}</span></div>
+            {item.transcript ? <p className="mt-4 whitespace-pre-wrap border-l-2 border-[var(--border)] pl-4 leading-7 text-[var(--muted)]">{item.transcript}</p> : <p className="mt-4 text-sm text-[var(--muted)]">No saved answer for this question.</p>}
+            {(item.strengths.length > 0 || item.weaknesses.length > 0 || item.suggestions.length > 0) && <div className="mt-6 grid gap-5 sm:grid-cols-3"><div><h4 className="font-semibold text-[var(--foreground)]">What worked</h4><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-[var(--muted)]">{item.strengths.map((value, index) => <li key={`${index}-${value}`}>{value}</li>)}</ul></div><div><h4 className="font-semibold text-[var(--foreground)]">Next focus</h4><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-[var(--muted)]">{item.weaknesses.map((value, index) => <li key={`${index}-${value}`}>{value}</li>)}</ul></div><div><h4 className="font-semibold text-[var(--foreground)]">Try next</h4><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-[var(--muted)]">{item.suggestions.map((value, index) => <li key={`${index}-${value}`}>{value}</li>)}</ul></div></div>}
+          </article>
+        ))}
+      </section>
       <div className="flex flex-wrap gap-3">
         <Link href="/dashboard">
           <Button>Back to dashboard</Button>

@@ -102,7 +102,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
         current_turn_id: str | None = None
 
         async def send_resync() -> None:
-            current_question = next((item for item in session.questions if not item.answered_at), None)
+            current_question = next((item for item in sorted(session.questions, key=lambda value: value.question_number) if item.question_number <= session.question_count and not item.answered_at), None)
             await websocket.send_json({"type": "session.connected", "data": {"session_id": str(session_id), "status": session.status.value, "current_question_number": session.current_question_number, "question_id": str(current_question.id) if current_question else None, "turn_state": turn_state}})
 
         if session.speech_state == "ai_speaking" and session.speech_generation_id is not None:
@@ -144,7 +144,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             audio_buffer.clear()
             recording = False
             turn_state = "processing"
-            current_question = next((item for item in session.questions if not item.answered_at), None)
+            current_question = next((item for item in sorted(session.questions, key=lambda value: value.question_number) if item.question_number <= session.question_count and not item.answered_at), None)
             await websocket.send_json({"type": "turn.state_changed", "data": {"state": turn_state, "question_id": str(current_question.id) if current_question else None}})
             try:
                 result = await speech_to_text.transcribe(audio, session_id=session_id, question_id=current_question.id if current_question else None)
@@ -208,7 +208,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                 next_question = next(
                     (
                         item for item in sorted(updated_session.questions, key=lambda item: item.question_number)
-                        if not item.answers and item.id != answer.question_id
+                        if item.question_number <= updated_session.question_count and not item.answers and item.id != answer.question_id
                     ),
                     None,
                 )
@@ -268,7 +268,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             event_type = event.get("type")
             if event_type == "session.start":
                 await websocket.send_json({"type": "session.started", "data": {}})
-                current_question = next((item for item in session.questions if not item.answered_at), None)
+                current_question = next((item for item in sorted(session.questions, key=lambda value: value.question_number) if item.question_number <= session.question_count and not item.answered_at), None)
                 await send_question_audio(current_question)
             elif event_type == "session.resync":
                 session = service.get(session_id, identity.id)
@@ -283,7 +283,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
                 current_turn_id = turn_id.strip()
                 turn_state = "listening"
                 await websocket.send_json({"type": "speech.start.ack", "data": {}})
-                current_question = next((item for item in session.questions if not item.answered_at), None)
+                current_question = next((item for item in sorted(session.questions, key=lambda value: value.question_number) if item.question_number <= session.question_count and not item.answered_at), None)
                 await websocket.send_json({"type": "turn.state_changed", "data": {"state": turn_state, "question_id": str(current_question.id) if current_question else None}})
             elif event_type == "speech.stop":
                 await websocket.send_json({"type": "speech.stop.ack", "data": {}})

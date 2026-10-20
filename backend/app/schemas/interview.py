@@ -93,8 +93,21 @@ class FeedbackResponse(BaseModel):
     improved_answer: str
 
 
+class QuestionFeedbackResponse(BaseModel):
+    question_number: int
+    question_text: str
+    is_follow_up: bool
+    transcript: str | None = None
+    duration: float | None = None
+    overall_score: int | None = None
+    strengths: list[str] = []
+    weaknesses: list[str] = []
+    suggestions: list[str] = []
+
+
 class SummaryResponse(BaseModel):
     overall_score: int
+    score_available: bool = True
     total_questions: int
     total_duration: float
     average_wpm: float
@@ -103,6 +116,7 @@ class SummaryResponse(BaseModel):
     strengths: list[str]
     weaknesses: list[str]
     recommendations: list[str]
+    question_feedback: list[QuestionFeedbackResponse] = []
 
     model_config = {"from_attributes": True}
 

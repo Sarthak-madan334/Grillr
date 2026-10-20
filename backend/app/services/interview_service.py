@@ -150,7 +150,8 @@ class InterviewService:
         return self.get(session_id, user_id)
 
     def questions(self, session_id: UUID, user_id: UUID) -> list[Question]:
-        return self.get(session_id, user_id).questions
+        session = self.get(session_id, user_id)
+        return sorted(session.questions, key=lambda item: item.question_number)[:session.question_count]
 
     def mark_speech_started(self, session_id: UUID, user_id: UUID, generation_id: UUID, question_id: UUID | None) -> InterviewSession:
         session = self.get(session_id, user_id)
@@ -291,19 +292,14 @@ class InterviewService:
             .options(selectinload(Question.answers))
             .order_by(Question.question_number)
         ).all())
+        questions = questions[:session.question_count]
         pending = next((item for item in questions if not item.answers and item.id != answer.question_id), None)
         if pending is not None:
             return session
-
-        planned = [item for item in questions if not item.is_follow_up]
-        answered_planned = [item for item in planned if item.answers]
-        pending_follow_up = any(item.is_follow_up and not item.answers for item in questions)
-        if pending_follow_up:
-            return session
-        if len(answered_planned) >= session.question_count:
+        if len(questions) >= session.question_count and all(item.answers for item in questions):
             return self.complete(session.id, user_id)
 
-        next_question_number = len(planned) + 1
+        next_question_number = len(questions) + 1
         next_question_text, next_question_type = self._planned_question(session, next_question_number)
         next_question = self._create_question(session.id, 0, next_question_text, next_question_type)
         self._insert_question(session, next_question)
@@ -381,7 +377,8 @@ class InterviewService:
         if not is_retry:
             question.answered_at = datetime.now(timezone.utc)
             question.session.current_question_number = question.question_number
-        if not is_retry and not defer_evaluation:
+        slots_remaining = len(question.session.questions) < question.session.question_count
+        if not is_retry and not defer_evaluation and slots_remaining:
             decision = self._follow_up_decision(question, data.transcript, evaluation)
             if decision.action in {"follow_up", "clarification"} and decision.question:
                 root_id = question.parent_question_id or question.id
@@ -396,28 +393,21 @@ class InterviewService:
                         self.db.expunge(follow_up)
         if not is_retry and (defer_evaluation or 'decision' not in locals() or decision.action not in {"follow_up", "clarification"}):
             planned = sorted((item for item in question.session.questions if not item.is_follow_up), key=lambda item: item.question_number)
-            answered_planned = [item for item in planned if item.answers]
             next_planned = next((item for item in planned if item.question_number > question.question_number and not item.answers), None)
-            if next_planned is None and len(answered_planned) < question.session.question_count:
-                next_question_number = len(planned) + 1
+            if next_planned is None and len(question.session.questions) < question.session.question_count:
+                next_question_number = len(question.session.questions) + 1
                 next_question_text, next_question_type = self._planned_question(question.session, next_question_number)
                 next_question = self._create_question(question.session_id, 0, next_question_text, next_question_type)
                 self._insert_question(question.session, next_question)
         self.db.commit()
         self.db.refresh(answer)
-        planned_questions = list(self.db.scalars(
+        session_questions = list(self.db.scalars(
             select(Question)
-            .where(Question.session_id == question.session_id, Question.is_follow_up.is_(False))
+            .where(Question.session_id == question.session_id)
             .options(selectinload(Question.answers))
         ).all())
-        all_planned_answered = len([item for item in planned_questions if item.answers]) >= question.session.question_count
-        pending_follow_up = self.db.scalar(
-            select(Question.id)
-            .where(Question.session_id == question.session_id, Question.is_follow_up.is_(True))
-            .where(~Question.answers.any())
-            .limit(1)
-        ) is not None
-        if not is_retry and all_planned_answered and not pending_follow_up:
+        selected_questions = sorted(session_questions, key=lambda item: item.question_number)[:question.session.question_count]
+        if not is_retry and len(selected_questions) >= question.session.question_count and all(item.answers for item in selected_questions):
             self.complete(question.session_id, user_id)
         return answer
 
@@ -431,7 +421,9 @@ class InterviewService:
 
     def complete(self, session_id: UUID, user_id: UUID) -> InterviewSession:
         session = self.transition(session_id, user_id, SessionStatus.COMPLETED)
-        answers = list(self.db.scalars(select(Answer).where(Answer.session_id == session.id).options(selectinload(Answer.question), selectinload(Answer.speech_metrics), selectinload(Answer.evaluation))).all())
+        selected_questions = sorted(session.questions, key=lambda item: item.question_number)[:session.question_count]
+        latest_answers = [max(item.answers, key=lambda candidate: candidate.attempt_number) for item in selected_questions if item.answers]
+        answers = latest_answers
         evaluations = []
         for answer in answers:
             if answer.evaluation is None:
@@ -441,11 +433,14 @@ class InterviewService:
             else:
                 evaluations.append(answer.evaluation)
         self.db.flush()
-        scores = [evaluation["overall_score"] if isinstance(evaluation, dict) else evaluation.overall_score for evaluation in evaluations]
+        valid_evaluations = [evaluation for evaluation in evaluations if not any("evaluation unavailable" in str(item).lower() for item in (evaluation["weaknesses"] if isinstance(evaluation, dict) else evaluation.weaknesses))]
+        scores = [evaluation["overall_score"] if isinstance(evaluation, dict) else evaluation.overall_score for evaluation in valid_evaluations]
         metrics = [answer.speech_metrics for answer in answers if answer.speech_metrics]
         strengths = [item for evaluation in evaluations for item in (evaluation["strengths"] if isinstance(evaluation, dict) else evaluation.strengths)][:5]
-        weaknesses = [item for evaluation in evaluations for item in (evaluation["weaknesses"] if isinstance(evaluation, dict) else evaluation.weaknesses)][:5]
+        weaknesses = [item for evaluation in evaluations for item in (evaluation["weaknesses"] if isinstance(evaluation, dict) else evaluation.weaknesses) if "evaluation unavailable" not in str(item).lower()][:5]
         recommendations = [item for evaluation in evaluations for item in (evaluation["suggestions"] if isinstance(evaluation, dict) else evaluation.suggestions)][:5]
-        self.db.add(InterviewSummary(session_id=session.id, overall_score=round(sum(scores) / len(scores)) if scores else 0, total_questions=len(session.questions), total_duration=sum(metric.duration_seconds for metric in metrics), average_wpm=round(sum(metric.words_per_minute for metric in metrics) / len(metrics), 2) if metrics else 0, total_filler_words=sum(metric.filler_count for metric in metrics), total_pauses=sum(metric.pause_count for metric in metrics), strengths=strengths or ["Completed the interview"], weaknesses=weaknesses, recommendations=recommendations or ["Review your final answer feedback"]))
+        if not scores:
+            weaknesses = [*weaknesses, "Evaluation unavailable for this session; your answers were saved, but an overall score could not be calculated."]
+        self.db.add(InterviewSummary(session_id=session.id, overall_score=round(sum(scores) / len(scores)) if scores else 0, total_questions=len(selected_questions), total_duration=sum(metric.duration_seconds for metric in metrics), average_wpm=round(sum(metric.words_per_minute for metric in metrics) / len(metrics), 2) if metrics else 0, total_filler_words=sum(metric.filler_count for metric in metrics), total_pauses=sum(metric.pause_count for metric in metrics), strengths=strengths or ["Your answers were saved for review."], weaknesses=weaknesses, recommendations=recommendations or ["Add a specific example, explain your actions, and share the result."]))
         self.db.commit()
         return self.get(session_id, user_id)
