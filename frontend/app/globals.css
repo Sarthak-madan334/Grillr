@@ -1273,6 +1273,118 @@ main button[aria-haspopup="listbox"] { justify-content: space-between; backgroun
 @media (prefers-reduced-motion: reduce) {
   .interview-room[data-live-layout="true"] .interview-progress-track > span { transition: none; }
 }
+
+/* Keep the question, mic action, and interviewer playback in distinct rows. */
+.interview-room[data-live-layout="true"] .interview-room-container {
+  grid-template-rows: auto minmax(min-content, 1fr) auto;
+}
+.interview-room[data-live-layout="true"] .interview-workspace { min-height: min-content; }
+.interview-room[data-live-layout="true"] .interview-main-column { min-height: min-content; }
+.interview-room[data-live-layout="true"] .interview-prompt { flex: 1 1 auto; }
+.interview-room[data-live-layout="true"] .interview-prompt h2 {
+  padding-block: clamp(12px, 2dvh, 22px);
+  font-size: clamp(1.45rem, 2vw, 2.25rem);
+  line-height: 1.16;
+}
+.interview-room[data-live-layout="true"] .interview-voice-controls {
+  display: flex;
+  flex-direction: column;
+  min-height: clamp(196px, 23dvh, 244px);
+  gap: 6px;
+  padding-block: 14px;
+}
+.interview-room[data-live-layout="true"] .interview-voice-topline > div > p { font-size: .75rem; }
+.interview-room[data-live-layout="true"] .interview-audio-status {
+  min-width: 0;
+  margin: 0 !important;
+  border-radius: 13px;
+  padding: 7px 10px;
+  background: rgba(255,255,255,.035);
+}
+.interview-room[data-live-layout="true"] .interview-audio-icon { width: 30px; height: 30px; }
+.interview-room[data-live-layout="true"] .interview-audio-toggle {
+  min-width: 72px;
+  min-height: 40px;
+  border-color: rgba(255,255,255,.15);
+  color: #f2f2f4;
+  background: rgba(255,255,255,.07);
+}
+.interview-room[data-live-layout="true"] .interview-audio-progress { margin-top: 4px; }
+.interview-room[data-live-layout="true"] .interview-voice-stage {
+  position: relative;
+  display: grid;
+  min-height: 88px;
+  flex: 1 0 88px;
+  grid-template-rows: minmax(34px, 1fr) auto;
+  justify-items: center;
+  align-items: center;
+}
+.interview-room[data-live-layout="true"] .interview-voice-stage > .live-waveform {
+  width: 100%;
+  min-height: 44px;
+  align-self: stretch;
+  margin: 0;
+  gap: clamp(2px, .35vw, 5px);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.025) 20%, rgba(255,255,255,.025) 80%, transparent);
+}
+.interview-room[data-live-layout="true"] .interview-voice-stage > .live-waveform span { width: 2px; max-height: 38px; background: linear-gradient(#e4e4e8, #72727c); }
+.interview-room[data-live-layout="true"] .interview-record-button {
+  z-index: 1;
+  min-width: 238px;
+  min-height: 50px;
+  justify-self: center;
+  border-radius: 999px;
+  padding: 4px 23px 4px 5px;
+  --glass-fill: rgba(247,247,249,.96);
+  --glass-hover: #fff;
+  --glass-ink: #111113;
+  color: var(--glass-ink);
+  background: var(--glass-fill);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 9px 24px rgba(0,0,0,.27);
+  font-size: .9rem;
+  font-weight: 600;
+}
+.interview-room[data-live-layout="true"] .interview-record-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: #f5f5f7;
+  background: #171719;
+}
+.interview-room[data-live-layout="true"] .interview-record-icon svg { width: 20px; height: 20px; }
+.interview-room[data-live-layout="true"] .interview-record-button[aria-pressed="true"] { --glass-fill: rgba(220,190,190,.96); --glass-hover: #f2dddd; --glass-ink: #211617; }
+.interview-room[data-live-layout="true"] .interview-record-button[aria-pressed="true"] .interview-record-icon { color: #f9eeee; background: #432c2d; }
+.interview-room[data-live-layout="true"] .interview-voice-controls > p[aria-live="polite"] { margin: 0; font-size: .7rem; }
+.interview-room[data-live-layout="true"] .interview-voice-controls > div[role="alert"] { margin: 0; padding: 8px 12px; }
+.interview-room[data-live-layout="true"] .interview-mic-state { min-height: 40px; }
+@media (max-height: 820px) and (min-width: 701px) {
+  .interview-room[data-live-layout="true"] .interview-room-container { gap: 9px; padding-block: 9px !important; }
+  .interview-room[data-live-layout="true"] .interview-session-header { padding-bottom: 9px; }
+  .interview-room[data-live-layout="true"] .interview-session-title h1 { font-size: 1.65rem; }
+  .interview-room[data-live-layout="true"] .interview-prompt { padding: 16px; }
+  .interview-room[data-live-layout="true"] .interview-prompt h2 { font-size: clamp(1.3rem, 1.65vw, 1.8rem); }
+  .interview-room[data-live-layout="true"] .interview-sidebar { padding-block: 10px; }
+  .interview-room[data-live-layout="true"] .interview-sidebar-fact { padding-block: 7px; }
+  .interview-room[data-live-layout="true"] .interview-fact-icon { width: 38px; height: 38px; }
+  .interview-room[data-live-layout="true"] .interview-voice-controls { min-height: 176px; padding-block: 9px; }
+  .interview-room[data-live-layout="true"] .interview-voice-stage { min-height: 72px; grid-template-rows: minmax(27px, 1fr) auto; }
+  .interview-room[data-live-layout="true"] .interview-voice-stage > .live-waveform { min-height: 36px; }
+  .interview-room[data-live-layout="true"] .interview-record-button { min-height: 44px; }
+  .interview-room[data-live-layout="true"] .interview-record-icon { width: 34px; height: 34px; }
+}
+@media (max-width: 700px) {
+  .interview-room[data-live-layout="true"] .interview-room-container { grid-template-rows: none; }
+  .interview-room[data-live-layout="true"] .interview-voice-controls { min-height: 205px; grid-template-rows: auto auto minmax(84px, 1fr); }
+  .interview-room[data-live-layout="true"] .interview-voice-stage { min-height: 84px; }
+  .interview-room[data-live-layout="true"] .interview-prompt h2 { font-size: clamp(1.45rem, 6.2vw, 2rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .interview-room[data-live-layout="true"] .interview-record-button,
+  .interview-room[data-live-layout="true"] .interview-audio-toggle { transition: none; }
+}
 .app-frame .grillr-nav {
   border-color: rgba(255,255,255,.14);
   background: rgba(255,255,255,.045);
