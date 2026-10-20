@@ -84,7 +84,7 @@ export function JobTitleAutocomplete({ value, onChange }: JobTitleAutocompletePr
             <ul id={listboxId} role="listbox" aria-label="Suggested job titles" className="max-h-64 overflow-y-auto p-1.5">
               {suggestions.map((title, index) => (
                 <li key={title} id={`${listboxId}-option-${index}`} role="option" aria-selected={index === activeIndex}>
-                  <button type="button" className={`flex min-h-11 w-full items-center rounded-xl px-3 text-left text-sm text-[var(--muted)] transition-colors motion-reduce:transition-none ${index === activeIndex ? "bg-[var(--surface)] text-[var(--foreground)]" : "hover:bg-[var(--surface)]"}`} onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActiveIndex(index)} onClick={() => selectTitle(title)}>
+                  <button type="button" data-active={index === activeIndex} className="dropdown-option px-3 text-left text-sm" onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActiveIndex(index)} onClick={() => selectTitle(title)}>
                     <HighlightedTitle title={title} query={value} />
                   </button>
                 </li>

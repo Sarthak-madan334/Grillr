@@ -220,7 +220,6 @@ export default function InterviewSessionPage() {
         is_follow_up: nextQuestion.isFollowUp,
         answered_at: null,
       });
-      setDraft("");
       questionStartedAt.current = Date.now();
       setTurnState("listening");
     },
@@ -270,9 +269,11 @@ export default function InterviewSessionPage() {
               <div className="interview-main-column">
                 <VoiceAnswerPanel
                   sessionId={session.id}
+                  questionText={question.question_text}
                   hidden={state !== "ready"}
                   disabled={state !== "ready" || turnState === "asking" || turnState === "processing"}
                   onTranscript={setDraft}
+                  onRecordingChange={(recording) => { if (recording) setDraft(""); }}
                   onTurnStateChange={setTurnState}
                   onQuestionReady={handleVoiceQuestionReady}
                   onCompleted={handleVoiceCompleted}
@@ -291,9 +292,9 @@ export default function InterviewSessionPage() {
                 </div>
                 {isCodingQuestion ? <CodingWorkspace key={question.id} questionId={question.id} /> : null}
                 <ConversationTurnBanner state={turnState} />
-                <div className="interview-transcript" aria-label="Live answer transcript">
-                  <div className="interview-answer-header"><div><p className="interview-overline">Your response</p><h3>{wordCount > 0 ? "Your answer, so far" : "Your words will appear here"}</h3></div><span className="interview-word-count"><strong>{wordCount}</strong> {wordCount === 1 ? "word" : "words"}</span></div>
-                  <p className={wordCount > 0 ? "interview-transcript-copy" : "interview-transcript-placeholder"} aria-live="polite">{draft || "Start recording when you’re ready. Your transcript will appear here as you speak."}</p>
+                <div className="interview-transcript" aria-label="Recorded answer transcript">
+                  <div className="interview-answer-header"><div><p className="interview-overline">Your response</p><h3>{wordCount > 0 ? "Your last recorded answer" : "Your words will appear here"}</h3></div><span className="interview-word-count"><strong>{wordCount}</strong> {wordCount === 1 ? "word" : "words"}</span></div>
+                  <p className={wordCount > 0 ? "interview-transcript-copy" : "interview-transcript-placeholder"} aria-live="polite">{draft || "Start recording when you’re ready. Your transcript will appear here after you stop recording."}</p>
                 </div>
               </div>
               <aside className="interview-sidebar" aria-label="Interview guidance">

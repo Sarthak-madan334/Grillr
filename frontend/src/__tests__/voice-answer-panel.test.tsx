@@ -50,6 +50,7 @@ class TestSocket {
   close() {
     this.closeCalls += 1;
     this.readyState = 3;
+    this.emitEvent("close", new Event("close"));
   }
 
   emit(data: string) {
@@ -128,6 +129,95 @@ afterEach(() => {
 });
 
 describe("VoiceAnswerPanel", () => {
+  it("keeps an authenticated connection usable after a failed transcription", async () => {
+    vi.stubGlobal("WebSocket", TestSocket);
+    mockAvailableMicrophone();
+    render(<VoiceAnswerPanel sessionId="retry" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Stop recording" }));
+    const socket = TestSocket.instances[0];
+    act(() => socket.emit(JSON.stringify({ type: "error", data: { code: "no_speech_detected", message: "No speech was detected. Please try again." } })));
+    fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
+    await screen.findByRole("button", { name: "Stop recording" });
+    expect(socket.sent.filter(value => typeof value === "string" && JSON.parse(value).type === "speech.start")).toHaveLength(2);
+    expect(TestSocket.instances).toHaveLength(1);
+  });
+
+  it("starts a second answer on the same connection after the next question arrives", async () => {
+    vi.stubGlobal("WebSocket", TestSocket);
+    mockAvailableMicrophone();
+    render(<VoiceAnswerPanel sessionId="two-turns" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Stop recording" }));
+    const socket = TestSocket.instances[0];
+    act(() => socket.emit(JSON.stringify({ type: "transcript.final", data: { text: "My actual answer" } })));
+    expect(screen.getByRole("button", { name: "Start recording" })).toBeDisabled();
+    act(() => {
+      socket.emit(JSON.stringify({ type: "question.created", data: { question_id: "next", text: "What changed?" } }));
+      socket.emit(JSON.stringify({ type: "turn.state_changed", data: { state: "listening" } }));
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
+    await screen.findByRole("button", { name: "Stop recording" });
+    expect(TestSocket.instances).toHaveLength(1);
+  });
+
+  it("reconnects and authenticates when recording is retried after a disconnect", async () => {
+    vi.stubGlobal("WebSocket", TestSocket);
+    vi.mocked(fetch).mockImplementation(async () => realtimeTokenResponse());
+    mockAvailableMicrophone();
+    render(<VoiceAnswerPanel sessionId="reconnect" />);
+    await waitFor(() => expect(TestSocket.instances[0]?.sent).toHaveLength(2));
+    act(() => TestSocket.instances[0].close());
+    fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
+    await screen.findByRole("button", { name: "Stop recording" });
+    expect(TestSocket.instances).toHaveLength(2);
+    expect(TestSocket.instances[1].sent.slice(0, 2).map(value => JSON.parse(String(value)).type)).toEqual(["auth", "session.start"]);
+  });
+
+  it("does not reconnect when a parent replaces its callbacks", async () => {
+    vi.stubGlobal("WebSocket", TestSocket);
+    const { rerender } = render(<VoiceAnswerPanel sessionId="stable" onTranscript={vi.fn()} onRecordingChange={vi.fn()} />);
+    await waitFor(() => expect(TestSocket.instances[0]?.sent).toHaveLength(2));
+    const onTranscript = vi.fn();
+    rerender(<VoiceAnswerPanel sessionId="stable" onTranscript={onTranscript} onRecordingChange={vi.fn()} />);
+    act(() => TestSocket.instances[0].emit(JSON.stringify({ type: "transcript.final", data: { text: "Latest callback" } })));
+    expect(onTranscript).toHaveBeenCalledWith("Latest callback");
+    expect(TestSocket.instances).toHaveLength(1);
+    expect(TestSocket.instances[0].closeCalls).toBe(0);
+  });
+
+  it("leaves a playable control when autoplay is blocked", async () => {
+    vi.stubGlobal("WebSocket", TestSocket);
+    vi.stubGlobal("Audio", TestAudio);
+    vi.spyOn(TestAudio.prototype, "play").mockRejectedValueOnce(new DOMException("Click required", "NotAllowedError"));
+    render(<VoiceAnswerPanel sessionId="autoplay" />);
+    await waitFor(() => expect(TestSocket.instances[0]?.sent).toHaveLength(2));
+    act(() => TestSocket.instances[0].emit(JSON.stringify({ type: "audio.ai", data: { audio_base64: "YXVkaW8=" } })));
+    fireEvent.click(await screen.findByRole("button", { name: "Play question audio" }));
+    expect(await screen.findByText("AI interviewer is speaking")).toBeInTheDocument();
+  });
+
+  it("uses the current question and device speech when server speech is unavailable", async () => {
+    vi.stubGlobal("WebSocket", TestSocket);
+    class Utterance {
+      constructor(public text: string) {}
+      onstart?: () => void;
+      onend?: () => void;
+    }
+    const speak = vi.fn((utterance: Utterance) => utterance.onstart?.());
+    vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
+    vi.stubGlobal("speechSynthesis", { speak, cancel: vi.fn(), pause: vi.fn(), resume: vi.fn() });
+    mockAvailableMicrophone();
+    render(<VoiceAnswerPanel sessionId="fallback" questionText="Describe your project." />);
+    await waitFor(() => expect(TestSocket.instances[0]?.sent).toHaveLength(2));
+    act(() => TestSocket.instances[0].emit(JSON.stringify({ type: "error", data: { code: "tts_unavailable", question_text: "What was your contribution?" } })));
+    fireEvent.click(await screen.findByRole("button", { name: "Play question audio" }));
+    expect(speak).toHaveBeenCalledWith(expect.objectContaining({ text: "What was your contribution?" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
+    await screen.findByRole("button", { name: "Stop recording" });
+    expect(TestSocket.instances).toHaveLength(1);
+    expect(window.speechSynthesis.cancel).toHaveBeenCalled();
+  });
   it("hides recording controls when microphone APIs are unavailable", async () => {
     render(<VoiceAnswerPanel />);
 

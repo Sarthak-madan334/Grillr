@@ -614,7 +614,6 @@ export default function InterviewSessionPage() {
         is_follow_up: nextQuestion.isFollowUp,
         answered_at: null,
       });
-      setDraft("");
       questionStartedAt.current = Date.now();
       setTurnState("listening");
     },
@@ -664,9 +663,11 @@ export default function InterviewSessionPage() {
               <div className="interview-main-column">
                 <VoiceAnswerPanel
                   sessionId={session.id}
+                  questionText={question.question_text}
                   hidden={state !== "ready"}
                   disabled={state !== "ready" || turnState === "asking" || turnState === "processing"}
                   onTranscript={setDraft}
+                  onRecordingChange={(recording) => { if (recording) setDraft(""); }}
                   onTurnStateChange={setTurnState}
                   onQuestionReady={handleVoiceQuestionReady}
                   onCompleted={handleVoiceCompleted}
@@ -685,9 +686,9 @@ export default function InterviewSessionPage() {
                 </div>
                 {isCodingQuestion ? <CodingWorkspace key={question.id} questionId={question.id} /> : null}
                 <ConversationTurnBanner state={turnState} />
-                <div className="interview-transcript" aria-label="Live answer transcript">
-                  <div className="interview-answer-header"><div><p className="interview-overline">Your response</p><h3>{wordCount > 0 ? "Your answer, so far" : "Your words will appear here"}</h3></div><span className="interview-word-count"><strong>{wordCount}</strong> {wordCount === 1 ? "word" : "words"}</span></div>
-                  <p className={wordCount > 0 ? "interview-transcript-copy" : "interview-transcript-placeholder"} aria-live="polite">{draft || "Start recording when you’re ready. Your transcript will appear here as you speak."}</p>
+                <div className="interview-transcript" aria-label="Recorded answer transcript">
+                  <div className="interview-answer-header"><div><p className="interview-overline">Your response</p><h3>{wordCount > 0 ? "Your last recorded answer" : "Your words will appear here"}</h3></div><span className="interview-word-count"><strong>{wordCount}</strong> {wordCount === 1 ? "word" : "words"}</span></div>
+                  <p className={wordCount > 0 ? "interview-transcript-copy" : "interview-transcript-placeholder"} aria-live="polite">{draft || "Start recording when you’re ready. Your transcript will appear here after you stop recording."}</p>
                 </div>
               </div>
               <aside className="interview-sidebar" aria-label="Interview guidance">
@@ -1369,7 +1370,7 @@ main [role="option"][aria-selected="true"], main button[aria-pressed="true"]:not
 
 /* One glass system for native controls, linked CTAs, and explicit variants. */
 .glass-button,
-main :where(button):not(.grillr-nav-shell *),
+main :where(button):not(.grillr-nav-shell *):not(:where([role="option"], [role="option"] *)),
 .landing-button,
 main :where(a).oauth-button {
   --glass-fill: rgba(255,255,255,.075);
@@ -1384,11 +1385,11 @@ main :where(a).oauth-button {
   transition: background 250ms ease-out,border-color 250ms ease-out,transform 250ms ease-out,box-shadow 250ms ease-out;
 }
 .glass-button:hover,
-main :where(button):not(.grillr-nav-shell *):hover,
+main :where(button):not(.grillr-nav-shell *):not(:where([role="option"], [role="option"] *)):hover,
 .landing-button:hover,
 main :where(a).oauth-button:hover { color: var(--glass-ink); background: var(--glass-hover); border-color: rgba(255,255,255,.3); transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255,255,255,.22),0 10px 24px rgba(0,0,0,.25); }
-.glass-button:active,main :where(button):not(.grillr-nav-shell *):active,.landing-button:active { transform: scale(.98); }
-.glass-button:disabled,main :where(button):not(.grillr-nav-shell *):disabled,
+.glass-button:active,main :where(button):not(.grillr-nav-shell *):not(:where([role="option"], [role="option"] *)):active,.landing-button:active { transform: scale(.98); }
+.glass-button:disabled,main :where(button):not(.grillr-nav-shell *):not(:where([role="option"], [role="option"] *)):disabled,
 .glass-button[aria-disabled="true"] { opacity: .4; pointer-events: none; }
 main .glass-button--primary,main .landing-button-primary {
   --glass-fill: rgba(255,255,255,.92); --glass-hover: #fff; --glass-ink: #111113; --glass-solid: #f0f0f2;
@@ -1403,7 +1404,7 @@ main .glass-button--lg { min-height: 52px; padding-inline: 24px; }
 .glass-spinner { width: 15px; height: 15px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: glass-spin .8s linear infinite; }
 @keyframes glass-spin { to { transform: rotate(360deg); } }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass-button,main :where(button):not(.grillr-nav-shell *),.landing-button,main :where(a).oauth-button { background: var(--glass-solid); }
+  .glass-button,main :where(button):not(.grillr-nav-shell *):not(:where([role="option"], [role="option"] *)),.landing-button,main :where(a).oauth-button { background: var(--glass-solid); }
 }
 
 .landing-page { --landing-ink: #f1f0eb; position: relative; isolation: isolate; min-height: 100vh; background: var(--background); color: var(--foreground); }
@@ -1581,7 +1582,7 @@ main .glass-button--lg { min-height: 52px; padding-inline: 24px; }
   html { scroll-behavior: auto; }
   main :not(.grillr-nav-shell):not(.grillr-nav-shell *),main :not(.grillr-nav-shell *)::before,main :not(.grillr-nav-shell *)::after { animation: none !important; transition: none !important; }
   .reveal-pending { opacity: 1; translate: none; }
-  main :where(button):not(.grillr-nav-shell *):hover,.landing-button:hover,.glass-button:hover { transform: none; }
+  main :where(button):not(.grillr-nav-shell *):not(:where([role="option"], [role="option"] *)):hover,.landing-button:hover,.glass-button:hover { transform: none; }
 }
 
 /* Existing navbar: deliberately preserved. */
@@ -2350,7 +2351,7 @@ main button[aria-haspopup="listbox"] { justify-content: space-between; backgroun
 }
 @media (forced-colors: active) {
   .hero-copy h1 span { background: none; -webkit-text-fill-color: CanvasText; }
-  .glass-button,main :where(button):not(.grillr-nav-shell *) { border: 1px solid ButtonText; color: ButtonText; }
+  .glass-button,main :where(button):not(.grillr-nav-shell *):not(:where([role="option"], [role="option"] *)) { border: 1px solid ButtonText; color: ButtonText; }
   .feedback-score-track > span { background: Highlight; }
 }
 .session-clock { display: flex; width: fit-content; align-items: center; gap: 8px; margin: 0 0 14px auto; border: 1px solid var(--border-strong); border-radius: 999px; padding: 7px 12px; color: #c7c7d0; background: rgba(255,255,255,.035); font-family: var(--font-geist-mono),monospace; font-size: .75rem; }
@@ -2363,7 +2364,7 @@ main button[aria-haspopup="listbox"] { justify-content: space-between; backgroun
 .result-score { max-width: 640px; border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px 24px; background: #19191c; }
 .result-score .feedback-score-label { margin-top: 0; }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  main :where(button):not(.grillr-nav-shell *),main .glass-button,.landing-button,main :where(a).oauth-button { background: var(--glass-solid,#242427) !important; }
+  main :where(button):not(.grillr-nav-shell *):not(:where([role="option"], [role="option"] *)),main .glass-button,.landing-button,main :where(a).oauth-button { background: var(--glass-solid,#242427) !important; }
 }
 .interview-main-column { display: flex; flex-direction: column; }
 .interview-main-column > * { order: 2; }
@@ -2478,6 +2479,36 @@ main button[aria-haspopup="listbox"] { justify-content: space-between; backgroun
 .grillr-logo-wordmark small { color: #9a9aa2; font-size: .4375rem; font-weight: 700; letter-spacing: .18em; line-height: 1; }
 .preview-brand.grillr-logo-lockup { gap: 6px; }
 .preview-brand .grillr-logo-wordmark strong { font-size: .5rem; }
+
+/* Menu choices are flat rows, not separate glass buttons. */
+main .dropdown-option {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  cursor: pointer;
+  transition: background 200ms ease-out,color 200ms ease-out;
+}
+main .dropdown-option:hover,
+main .dropdown-option[data-active="true"],
+main .dropdown-option[aria-selected="true"],
+main [role="option"][aria-selected="true"] > .dropdown-option,
+main .dropdown-option:focus-visible {
+  color: var(--foreground);
+  background: rgba(255,255,255,.065);
+  box-shadow: none;
+  transform: none;
+}
+main .dropdown-option:focus-visible { outline: none; }
+@media (prefers-reduced-motion: reduce) { main .dropdown-option { transition: none; } }
 ````
 
 ## frontend/app/error.tsx
@@ -2805,7 +2836,7 @@ export default function InterviewSessionView() {
 
 ## frontend/components/interview/JobTitleAutocomplete.tsx
 
-Changed file — complete source.
+Changed file - complete source.
 
 ````tsx
 "use client";
@@ -2894,7 +2925,7 @@ export function JobTitleAutocomplete({ value, onChange }: JobTitleAutocompletePr
             <ul id={listboxId} role="listbox" aria-label="Suggested job titles" className="max-h-64 overflow-y-auto p-1.5">
               {suggestions.map((title, index) => (
                 <li key={title} id={`${listboxId}-option-${index}`} role="option" aria-selected={index === activeIndex}>
-                  <button type="button" className={`flex min-h-11 w-full items-center rounded-xl px-3 text-left text-sm text-[var(--muted)] transition-colors motion-reduce:transition-none ${index === activeIndex ? "bg-[var(--surface)] text-[var(--foreground)]" : "hover:bg-[var(--surface)]"}`} onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActiveIndex(index)} onClick={() => selectTitle(title)}>
+                  <button type="button" data-active={index === activeIndex} className="dropdown-option px-3 text-left text-sm" onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActiveIndex(index)} onClick={() => selectTitle(title)}>
                     <HighlightedTitle title={title} query={value} />
                   </button>
                 </li>
@@ -3734,7 +3765,7 @@ export function Input({ className = "", ...props }: InputProps) {
 
 ## frontend/components/ui/select.tsx
 
-Changed file — complete source.
+Changed file - complete source.
 
 ````tsx
 "use client";
@@ -3865,9 +3896,10 @@ export function Select({ id, name, value, options, onChange }: SelectProps) {
                 type="button"
                 role="option"
                 aria-selected={isSelected}
+                data-active={isActive}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => selectOption(index)}
-                className={`w-full rounded-xl px-3 py-2.5 text-left font-medium transition-colors ${isActive || isSelected ? "bg-[var(--surface)] text-[var(--foreground)]" : "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"}`}
+                className="dropdown-option px-3 py-2.5 text-left font-medium"
               >
                 {option.label}
               </button>
@@ -3897,6 +3929,7 @@ export type TurnState = "asking" | "listening" | "processing" | "completed";
 
 type VoiceAnswerPanelProps = {
   sessionId?: string;
+  questionText?: string;
   disabled?: boolean;
   hidden?: boolean;
   onRecordingChange?: (recording: boolean) => void;
@@ -3950,7 +3983,7 @@ function statusCopy(status: VoiceStatus) {
   }
 }
 
-export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, onRecordingChange, onTranscript, onTurnStateChange, onAnswerEvaluated, onQuestionReady, onCompleted }: VoiceAnswerPanelProps) {
+export function VoiceAnswerPanel({ sessionId, questionText = "", disabled = false, hidden = false, onRecordingChange, onTranscript, onTurnStateChange, onAnswerEvaluated, onQuestionReady, onCompleted }: VoiceAnswerPanelProps) {
   const [status, setStatus] = useState<VoiceStatus>(() =>
     typeof navigator !== "undefined" &&
     typeof navigator.mediaDevices?.getUserMedia === "function"
@@ -3962,7 +3995,6 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
   const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
   const [socketError, setSocketError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSocketReady, setIsSocketReady] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [aiAudioState, setAiAudioState] = useState<AiAudioState>("idle");
   const [aiAudioError, setAiAudioError] = useState("");
@@ -3975,26 +4007,28 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
   const aiAudioRef = useRef<HTMLAudioElement | null>(null);
   const aiAudioUrlRef = useRef<string | null>(null);
   const pendingChunksRef = useRef<Blob[]>([]);
+  const callbacks = useRef({ onRecordingChange, onTranscript, onTurnStateChange, onAnswerEvaluated, onQuestionReady, onCompleted });
+  const questionTextRef = useRef(questionText);
+  const browserVoiceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const connectRef = useRef<(() => Promise<void>) | null>(null);
+  useEffect(() => {
+    callbacks.current = { onRecordingChange, onTranscript, onTurnStateChange, onAnswerEvaluated, onQuestionReady, onCompleted };
+    questionTextRef.current = questionText;
+  }, [onRecordingChange, onTranscript, onTurnStateChange, onAnswerEvaluated, onQuestionReady, onCompleted, questionText]);
   const { isSpeaking, level } = useVoiceActivityDetection(activeStream);
 
   const stopStream = useCallback(() => {
     microphoneService.releaseMicrophone();
-    aiAudioRef.current?.pause();
-    aiAudioRef.current = null;
-    if (aiAudioUrlRef.current) URL.revokeObjectURL(aiAudioUrlRef.current);
-    aiAudioUrlRef.current = null;
-    setAiAudioState("idle");
-    setAiAudioError("");
-    setAiAudioTime(0);
-    setAiAudioDuration(0);
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     setActiveStream(null);
     pendingChunksRef.current = [];
-    onRecordingChange?.(false);
-  }, [onRecordingChange]);
+    callbacks.current.onRecordingChange?.(false);
+  }, []);
 
   useEffect(() => () => {
+    aiAudioRef.current?.pause();
+    if (browserVoiceRef.current) window.speechSynthesis?.cancel();
     if (aiAudioUrlRef.current) URL.revokeObjectURL(aiAudioUrlRef.current);
   }, []);
 
@@ -4002,32 +4036,94 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
     return stopStream;
   }, [stopStream]);
 
+  const prepareBrowserVoice = useCallback((text: string) => {
+    if (!text || typeof window.speechSynthesis === "undefined" || typeof SpeechSynthesisUtterance === "undefined") {
+      setAiAudioState("error");
+      setAiAudioError("Question audio is unavailable. You can still answer the question shown below.");
+      return;
+    }
+    aiAudioRef.current?.pause();
+    aiAudioRef.current = null;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    browserVoiceRef.current = utterance;
+    utterance.onstart = () => {
+      if (browserVoiceRef.current === utterance) setAiAudioState("playing");
+    };
+    utterance.onend = () => {
+      if (browserVoiceRef.current === utterance) setAiAudioState("completed");
+    };
+    utterance.onerror = () => {
+      if (browserVoiceRef.current !== utterance) return;
+      setAiAudioState("ready");
+      setAiAudioError("Select Play to hear the question using your device voice.");
+    };
+    setAiAudioDuration(0);
+    setAiAudioTime(0);
+    setAiAudioState("ready");
+    setAiAudioError("Using your device voice. Select Play to hear the question.");
+  }, []);
+
   useEffect(() => {
     if (!sessionId || typeof WebSocket === "undefined") return;
     let cancelled = false;
     let socket: WebSocket | null = null;
 
-    async function connect() {
+    let connecting: Promise<void> | null = null;
+    let rejectConnection: ((error: Error) => void) | undefined;
+    let attempt = 0;
+    let connectionTimer: ReturnType<typeof setTimeout> | undefined;
+    const connect = (): Promise<void> => {
+      if (socketAuthenticatedRef.current && socket?.readyState === WebSocket.OPEN) return Promise.resolve();
+      if (connecting) return connecting;
+      const connectionAttempt = ++attempt;
+      connecting = new Promise<void>((resolve, reject) => {
+        rejectConnection = reject;
+        connectionTimer = setTimeout(() => {
+          attempt++;
+          setSocketError("Connecting took too long. Please retry recording.");
+          reject(new Error("Connecting took too long. Please retry recording."));
+          socket?.close();
+        }, 15000);
+        void openConnection(resolve, reject, connectionAttempt);
+      }).finally(() => {
+        clearTimeout(connectionTimer);
+        connecting = null;
+      });
+      return connecting;
+    };
+    async function openConnection(resolve: () => void, reject: (error: Error) => void, connectionAttempt: number) {
       try {
         const tokenResponse = await fetch("/api/auth/realtime-token", { cache: "no-store", credentials: "include" });
         if (!tokenResponse.ok) throw new Error("Realtime authentication failed");
         const { token } = (await tokenResponse.json()) as { token?: string };
         if (!token || cancelled) throw new Error("Realtime authentication failed");
         const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "https://grillr-acev.onrender.com";
+        if (cancelled || connectionAttempt !== attempt) return;
+        socketAuthenticatedRef.current = false;
+        socket?.close();
         socket = new WebSocket(`${apiUrl.replace(/^http/, "ws")}/api/v1/ws/interviews/${sessionId}`);
         socketRef.current = socket;
-        socket.addEventListener("open", () => socket?.send(JSON.stringify({ type: "auth", token })));
+        const activeSocket = socket;
+        socket.addEventListener("open", () => activeSocket.send(JSON.stringify({ type: "auth", token })));
         socket.addEventListener("message", (event) => {
+          if (cancelled || socketRef.current !== activeSocket || connectionAttempt !== attempt) return;
           try {
-            const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; state?: TurnState; message?: string; audio_base64?: string; media_type?: string; question_id?: string; question_number?: number; question_type?: string; is_follow_up?: boolean } };
+            const message = JSON.parse(event.data) as { type?: string; data?: { text?: string; code?: string; question_text?: string; state?: TurnState; message?: string; audio_base64?: string; media_type?: string; question_id?: string; question_number?: number; question_type?: string; is_follow_up?: boolean } };
             if (message.type === "auth.ok") {
               socketAuthenticatedRef.current = true;
-              setIsSocketReady(true);
+              setSocketError("");
+              resolve();
               socket?.send(JSON.stringify({ type: "session.start" }));
+            }
+            if (message.type === "audio.unavailable") {
+              prepareBrowserVoice(message.data?.text ?? questionTextRef.current);
             }
             if (message.type === "audio.ai" && message.data?.audio_base64) {
               const bytes = Uint8Array.from(atob(message.data.audio_base64), (character) => character.charCodeAt(0));
               const audioUrl = URL.createObjectURL(new Blob([bytes], { type: message.data.media_type ?? "audio/mpeg" }));
+              if (browserVoiceRef.current) window.speechSynthesis?.cancel();
+              browserVoiceRef.current = null;
               aiAudioRef.current?.pause();
               if (aiAudioUrlRef.current) URL.revokeObjectURL(aiAudioUrlRef.current);
               const audio = new Audio(audioUrl);
@@ -4056,30 +4152,30 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
               };
               audio.onerror = () => {
                 if (aiAudioRef.current !== audio) return;
-                setAiAudioState("error");
-                setAiAudioError("Question audio could not be played. Continue with the text prompt.");
+                prepareBrowserVoice(questionTextRef.current);
               };
+              if (microphoneService.isRecording()) { setAiAudioState("ready"); return; }
               void audio.play().catch(() => {
                 if (aiAudioRef.current !== audio) return;
-                setAiAudioState("error");
-                setAiAudioError("Question audio could not be played. Continue with the text prompt.");
+                setAiAudioState("ready");
+                setAiAudioError("Select Play to hear the question.");
               });
             }
             if (message.type === "turn.state_changed" && message.data?.state) {
               setIsProcessing(message.data.state === "processing");
-              onTurnStateChange?.(message.data.state);
+              if (message.data.state !== "processing") setIsStopping(false);
+              callbacks.current.onTurnStateChange?.(message.data.state);
             }
             if (message.type === "transcript.final" && message.data?.text) {
-              onTranscript?.(message.data.text);
-              setIsProcessing(false);
+              callbacks.current.onTranscript?.(message.data.text);
               setIsStopping(false);
-              onTurnStateChange?.("listening");
               stopStream();
               setStatus("ready");
             }
-            if (message.type === "answer.evaluated") onAnswerEvaluated?.();
+            if (message.type === "answer.evaluated") callbacks.current.onAnswerEvaluated?.();
             if ((message.type === "question.created" || message.type === "question.follow_up") && message.data?.question_id && message.data.text) {
-              onQuestionReady?.({
+              questionTextRef.current = message.data.text;
+              callbacks.current.onQuestionReady?.({
                 id: message.data.question_id,
                 text: message.data.text,
                 questionNumber: message.data.question_number ?? 0,
@@ -4090,15 +4186,18 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
             if (message.type === "session.completed") {
               setIsProcessing(false);
               setIsStopping(false);
-              onTurnStateChange?.("completed");
-              onCompleted?.();
+              callbacks.current.onTurnStateChange?.("completed");
+              callbacks.current.onCompleted?.();
             }
             if (message.type === "error") {
-              setIsSocketReady(false);
-              socketAuthenticatedRef.current = false;
+              if (message.data?.code === "tts_unavailable") {
+                prepareBrowserVoice(message.data?.question_text ?? questionTextRef.current);
+                return;
+              }
+              // Turn errors do not revoke authentication on an otherwise healthy socket.
               setIsProcessing(false);
               setIsStopping(false);
-              onTurnStateChange?.("listening");
+              callbacks.current.onTurnStateChange?.("listening");
               setSocketError(message.data?.message ?? "The live interview connection returned an error. Please retry your voice answer.");
               stopStream();
               setStatus("ready");
@@ -4107,21 +4206,41 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
             setSocketError("Live interview returned an unreadable response.");
           }
         });
-        socket.addEventListener("error", () => setSocketError("The live interview connection failed. Please retry your voice answer."), { once: true });
+        socket.addEventListener("close", () => {
+          if (cancelled || socketRef.current !== activeSocket || connectionAttempt !== attempt) return;
+          socketAuthenticatedRef.current = false;
+          setIsProcessing(false);
+          setIsStopping(false);
+          stopStream();
+          setStatus("ready");
+          callbacks.current.onTurnStateChange?.("listening");
+          setSocketError("The interview connection closed. Start recording to reconnect.");
+          reject(new Error("The interview connection closed. Please retry recording."));
+        });
+        socket.addEventListener("error", () => {
+          if (cancelled || socketRef.current !== activeSocket || connectionAttempt !== attempt) return;
+          setSocketError("The live interview connection failed. Please retry your voice answer.");
+          reject(new Error("The live interview connection failed. Please retry your voice answer."));
+        }, { once: true });
       } catch (error) {
-        if (!cancelled) setSocketError(error instanceof Error ? error.message : "Realtime authentication failed");
+        const failure = error instanceof Error ? error : new Error("Realtime authentication failed");
+        if (!cancelled) setSocketError(failure.message);
+        reject(failure);
       }
     }
 
-    void connect();
+    connectRef.current = connect;
+    void connect().catch(() => undefined);
     return () => {
       cancelled = true;
-      setIsSocketReady(false);
+      clearTimeout(connectionTimer);
+      rejectConnection?.(new Error("Interview connection ended"));
+      connectRef.current = null;
       socketAuthenticatedRef.current = false;
       socket?.close();
       socketRef.current = null;
     };
-  }, [onAnswerEvaluated, onCompleted, onQuestionReady, onTranscript, onTurnStateChange, sessionId, stopStream]);
+  }, [sessionId, stopStream, prepareBrowserVoice]);
 
   const recordingUrl = useMemo(() => {
     if (!recordingBlob || typeof URL.createObjectURL !== "function") return "";
@@ -4140,10 +4259,18 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
   }, [stopStream]);
 
   async function startRecording() {
-    if (disabled || status === "recording") return;
-    if (sessionId && (typeof WebSocket === "undefined" || !isSocketReady || socketRef.current?.readyState !== WebSocket.OPEN)) {
-      setSocketError("The interview connection is still starting. Please try again in a moment.");
-      return;
+    if (disabled || isRetrying || isStopping || isProcessing || status === "recording") return;
+    if (sessionId && (typeof WebSocket === "undefined" || !socketAuthenticatedRef.current || socketRef.current?.readyState !== WebSocket.OPEN)) {
+      setIsRetrying(true);
+      try {
+        if (!connectRef.current) throw new Error("Live recording is unavailable in this browser.");
+        await connectRef.current();
+      } catch (error) {
+        setSocketError(error instanceof Error ? error.message : "Could not reconnect. Please retry recording.");
+        setIsRetrying(false);
+        return;
+      }
+      setIsRetrying(false);
     }
     if (!navigator.mediaDevices?.getUserMedia) {
       setStatus("unsupported");
@@ -4154,6 +4281,11 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
     setIsProcessing(false);
     setIsStopping(false);
     try {
+      aiAudioRef.current?.pause();
+      if (browserVoiceRef.current) {
+        window.speechSynthesis.cancel();
+        setAiAudioState("ready");
+      }
       const devices = navigator.mediaDevices.enumerateDevices
         ? await navigator.mediaDevices.enumerateDevices()
         : [];
@@ -4170,6 +4302,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
         setStatus("denied");
         return;
       }
+      if (aiAudioRef.current) aiAudioRef.current.pause();
       stream.getTracks().forEach((track) => {
         track.addEventListener("ended", handleTrackEnded, { once: true });
       });
@@ -4208,7 +4341,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
     if (microphoneService.isRecording()) {
       setIsStopping(true);
       setIsProcessing(true);
-      onTurnStateChange?.("processing");
+      callbacks.current.onTurnStateChange?.("processing");
       microphoneService.stopRecording(() => {
         if (socketAuthenticatedRef.current && socketRef.current?.readyState === WebSocket.OPEN) {
           socketRef.current.send(JSON.stringify({ type: "speech.stop", turn_id: turnIdRef.current }));
@@ -4226,8 +4359,27 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
   }
 
   function toggleAiAudio() {
+    if (microphoneService.isRecording()) return;
+    const utterance = browserVoiceRef.current;
+    if (utterance) {
+      if (aiAudioState === "playing") {
+        window.speechSynthesis.pause();
+        setAiAudioState("paused");
+      } else if (aiAudioState === "paused") {
+        window.speechSynthesis.resume();
+        setAiAudioState("playing");
+      } else {
+        window.speechSynthesis.cancel();
+        setAiAudioError("");
+        window.speechSynthesis.speak(utterance);
+      }
+      return;
+    }
     const audio = aiAudioRef.current;
-    if (!audio || aiAudioState === "error") return;
+    if (!audio) {
+      prepareBrowserVoice(questionTextRef.current);
+      return;
+    }
     if (aiAudioState === "completed") {
       audio.currentTime = 0;
       setAiAudioTime(0);
@@ -4237,8 +4389,8 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
       return;
     }
     void audio.play().catch(() => {
-      setAiAudioState("error");
-      setAiAudioError("Question audio could not be played. Continue with the text prompt.");
+      setAiAudioState("ready");
+      setAiAudioError("Playback was blocked. Select Play to try again.");
     });
   }
 
@@ -4274,8 +4426,8 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
       <div className={`live-waveform ${activeStream && isSpeaking ? "is-active" : ""}`} aria-hidden="true">{Array.from({ length: 36 }, (_, index) => <span key={index} style={{ "--bar-height": `${10 + ((index * 17) % 35) * Math.max(.3, level)}px`, "--bar-delay": `${index * -75}ms` } as CSSProperties} />)}</div>
       {status === "recording" ? <p className="mt-4 flex items-center gap-2 text-xs font-medium text-[var(--success)]" aria-live="polite"><span className="h-2 w-2 animate-pulse rounded-full bg-[var(--success-surface)] motion-reduce:animate-none" /> Recording in progress. Stop when you finish.</p> : null}
       {isProcessing ? <p className="mt-4 flex items-center gap-2 text-xs font-medium text-[var(--muted)]" aria-live="polite"><span className="h-3 w-3 animate-pulse rounded-full bg-[var(--surface)] motion-reduce:animate-none" /> Processing your answer...</p> : null}
-      {aiAudioState !== "idle" ? <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5" aria-live="polite"><div className="flex items-center gap-3"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${aiAudioState === "playing" ? "bg-[var(--success-surface)] text-[var(--success)]" : "bg-[var(--surface)] text-[var(--muted)]"}`}><SpeakerIcon /></span><span className="min-w-0 flex-1 text-xs font-medium text-[var(--muted)]">{audioStatusCopy(aiAudioState)}{aiAudioError ? <span className="mt-0.5 block text-[11px] font-normal text-[var(--error)]">{aiAudioError}</span> : null}</span>{aiAudioState === "loading" ? <span className="flex gap-1" aria-label="Loading question audio"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--surface)] motion-reduce:animate-none" /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--surface)] [animation-delay:150ms] motion-reduce:animate-none" /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--surface)] [animation-delay:300ms] motion-reduce:animate-none" /></span> : null}{aiAudioState !== "loading" && aiAudioState !== "error" ? <button type="button" onClick={toggleAiAudio} aria-label={aiAudioState === "playing" ? "Pause question audio" : aiAudioState === "completed" ? "Replay question audio" : aiAudioState === "paused" ? "Resume question audio" : "Play question audio"} className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--muted)] transition hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 motion-reduce:transition-none">{aiAudioState === "playing" ? "Pause" : aiAudioState === "completed" ? "Replay" : aiAudioState === "paused" ? "Resume" : "Play"}</button> : null}</div>{aiAudioState !== "loading" && aiAudioState !== "error" && aiAudioDuration > 0 ? <div className="mt-2 flex items-center gap-2"><input type="range" min="0" max={aiAudioDuration} step="0.1" value={Math.min(aiAudioTime, aiAudioDuration)} onChange={(event) => seekAiAudio(event.target.value)} aria-label="Question audio progress" className="h-1.5 min-w-0 flex-1 accent-[var(--foreground)]" /><span className="w-16 text-right text-[10px] tabular-nums text-[var(--muted)]">{formatAudioTime(aiAudioTime)} / {formatAudioTime(aiAudioDuration)}</span></div> : null}</div> : null}
-      {activeStream ? <div className="mt-3 flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2" aria-live="polite"><span className={`h-2.5 w-2.5 rounded-full transition-colors motion-reduce:transition-none ${isSpeaking ? "bg-[var(--success-surface)] shadow-[var(--shadow-soft)]" : "bg-[var(--surface)]"}`} /><span className="text-xs font-medium text-[var(--muted)]">{isSpeaking ? "Speaking detected" : "Listening for your voice"}</span><span className="ml-auto text-[10px] tabular-nums text-[var(--muted)]">{Math.round(level * 100)}%</span></div> : null}
+      {aiAudioState !== "idle" ? <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5" aria-live="polite"><div className="flex items-center gap-3"><span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${aiAudioState === "playing" ? "bg-[var(--success-surface)] text-[var(--success)]" : "bg-[var(--surface)] text-[var(--muted)]"}`}><SpeakerIcon /></span><span className="min-w-0 flex-1 text-xs font-medium text-[var(--muted)]">{audioStatusCopy(aiAudioState)}{aiAudioError ? <span className="mt-0.5 block text-[11px] font-normal text-[var(--error)]">{aiAudioError}</span> : null}</span>{aiAudioState === "loading" ? <span className="flex gap-1" aria-label="Loading question audio"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--surface)] motion-reduce:animate-none" /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--surface)] [animation-delay:150ms] motion-reduce:animate-none" /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--surface)] [animation-delay:300ms] motion-reduce:animate-none" /></span> : null}{aiAudioState !== "loading" ? <button disabled={status === "recording"} type="button" onClick={toggleAiAudio} aria-label={aiAudioState === "playing" ? "Pause question audio" : aiAudioState === "completed" ? "Replay question audio" : aiAudioState === "paused" ? "Resume question audio" : "Play question audio"} className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--muted)] transition hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 motion-reduce:transition-none">{aiAudioState === "playing" ? "Pause" : aiAudioState === "completed" ? "Replay" : aiAudioState === "paused" ? "Resume" : "Play"}</button> : null}</div>{aiAudioState !== "loading" && aiAudioState !== "error" && aiAudioDuration > 0 ? <div className="mt-2 flex items-center gap-2"><input type="range" min="0" max={aiAudioDuration} step="0.1" value={Math.min(aiAudioTime, aiAudioDuration)} onChange={(event) => seekAiAudio(event.target.value)} aria-label="Question audio progress" className="h-1.5 min-w-0 flex-1 accent-[var(--foreground)]" /><span className="w-16 text-right text-[10px] tabular-nums text-[var(--muted)]">{formatAudioTime(aiAudioTime)} / {formatAudioTime(aiAudioDuration)}</span></div> : null}</div> : null}
+      {activeStream ? <div className="mt-3 flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2" aria-live="polite"><span className={`h-2.5 w-2.5 rounded-full transition-colors motion-reduce:transition-none ${isSpeaking ? "bg-[var(--success-surface)] shadow-[var(--shadow-soft)]" : "bg-[var(--surface)]"}`} /><span className="text-xs font-medium text-[var(--muted)]">{isSpeaking ? "Your microphone is picking up your voice" : "Listening for your voice"}</span><span className="ml-auto text-[10px] tabular-nums text-[var(--muted)]">{Math.round(level * 100)}%</span></div> : null}
       {recordingUrl ? <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Captured locally</p><audio className="mt-2 h-9 w-full" controls src={recordingUrl} aria-label="Recorded answer preview" /></div> : null}
       {socketError ? <div role="alert" className="mt-3 rounded-xl border border-[var(--error)] bg-[var(--error-surface)] px-3 py-2 text-xs leading-5 text-[var(--error)]">{socketError}</div> : null}
       {message ? <div role="alert" className="mt-4 flex flex-col gap-3 rounded-xl border border-[var(--error)] bg-[var(--error-surface)] p-3 text-sm text-[var(--error)] sm:flex-row sm:items-center sm:justify-between"><div><strong className="block font-semibold">{message.title}</strong><span className="mt-1 block text-xs leading-5 text-[var(--error)]">{message.body}</span></div>{status !== "unsupported" ? <button type="button" onClick={() => void startRecording()} disabled={isRetrying} className="shrink-0 self-start rounded-full border border-[var(--border)] px-3 py-2 text-xs font-semibold text-[var(--muted)] transition hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 sm:self-center">Retry voice</button> : null}</div> : null}

@@ -16,6 +16,7 @@ from app.models import SessionStatus
 from app.schemas.answer import AnswerCreate
 from app.services.interview_service import InterviewService
 from app.services.providers import (
+    MockTextToSpeech,
     SpeechToTextService,
     TextToSpeechConfigurationError,
     TextToSpeechProviderError,
@@ -37,8 +38,12 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
     speech = SpeechController()
     service = None
     identity = None
+    turn_state = "listening"
 
     async def send_error(code: str, message: str) -> None:
+        nonlocal turn_state
+        if code in {"empty_audio", "transcription_timeout", "stt_failed", "no_speech_detected", "missing_question", "answer_persistence_failed", "question_generation_failed"}:
+            turn_state = "listening"
         await websocket.send_json({"type": "error", "data": {"code": code, "message": message}})
 
     try:
@@ -109,12 +114,16 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             try:
                 if text_to_speech is None:
                     text_to_speech = create_text_to_speech()
-                audio = await asyncio.to_thread(text_to_speech.synthesize, question.question_text)
+                if isinstance(text_to_speech, MockTextToSpeech):
+                    await websocket.send_json({"type": "audio.unavailable", "data": {"question_id": str(question.id), "text": question.question_text, "reason": "device_voice_required"}})
+                    return
+                audio = await asyncio.wait_for(asyncio.to_thread(text_to_speech.synthesize, question.question_text), timeout=35)
                 media_type = getattr(text_to_speech, "media_type", "audio/mpeg")
                 if not audio:
                     raise TextToSpeechProviderError("TTS returned empty audio")
-            except (TextToSpeechConfigurationError, TextToSpeechProviderError, ValueError, RuntimeError):
-                await send_error("tts_unavailable", "Question audio is temporarily unavailable.")
+            except (TextToSpeechConfigurationError, TextToSpeechProviderError, ValueError, RuntimeError, asyncio.TimeoutError):
+                logger.exception("Question speech unavailable", extra={"session_id": str(session_id), "question_id": str(question.id)})
+                await websocket.send_json({"type": "error", "data": {"code": "tts_unavailable", "message": "Question audio is temporarily unavailable.", "question_text": question.question_text}})
                 return
             await websocket.send_json({
                 "type": "audio.ai",
@@ -178,6 +187,7 @@ async def interview_socket(websocket: WebSocket, session_id: UUID):
             try:
                 db.expire_all()
                 updated_session = service.get(session_id, identity.id)
+                session = updated_session
                 await websocket.send_json({
                     "type": "transcript.final",
                     "data": {

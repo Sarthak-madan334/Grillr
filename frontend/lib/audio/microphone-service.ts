@@ -3,7 +3,6 @@ export type AudioChunkHandler = (data: Blob) => void;
 export class MicrophoneService {
   private stream: MediaStream | null = null;
   private mediaRecorder: MediaRecorder | null = null;
-  private onDataAvailableCallback: AudioChunkHandler | null = null;
 
   async requestPermission(): Promise<boolean> {
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) return false;
@@ -22,25 +21,25 @@ export class MicrophoneService {
 
   startRecording(onDataAvailable: AudioChunkHandler): boolean {
     if (!this.stream || typeof MediaRecorder === "undefined") return false;
-    this.onDataAvailableCallback = onDataAvailable;
-    this.mediaRecorder = new MediaRecorder(this.stream);
-    this.mediaRecorder.addEventListener("dataavailable", (event) => {
-      if (event.data.size > 0) this.onDataAvailableCallback?.(event.data);
+    if (this.isRecording()) return false;
+    const recorder = new MediaRecorder(this.stream);
+    this.mediaRecorder = recorder;
+    recorder.addEventListener("dataavailable", (event) => {
+      if (event.data.size > 0) onDataAvailable(event.data);
     });
-    this.mediaRecorder.start(100);
+    recorder.start(100);
     return true;
   }
 
   stopRecording(onStopped?: () => void) {
     if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
-      this.mediaRecorder.addEventListener("stop", () => {
-        this.mediaRecorder = null;
-        this.onDataAvailableCallback = null;
+      const recorder = this.mediaRecorder;
+      recorder.addEventListener("stop", () => {
+        if (this.mediaRecorder === recorder) this.mediaRecorder = null;
         onStopped?.();
       }, { once: true });
       this.mediaRecorder.stop();
     } else {
-      this.onDataAvailableCallback = null;
       onStopped?.();
     }
   }

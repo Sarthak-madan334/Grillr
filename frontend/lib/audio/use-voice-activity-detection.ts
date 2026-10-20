@@ -45,12 +45,12 @@ export function useVoiceActivityDetection(
     const context = new AudioContextClass();
     const analyser = context.createAnalyser();
     const source = context.createMediaStreamSource(stream);
+    analyser.fftSize = 512;
     const samples = new Uint8Array(analyser.fftSize);
     let animationFrame = 0;
     let belowThresholdSince: number | null = null;
-  let speaking = false;
+    let speaking = false;
 
-    analyser.fftSize = 512;
     source.connect(analyser);
     void context.resume().catch(() => undefined);
 

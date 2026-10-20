@@ -11,7 +11,8 @@ import app.api.v1.websocket as websocket_module
 from starlette.websockets import WebSocketDisconnect
 
 
-def test_websocket_lifecycle_and_events(client):
+def test_websocket_lifecycle_and_events(client, monkeypatch):
+    monkeypatch.setattr(websocket_module, "create_text_to_speech", websocket_module.MockTextToSpeech)
     user_token = f"dev:{DEV_USER_ID}:developer@localhost:Development User"
     create_res = client.post("/api/v1/interviews", json={
         "interview_type": "technical",
@@ -36,7 +37,10 @@ def test_websocket_lifecycle_and_events(client):
         ws.send_json({"type": "session.start"})
         start_msg = ws.receive_json()
         assert start_msg["type"] == "session.started"
-        assert ws.receive_json()["type"] == "audio.ai"
+        audio = ws.receive_json()
+        assert audio["type"] == "audio.unavailable"
+        assert audio["data"]["text"]
+        assert audio["data"]["reason"] == "device_voice_required"
 
         # Send speech.start
         ws.send_json({"type": "speech.start", "turn_id": "turn-lifecycle"})
@@ -181,6 +185,27 @@ def test_websocket_emits_question_audio_on_session_start(client, monkeypatch):
         assert audio_event["data"]["audio_base64"]
 
 
+def test_websocket_speech_failure_preserves_connection_and_supplies_fallback_text(client, monkeypatch):
+    class FailingTextToSpeech:
+        def synthesize(self, text: str) -> bytes:
+            raise websocket_module.TextToSpeechProviderError("Provider unavailable")
+
+    monkeypatch.setattr(websocket_module, "create_text_to_speech", FailingTextToSpeech)
+    session_id, token = _create_interview(client)
+    with client.websocket_connect(f"/api/v1/ws/interviews/{session_id}") as ws:
+        ws.send_json({"type": "auth", "token": token})
+        assert ws.receive_json()["type"] == "auth.ok"
+        ws.receive_json()
+        ws.send_json({"type": "session.start"})
+        assert ws.receive_json()["type"] == "session.started"
+        error = ws.receive_json()
+        assert error["data"]["code"] == "tts_unavailable"
+        assert error["data"]["question_text"]
+        ws.send_json({"type": "speech.start", "turn_id": "after-tts-failure"})
+        assert ws.receive_json()["type"] == "speech.start.ack"
+        assert ws.receive_json()["data"]["state"] == "listening"
+
+
 def test_websocket_rejects_out_of_state_and_empty_audio(client):
     session_id, token = _create_interview(client)
 
@@ -274,6 +299,16 @@ def test_websocket_provider_failure_returns_error_event(client, monkeypatch):
         ws.send_json({"type": "speech.stop"})
         ws.receive_json()
         ws.receive_json()
+        assert ws.receive_json()["data"]["code"] == "stt_failed"
+        ws.send_json({"type": "session.resync"})
+        assert ws.receive_json()["data"]["turn_state"] == "listening"
+        ws.send_json({"type": "speech.start", "turn_id": "turn-stt-retry"})
+        assert ws.receive_json()["type"] == "speech.start.ack"
+        assert ws.receive_json()["data"]["state"] == "listening"
+        ws.send_bytes(b"retry-audio")
+        ws.send_json({"type": "speech.stop", "turn_id": "turn-stt-retry"})
+        assert ws.receive_json()["type"] == "speech.stop.ack"
+        assert ws.receive_json()["data"]["state"] == "processing"
         assert ws.receive_json()["data"]["code"] == "stt_failed"
 
 

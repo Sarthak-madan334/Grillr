@@ -105,3 +105,9 @@ The navbar artwork is the canonical `frontend/public/grillr-logo.svg`. `GrillrLo
 Build and lint passed for the logo extraction.
 
 - `icons`: I used one shared SVG asset with a root-relative URL, following “use a root-relative URL”, so nested routes cannot resolve the logo against the wrong directory.
+
+## Flat dropdown options
+
+Dropdown choices and job-title suggestions now use flat, borderless rows instead of separate glass buttons. Shared glass styles explicitly exclude options and buttons inside options, including their hover, active, and unsupported-blur fallback states. A subtle fill shows hover, the selected value, keyboard activity, and focus without an outline box. Selection handlers and keyboard behavior are unchanged.
+
+Modern Web Guidance: I checked dropdown styling in modern-web-guidance; native customizable-select guidance was not applied because this correction preserves the existing custom listbox.

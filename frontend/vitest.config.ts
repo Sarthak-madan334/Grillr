@@ -4,6 +4,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: {
     alias: {
+      "@/components": path.resolve(__dirname, "./components"),
+      "@/lib/interview-api": path.resolve(__dirname, "./lib/interview-api"),
       "@": path.resolve(__dirname, "./src"),
     },
   },

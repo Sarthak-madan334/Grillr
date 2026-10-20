@@ -126,9 +126,10 @@ export function Select({ id, name, value, options, onChange }: SelectProps) {
                 type="button"
                 role="option"
                 aria-selected={isSelected}
+                data-active={isActive}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => selectOption(index)}
-                className={`w-full rounded-xl px-3 py-2.5 text-left font-medium transition-colors ${isActive || isSelected ? "bg-[var(--surface)] text-[var(--foreground)]" : "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"}`}
+                className="dropdown-option px-3 py-2.5 text-left font-medium"
               >
                 {option.label}
               </button>
