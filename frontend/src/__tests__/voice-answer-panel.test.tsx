@@ -134,11 +134,11 @@ describe("VoiceAnswerPanel", () => {
     mockAvailableMicrophone();
     render(<VoiceAnswerPanel sessionId="retry" />);
     fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Stop recording" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Stop speaking" }));
     const socket = TestSocket.instances[0];
     act(() => socket.emit(JSON.stringify({ type: "error", data: { code: "no_speech_detected", message: "No speech was detected. Please try again." } })));
     fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
-    await screen.findByRole("button", { name: "Stop recording" });
+    await screen.findByRole("button", { name: "Stop speaking" });
     expect(socket.sent.filter(value => typeof value === "string" && JSON.parse(value).type === "speech.start")).toHaveLength(2);
     expect(TestSocket.instances).toHaveLength(1);
   });
@@ -148,7 +148,7 @@ describe("VoiceAnswerPanel", () => {
     mockAvailableMicrophone();
     render(<VoiceAnswerPanel sessionId="two-turns" />);
     fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Stop recording" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Stop speaking" }));
     const socket = TestSocket.instances[0];
     act(() => socket.emit(JSON.stringify({ type: "transcript.final", data: { text: "My actual answer" } })));
     expect(screen.getByRole("button", { name: "Start recording" })).toBeDisabled();
@@ -157,7 +157,7 @@ describe("VoiceAnswerPanel", () => {
       socket.emit(JSON.stringify({ type: "turn.state_changed", data: { state: "listening" } }));
     });
     fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
-    await screen.findByRole("button", { name: "Stop recording" });
+    await screen.findByRole("button", { name: "Stop speaking" });
     expect(TestSocket.instances).toHaveLength(1);
   });
 
@@ -169,7 +169,7 @@ describe("VoiceAnswerPanel", () => {
     await waitFor(() => expect(TestSocket.instances[0]?.sent).toHaveLength(2));
     act(() => TestSocket.instances[0].close());
     fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
-    await screen.findByRole("button", { name: "Stop recording" });
+    await screen.findByRole("button", { name: "Stop speaking" });
     expect(TestSocket.instances).toHaveLength(2);
     expect(TestSocket.instances[1].sent.slice(0, 2).map(value => JSON.parse(String(value)).type)).toEqual(["auth", "session.start"]);
   });
@@ -214,7 +214,7 @@ describe("VoiceAnswerPanel", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Play question audio" }));
     expect(speak).toHaveBeenCalledWith(expect.objectContaining({ text: "What was your contribution?" }));
     fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
-    await screen.findByRole("button", { name: "Stop recording" });
+    await screen.findByRole("button", { name: "Stop speaking" });
     expect(TestSocket.instances).toHaveLength(1);
     expect(window.speechSynthesis.cancel).toHaveBeenCalled();
   });
@@ -262,7 +262,7 @@ describe("VoiceAnswerPanel", () => {
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Start recording" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Stop recording" })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Stop speaking" })).toBeInTheDocument());
 
     onEnded?.();
 
@@ -276,7 +276,7 @@ describe("VoiceAnswerPanel", () => {
     render(<VoiceAnswerPanel />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Stop recording" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Stop speaking" }));
 
     expect(track.stop).toHaveBeenCalled();
   });
@@ -289,7 +289,7 @@ describe("VoiceAnswerPanel", () => {
     render(<VoiceAnswerPanel sessionId="session-1" onTranscript={onTranscript} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Stop recording" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Stop speaking" }));
 
     const socket = TestSocket.instances[0];
     expect(onTranscript).not.toHaveBeenCalled();
@@ -344,7 +344,7 @@ describe("VoiceAnswerPanel", () => {
     const socket = TestSocket.instances[0];
     await waitFor(() => expect(socket?.sent.some((value) => JSON.parse(String(value)).type === "speech.start")).toBe(true));
     TestRecorder.latest?.emitData(new Blob(["chunk"]));
-    fireEvent.click(screen.getByRole("button", { name: "Stop recording" }));
+    fireEvent.click(screen.getByRole("button", { name: "Stop speaking" }));
 
     await waitFor(() => expect(socket?.sent.some((value) => value instanceof Blob)).toBe(true));
     expect(socket?.sent.filter((value): value is string => typeof value === "string").some((value) => JSON.parse(value).type === "speech.stop")).toBe(true);
@@ -380,7 +380,7 @@ describe("VoiceAnswerPanel", () => {
     const track = mockAvailableMicrophone();
     const { unmount } = render(<VoiceAnswerPanel sessionId="session-cleanup" />);
     fireEvent.click(await screen.findByRole("button", { name: "Start recording" }));
-    await screen.findByRole("button", { name: "Stop recording" });
+    await screen.findByRole("button", { name: "Stop speaking" });
     const socket = TestSocket.instances[0];
     unmount();
 

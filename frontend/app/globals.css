@@ -1357,6 +1357,15 @@ main button[aria-haspopup="listbox"] { justify-content: space-between; backgroun
 .interview-room[data-live-layout="true"] .interview-record-icon svg { width: 20px; height: 20px; }
 .interview-room[data-live-layout="true"] .interview-record-button[aria-pressed="true"] { --glass-fill: rgba(220,190,190,.96); --glass-hover: #f2dddd; --glass-ink: #211617; }
 .interview-room[data-live-layout="true"] .interview-record-button[aria-pressed="true"] .interview-record-icon { color: #f9eeee; background: #432c2d; }
+.interview-room[data-live-layout="true"] .interview-record-button--topline {
+  position: relative;
+  width: clamp(190px, 24vw, 230px);
+  min-width: 0;
+  min-height: 52px;
+  justify-self: auto;
+  padding: 4px 18px 4px 5px;
+}
+.interview-room[data-live-layout="true"] .interview-record-button--topline .interview-record-icon { width: 40px; height: 40px; }
 .interview-room[data-live-layout="true"] .interview-voice-controls > p[aria-live="polite"] { margin: 0; font-size: .7rem; }
 .interview-room[data-live-layout="true"] .interview-voice-controls > div[role="alert"] { margin: 0; padding: 8px 12px; }
 .interview-room[data-live-layout="true"] .interview-mic-state { min-height: 40px; }
@@ -1379,6 +1388,8 @@ main button[aria-haspopup="listbox"] { justify-content: space-between; backgroun
   .interview-room[data-live-layout="true"] .interview-room-container { grid-template-rows: none; }
   .interview-room[data-live-layout="true"] .interview-voice-controls { min-height: 205px; grid-template-rows: auto auto minmax(84px, 1fr); }
   .interview-room[data-live-layout="true"] .interview-voice-stage { min-height: 84px; }
+  .interview-room[data-live-layout="true"] .interview-record-button--topline { width: auto; min-width: 0; min-height: 44px; padding-right: 12px; font-size: 12px; }
+  .interview-room[data-live-layout="true"] .interview-record-button--topline .interview-record-icon { width: 34px; height: 34px; }
   .interview-room[data-live-layout="true"] .interview-prompt h2 { font-size: clamp(1.45rem, 6.2vw, 2rem); }
 }
 @media (prefers-reduced-motion: reduce) {
