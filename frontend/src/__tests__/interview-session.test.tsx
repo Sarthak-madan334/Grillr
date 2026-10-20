@@ -36,6 +36,7 @@ vi.mock("../../lib/interview-api", () => ({
 it("preserves the real transcript across question progression and clears it for a fresh recording", async () => {
   render(<InterviewSessionPage />);
   await screen.findByText("Tell me about your project.");
+  expect(screen.queryByRole("complementary", { name: "Interview details" })).not.toBeInTheDocument();
   act(() => {
     voice.props.onTranscript("I reduced our deployment time by twenty minutes.");
     voice.props.onQuestionReady({ id: "second", text: "How did you measure it?", questionNumber: 2, isFollowUp: false });

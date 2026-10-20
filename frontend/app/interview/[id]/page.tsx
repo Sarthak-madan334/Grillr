@@ -295,12 +295,6 @@ export default function InterviewSessionPage() {
                   <p className="interview-transcript-copy" aria-live="polite">{draft}</p>
                 </details> : <p className="sr-only">Start recording when you’re ready. Your transcript will appear here after you stop recording.</p>}
               </div>
-              <aside className="interview-sidebar" aria-label="Interview details">
-                <div className="interview-sidebar-fact"><span className="interview-fact-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span><div><strong>{session.job_role}</strong><p>{session.experience_level} level · {formatInterviewType(session.personality)} interviewer</p></div></div>
-                <div className="interview-sidebar-fact"><span className="interview-fact-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span><div><strong>{session.question_count} questions</strong><p>{formatInterviewType(session.interview_type)} round</p></div></div>
-                <div className="interview-sidebar-fact"><span className="interview-fact-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><strong>~{session.duration} minutes</strong><p>Take your time and answer naturally</p></div></div>
-                <div className="interview-sidebar-fact"><span className="interview-fact-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 10v4m4-8v12m4-16v20m4-14v8m4-12v16"/></svg></span><div><strong>Answer by voice</strong><p>Speak naturally — no typing needed</p></div></div>
-              </aside>
             </section>
             <VoiceAnswerPanel
               sessionId={session.id}
