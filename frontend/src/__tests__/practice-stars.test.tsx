@@ -54,27 +54,29 @@ it("renders an open, accessible practice CTA with a decorative canvas and the ex
   expect(section).not.toHaveClass("home-cta-banner");
 });
 
-it("draws a denser sky with slow drift, responds to the pointer, and can pause and resume", () => {
+it("keeps stars still at rest, scatters them away from the pointer, and can pause and resume", () => {
   render(<PracticeStars />);
   const section = screen.getByRole("region");
   tick();
-  const resting = [...context.arc.mock.calls[0]];
-  expect(context.arc.mock.calls.length).toBeGreaterThan(1000);
-  expect(frames.size).toBe(1);
+  const resting = context.arc.mock.calls.map((call) => call.slice(0, 2));
+  expect(resting.length).toBeGreaterThan(1000);
+  expect(frames.size).toBe(0);
   context.arc.mockClear();
   move(section);
   tick();
-  expect(context.arc.mock.calls[0].slice(0, 2)).not.toEqual(resting.slice(0, 2));
+  const scattered = context.arc.mock.calls.map((call) => call.slice(0, 2));
+  expect(scattered).toHaveLength(resting.length);
+  expect(resting.some(([x, y], index) => scattered[index]?.[0] !== x || scattered[index]?.[1] !== y)).toBe(true);
   expect(frames.size).toBe(1);
-  fireEvent.click(screen.getByRole("button", { name: "Pause star animation" }));
+  fireEvent.click(screen.getByRole("button", { name: "Pause star response" }));
   tick();
   expect(frames.size).toBe(0);
   const draws = context.clearRect.mock.calls.length;
   move(section);
   expect(context.clearRect).toHaveBeenCalledTimes(draws);
-  fireEvent.click(screen.getByRole("button", { name: "Resume star animation" }));
+  fireEvent.click(screen.getByRole("button", { name: "Resume star response" }));
   tick();
-  expect(frames.size).toBe(1);
+  expect(frames.size).toBe(0);
 });
 
 it("keeps the stars static for reduced motion and touch input", () => {
@@ -83,6 +85,7 @@ it("keeps the stars static for reduced motion and touch input", () => {
   const section = screen.getByRole("region");
   tick();
   move(section);
+  tick();
   expect(frames.size).toBe(0);
   reduced.matches = false;
   fine.matches = false;
@@ -90,17 +93,21 @@ it("keeps the stars static for reduced motion and touch input", () => {
   expect(frames.size).toBe(0);
 });
 
-it("changes brightness slowly rather than flashing and freezes it when paused", () => {
+it("settles scattered stars back to their resting positions when the pointer leaves", () => {
   render(<PracticeStars />);
   tick();
-  const initial = context.fillStyle;
+  const resting = context.arc.mock.calls.map((call) => call.slice(0, 3));
+  move(screen.getByRole("region"));
   tick();
-  expect(context.fillStyle).not.toBe(initial);
-  fireEvent.click(screen.getByRole("button", { name: "Pause star animation" }));
-  tick();
-  const pausedColor = context.fillStyle;
-  tick();
-  expect(context.fillStyle).toBe(pausedColor);
+  const scattered = context.arc.mock.calls.length;
+  context.arc.mockClear();
+  fireEvent(screen.getByRole("region"), new Event("pointerleave"));
+  for (let attempt = 0; attempt < 24 && frames.size; attempt += 1) {
+    context.arc.mockClear();
+    tick();
+  }
+  expect(scattered).toBe(resting.length);
+  expect(context.arc.mock.calls.map((call) => call.slice(0, 2))).toEqual(resting.map((call) => call.slice(0, 2)));
   expect(frames.size).toBe(0);
 });
 
@@ -108,6 +115,7 @@ it("stops offscreen work and releases frames, observers, and listeners on unmoun
   const { unmount } = render(<PracticeStars />);
   tick();
   move(screen.getByRole("region"));
+  tick();
   expect(frames.size).toBe(1);
   intersect([{ isIntersecting: false } as IntersectionObserverEntry], {} as IntersectionObserver);
   expect(frames.size).toBe(0);

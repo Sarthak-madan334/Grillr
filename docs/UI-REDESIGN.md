@@ -116,10 +116,10 @@ Modern Web Guidance: I checked dropdown styling in modern-web-guidance; native c
 
 The former rounded CTA box is now an open, full-width mountain section. It retains “Start practicing today.”, the supporting copy, and the interview setup destination. Its mountain photo is a star-free edit of the original, saved as `/images/mountain-starless.webp`, with a neutral grayscale finish and no green tint.
 
-The denser white canvas sky uses slow shared drift, gentle asynchronous twinkling, and depth-based pointer parallax. Stars are kept in the upper part of the scene and fade near the mountain foreground. The landscape stays fixed, with no stars baked into its image. A glass Pause sky / Resume sky control freezes and resumes the animation. Motion pauses offscreen or when the tab is hidden; touch and reduced-motion users get static stars. No new dependencies were added.
+The denser white canvas sky keeps every star fixed in place at rest and fades near the mountain foreground. As the pointer passes, nearby stars scatter outward and grow briefly, then spring back to their original positions. The interaction uses no glow, and stars do not trail or follow the cursor. A glass Pause star response / Resume star response control disables or restores the effect. Work pauses offscreen or when the tab is hidden; touch users see a still sky, and reduced-motion users get an immediate, non-animated response. No new dependencies were added.
 
 The final background is a 76 KB, 1536×1024 WebP served directly as an already optimized asset. Next Image reserves its full-section geometry and lazy-loads it. The original photograph is untouched. See [asset and exact edit prompt](STARLESS-MOUNTAIN-ASSET.md).
 
 [Local preview](ui-review/mountain-stars-cta.png)
 
-Modern Web Guidance — `motion`: I followed “Provide Pause mechanism” for the persistent sky animation, and “Use prefers-reduced-motion media queries to turn off heavy motion” for a static accessible alternative.
+Modern Web Guidance — `interactive-content-reveal`: the star glow stays a decorative canvas layer with pointer events disabled, and star positions remain fixed so the effect never obstructs content or controls.

@@ -5614,7 +5614,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { ArrowIcon } from "./ArrowIcon";
 
-type Star = { x: number; y: number; radius: number; alpha: number; depth: number; phase: number; twinkleSpeed: number; offsetX: number; offsetY: number };
+type Star = { x: number; y: number; radius: number; alpha: number; offsetX: number; offsetY: number; scale: number };
 
 export function PracticeStars() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -5633,45 +5633,44 @@ export function PracticeStars() {
     let width = 0;
     let height = 0;
     let frame = 0;
-    let previousTime = 0;
-    let elapsed = 0;
     let motionPaused = false;
     let visible = true;
     let stars: Star[] = [];
     const pointer = { x: 0, y: 0, active: false };
 
-    function draw(time = 0) {
+    function draw() {
       frame = 0;
-      const step = previousTime ? Math.min((time - previousTime) / 16.67, 2) : 1;
-      previousTime = time;
-      const smoothing = 1 - Math.pow(0.9, step);
-      const moving = !motionPaused && !reducedMotion.matches && finePointer.matches;
-      const interactive = pointer.active && moving;
-      if (moving) elapsed += step * 16.67;
+      const smoothing = reducedMotion.matches ? 1 : 0.28;
+      const interactive = pointer.active && !motionPaused && finePointer.matches;
+      let transitioning = false;
       context!.clearRect(0, 0, width, height);
       for (const star of stars) {
-        // Slow shared sky drift; pointer parallax varies with depth.
-        const baseX = ((star.x + elapsed * 0.00000015) % 1) * width;
+        const baseX = star.x * width;
         const baseY = star.y * height;
         const dx = baseX - pointer.x;
         const dy = baseY - pointer.y;
-        const distance = Math.hypot(dx, dy);
-        const proximity = interactive ? Math.max(0, 1 - distance / 200) : 0;
-        const force = proximity ** 2 * 18 * star.depth;
-        const targetX = interactive ? (pointer.x / width - 0.5) * 22 * star.depth + dx / Math.max(distance, 1) * force : 0;
-        const targetY = interactive ? (pointer.y / height - 0.5) * 12 * star.depth + dy / Math.max(distance, 1) * force : 0;
-        if (moving) {
-          star.offsetX += (targetX - star.offsetX) * smoothing;
-          star.offsetY += (targetY - star.offsetY) * smoothing;
-        }
-        const scintillation = 0.86 + 0.14 * Math.sin(elapsed * 0.001 * star.twinkleSpeed + star.phase);
+        const distance = interactive ? Math.hypot(dx, dy) : Infinity;
+        const proximity = Math.max(0, 1 - distance / 120);
+        const force = proximity ** 1.5 * 36;
+        const angle = distance > 0 ? Math.atan2(dy, dx) : (star.x + star.y) * Math.PI * 2;
+        const targetX = interactive ? Math.cos(angle) * force : 0;
+        const targetY = interactive ? Math.sin(angle) * force : 0;
+        const targetScale = 1 + proximity * 0.9;
+        star.offsetX += (targetX - star.offsetX) * smoothing;
+        star.offsetY += (targetY - star.offsetY) * smoothing;
+        star.scale += (targetScale - star.scale) * smoothing;
+        if (Math.abs(targetX - star.offsetX) <= 0.05) star.offsetX = targetX;
+        else transitioning = true;
+        if (Math.abs(targetY - star.offsetY) <= 0.05) star.offsetY = targetY;
+        else transitioning = true;
+        if (Math.abs(targetScale - star.scale) <= 0.01) star.scale = targetScale;
+        else transitioning = true;
         context!.beginPath();
-        context!.fillStyle = `rgba(238,238,241,${Math.min(0.9, star.alpha * scintillation * (1 + proximity * 0.3))})`;
-        context!.arc(baseX + star.offsetX, baseY + star.offsetY, star.radius, 0, Math.PI * 2);
+        context!.fillStyle = `rgba(238,238,241,${star.alpha})`;
+        context!.arc(baseX + star.offsetX, baseY + star.offsetY, star.radius * star.scale, 0, Math.PI * 2);
         context!.fill();
       }
-      if (moving && visible && !document.hidden) frame = requestAnimationFrame(draw);
-      else previousTime = 0;
+      if (transitioning && visible && !document.hidden && !motionPaused && !reducedMotion.matches) frame = requestAnimationFrame(draw);
     }
 
     function schedule() {
@@ -5694,15 +5693,14 @@ export function PracticeStars() {
       };
       stars = Array.from({ length: Math.min(1800, Math.max(300, Math.round(width * height / 430))) }, () => ({
         x: random(), y: random() * 0.56, radius: 0.35 + random() ** 3 * 1.25,
-        alpha: 0.2 + random() * 0.6, depth: 0.2 + random() * 0.8,
-        phase: random() * Math.PI * 2, twinkleSpeed: 0.35 + random() * 0.6, offsetX: 0, offsetY: 0,
+        alpha: 0.2 + random() * 0.6, offsetX: 0, offsetY: 0, scale: 1,
       }));
       section!.dataset.starsReady = "true";
       schedule();
     }
 
     function move(event: PointerEvent) {
-      if (event.pointerType === "touch" || motionPaused || reducedMotion.matches || !finePointer.matches) return;
+      if (event.pointerType === "touch" || motionPaused || !finePointer.matches) return;
       const bounds = section!.getBoundingClientRect();
       pointer.x = event.clientX - bounds.left;
       pointer.y = event.clientY - bounds.top;
@@ -5713,14 +5711,14 @@ export function PracticeStars() {
     motionControlRef.current = (nextPaused) => {
       motionPaused = nextPaused;
       pointer.active = false;
+      if (nextPaused) stars.forEach((star) => { star.offsetX = 0; star.offsetY = 0; star.scale = 1; });
       cancelAnimationFrame(frame);
       frame = 0;
-      previousTime = 0;
       schedule();
     };
     function visibilityChange() {
       pointer.active = false;
-      if (document.hidden) { cancelAnimationFrame(frame); frame = 0; previousTime = 0; }
+      if (document.hidden) { cancelAnimationFrame(frame); frame = 0; }
       else schedule();
     }
 
@@ -5735,7 +5733,7 @@ export function PracticeStars() {
     const observer = typeof IntersectionObserver !== "undefined" ? new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;
       if (visible) schedule();
-      else { cancelAnimationFrame(frame); frame = 0; previousTime = 0; pointer.active = false; }
+      else { cancelAnimationFrame(frame); frame = 0; pointer.active = false; }
     }) : null;
     observer?.observe(section);
     resize();
@@ -5766,11 +5764,11 @@ export function PracticeStars() {
         <p>A calmer mind. A clearer answer. A little more ready.</p>
         <Link href="/interview/setup" className="glass-button glass-button--primary">Practice with Grillr <ArrowIcon /></Link>
       </div>
-      <button type="button" className="practice-stars-motion glass-button glass-button--ghost" aria-label={paused ? "Resume star animation" : "Pause star animation"} aria-pressed={paused} onClick={() => {
+      <button type="button" className="practice-stars-motion glass-button glass-button--ghost" aria-label={paused ? "Resume star response" : "Pause star response"} aria-pressed={paused} onClick={() => {
         const nextPaused = !paused;
         setPaused(nextPaused);
         motionControlRef.current(nextPaused);
-      }}>{paused ? "Resume sky" : "Pause sky"}</button>
+      }}>{paused ? "Resume star response" : "Pause star response"}</button>
     </section>
   );
 }
