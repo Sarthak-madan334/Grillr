@@ -54,7 +54,7 @@ it("renders an open, accessible practice CTA with a decorative canvas and the ex
   expect(section).not.toHaveClass("home-cta-banner");
 });
 
-it("keeps stars still at rest, scatters them away from the pointer, and can pause and resume", () => {
+it("keeps stars still at rest, scatters them away from the pointer, and has no pause control", () => {
   render(<PracticeStars />);
   const section = screen.getByRole("region");
   tick();
@@ -68,15 +68,7 @@ it("keeps stars still at rest, scatters them away from the pointer, and can paus
   expect(scattered).toHaveLength(resting.length);
   expect(resting.some(([x, y], index) => scattered[index]?.[0] !== x || scattered[index]?.[1] !== y)).toBe(true);
   expect(frames.size).toBe(1);
-  fireEvent.click(screen.getByRole("button", { name: "Pause star response" }));
-  tick();
-  expect(frames.size).toBe(0);
-  const draws = context.clearRect.mock.calls.length;
-  move(section);
-  expect(context.clearRect).toHaveBeenCalledTimes(draws);
-  fireEvent.click(screen.getByRole("button", { name: "Resume star response" }));
-  tick();
-  expect(frames.size).toBe(0);
+  expect(screen.queryByRole("button", { name: /star response/i })).not.toBeInTheDocument();
 });
 
 it("keeps the stars static for reduced motion and touch input", () => {
@@ -97,6 +89,7 @@ it("settles scattered stars back to their resting positions when the pointer lea
   render(<PracticeStars />);
   tick();
   const resting = context.arc.mock.calls.map((call) => call.slice(0, 3));
+  context.arc.mockClear();
   move(screen.getByRole("region"));
   tick();
   const scattered = context.arc.mock.calls.length;

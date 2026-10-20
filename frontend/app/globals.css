@@ -1350,7 +1350,3 @@ main .dropdown-option:focus-visible { outline: none; }
   .practice-stars-copy > p:not(.eyebrow) { color: #d6d9dc; }
   .practice-stars-canvas { opacity: .55; }
 }
-.practice-stars .practice-stars-motion { position: absolute; right: 28px; bottom: 24px; min-height: 44px; padding: 8px 14px; border-radius: 999px; font-size: .6875rem; color: #b8b8c1; }
-@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
-  .practice-stars .practice-stars-motion { display: none; }
-}
