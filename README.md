@@ -125,3 +125,7 @@ FastAPI Backend
  │
  ▼
 PostgreSQL / Supabase
+## Project Updates
+
+- Improved project documentation.
+- Updated README for better readability.
