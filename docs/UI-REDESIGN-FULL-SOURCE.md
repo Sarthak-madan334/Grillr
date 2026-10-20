@@ -159,102 +159,114 @@ Changed file — complete source.
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { TopNav } from "@/components/layout/top-nav";
+import { ArrowIcon } from "@/components/landing/ArrowIcon";
+import { useAuth } from "@/lib/auth-client";
 import { getDashboardStats, type DashboardStats } from "@/lib/dashboard-api";
 import { listInterviews, type InterviewListItem } from "@/lib/interview-api";
 
-const dimensionLabels = [
-  ["clarity", "Clarity"],
-  ["structure", "Structure"],
-  ["specificity", "Specificity"],
-  ["communication", "Communication"],
+const dimensions = [
+  { key: "clarity", label: "Clarity", tip: "Lead with your main point. Then explain it in two or three short sentences." },
+  { key: "structure", label: "Structure", tip: "Set the scene, explain what you did, and finish with the result." },
+  { key: "specificity", label: "Specificity", tip: "Choose one real example. Include your contribution and a measurable result." },
+  { key: "communication", label: "Communication", tip: "Pause between ideas. Give each thought a clear beginning and ending." },
 ] as const;
 
+function score(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : null;
+}
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(value));
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Date unavailable" : new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(date);
+}
+function label(value: string) { return value.replace(/_/g, " "); }
+
+function PracticeIcon({ kind = "voice" }: { kind?: "voice" | "sessions" | "score" | "roles" }) {
+  const paths = {
+    voice: <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3m-3 0h6" /></>,
+    sessions: <><rect x="4" y="4" width="16" height="16" rx="4" /><path d="m8 12 3 3 5-6" /></>,
+    score: <><path d="M4 18V6m0 12h16M8 14l4-5 4 3 4-7" /></>,
+    roles: <><rect x="3" y="7" width="18" height="14" rx="3" /><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12a20 20 0 0 0 18 0m-9 0v3" /></>,
+  };
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[kind]}</svg>;
 }
 
-function LoadingCard({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-[24px] bg-[var(--surface)] ${className}`} aria-hidden="true" />;
-}
-
-function RecentInterview({ interview }: { interview: InterviewListItem }) {
-  return (
-    <Link href={`/interview/${interview.id}`} className="flex items-center justify-between rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-4 transition hover:border-[var(--border)] hover:bg-[var(--surface)]">
-      <div>
-        <p className="font-medium text-[var(--foreground)]">{interview.job_role}</p>
-        <p className="mt-1 text-sm text-[var(--muted)]">{formatDate(interview.completed_at ?? interview.created_at)}</p>
-      </div>
-      <div className="flex items-center gap-3">
-        <span className="rounded-full bg-[var(--success-surface)] px-2.5 py-1 text-xs font-medium text-[var(--success)]">Completed</span>
-        <span className="text-lg font-semibold text-[var(--foreground)]">{interview.overall_score ?? "—"}</span>
-      </div>
-    </Link>
-  );
+function SessionRow({ interview }: { interview: InterviewListItem }) {
+  const completed = interview.status === "completed";
+  const resumable = interview.status === "active" || interview.status === "created";
+  const value = completed ? score(interview.overall_score) : null;
+  const content = <>
+    <span className="dashboard-session-icon"><PracticeIcon /></span>
+    <span className="dashboard-session-description"><strong>{interview.job_role}</strong><span>{label(interview.interview_type)} · {formatDate(interview.completed_at ?? interview.created_at)}</span></span>
+    <span className={`dashboard-session-status dashboard-session-status--${interview.status}`}>{completed ? "Completed" : interview.status === "created" ? "Ready to start" : resumable ? "In progress" : "Cancelled"}</span>
+    <span className="dashboard-session-score">{value !== null ? <><strong>{value}</strong><small>/100</small></> : <span className="dashboard-session-action">{resumable ? "Resume" : completed ? "View results" : "—"}</span>}</span>{interview.status !== "cancelled" ? <ArrowIcon /> : null}
+  </>;
+  return <li>{interview.status === "cancelled" ? <div className="dashboard-session-row">{content}</div> : <Link href={`/interview/${interview.id}`} className="dashboard-session-row">{content}</Link>}</li>;
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [interviews, setInterviews] = useState<InterviewListItem[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [statsError, setStatsError] = useState(false);
+  const [recentError, setRecentError] = useState(false);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let active = true;
-    Promise.all([listInterviews(3), getDashboardStats()])
-      .then(([recent, dashboardStats]) => {
-        if (!active) return;
-        setInterviews(recent.items);
-        setStats(dashboardStats);
-      })
-      .catch((caught: unknown) => {
-        if (active) setError(caught instanceof Error ? caught.message : "Unable to load dashboard data.");
-      })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
+    Promise.allSettled([listInterviews(5), getDashboardStats()]).then(([recent, dashboardStats]) => {
+      if (!active) return;
+      setRecentError(recent.status === "rejected");
+      setStatsError(dashboardStats.status === "rejected");
+      if (recent.status === "fulfilled") setInterviews(recent.value.items);
+      if (dashboardStats.status === "fulfilled") setStats(dashboardStats.value);
+      setIsLoading(false);
+    });
     return () => { active = false; };
-  }, []);
+  }, [reload]);
 
-  const hasCompletedInterviews = Boolean(stats?.interview_count);
+  function retry() { setIsLoading(true); setReload(value => value + 1); }
+  const name = user?.name?.trim().split(/\s+/)[0];
+  const resumable = recentError || isLoading ? undefined : interviews.find(item => item.status === "active" || item.status === "created");
+  const measured = statsError ? [] : dimensions.flatMap(dimension => {
+    const value = score(stats?.dimensions[dimension.key]);
+    return value === null ? [] : [{ ...dimension, value }];
+  });
+  const focus = [...measured].sort((a, b) => a.value - b.value)[0];
+  const average = statsError ? null : score(stats?.average_score);
 
-  return (
-    <main className="min-h-screen text-[var(--foreground)]">
-      <TopNav />
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <section className="mb-8 flex flex-col gap-6 rounded-[32px] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-soft)] backdrop-blur-md sm:p-8 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <Badge className="mb-3 border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]">Practice dashboard</Badge>
-            <h1 className="text-3xl font-semibold tracking-tight text-[var(--foreground)] sm:text-4xl">Get ready for your next round.</h1>
-            <p className="mt-3 max-w-xl text-base text-[var(--muted)]">Review your metrics, open the next mock interview, and keep improving with focused feedback.</p>
-          </div>
-          <div className="flex gap-3"><Link href="/interview/setup"><Button size="lg">Start interview</Button></Link><Link href="/history"><Button variant="secondary" size="lg">View history</Button></Link></div>
+  return <main className="dashboard-page">
+    <TopNav />
+    <div className="dashboard-container">
+      <header className="dashboard-heading"><div><p className="eyebrow">YOUR PRACTICE SPACE</p><h1>{name ? `Welcome back, ${name}.` : "Make room for a better answer."}</h1><p>A little practice today. More confidence for what comes next.</p></div><Link href="/history" className="dashboard-text-link">Your interview history <ArrowIcon /></Link></header>
+      <section className="dashboard-feature-grid" aria-label="Your next step">
+        <div className="dashboard-practice-card">
+          <div className="dashboard-practice-copy"><span className="dashboard-kicker"><span />{resumable ? "PICK UP WHERE YOU LEFT OFF" : "ONE CONVERSATION AT A TIME"}</span><h2>{resumable ? <>Your next answer<br />is waiting.</> : <>Build confidence.<br /><span>One answer at a time.</span></>}</h2><p>{resumable ? `Continue your ${resumable.job_role} interview when you’re ready.` : "A space to find your words, sharpen your thinking, and get comfortable being yourself."}</p><Link href={resumable ? `/interview/${resumable.id}` : "/interview/setup"} className="glass-button glass-button--primary">{resumable ? "Continue interview" : "Start a practice interview"}<ArrowIcon /></Link><span className="dashboard-practice-note">Your role. Your pace. Your next step.</span></div>
+          <div className="dashboard-voice-art" aria-hidden="true"><div className="dashboard-orbit dashboard-orbit--outer" /><div className="dashboard-orbit dashboard-orbit--inner" /><div className="dashboard-voice-core"><PracticeIcon /></div><div className="dashboard-voice-bars">{[8, 16, 28, 17, 39, 51, 30, 43, 22, 34, 18, 9].map((height, i) => <span key={i} style={{ height }} />)}</div><span>PRACTICE. REFLECT. GROW.</span></div>
+        </div>
+        <aside className="dashboard-focus-card"><span className="dashboard-icon-tile"><PracticeIcon kind="score" /></span><p className="dashboard-overline">YOUR NEXT FOCUS</p><h2>{isLoading ? "Finding your next step…" : focus ? `Make ${focus.label.toLowerCase()} your strength.` : "Start with one good story."}</h2><p>{!isLoading && focus ? focus.tip : "Think of a challenge you faced, what you did, and what changed. A real example is a great place to begin."}</p><div className="dashboard-focus-footer">{!isLoading && focus ? <><span>Based on your feedback</span><strong>{focus.label} · {focus.value}/100</strong></> : <><span>A small step, a stronger answer</span><strong>Try situation → action → result</strong></>}</div></aside>
+      </section>
+      {(statsError || recentError) && !isLoading ? <div className="dashboard-error" role="alert"><div><strong>Some of your practice data couldn’t load.</strong><p>{statsError && recentError ? "Your progress is unavailable for now. You can still start a practice interview." : statsError ? "Your recent sessions are ready, but your scores couldn’t load." : "Your scores are ready, but recent sessions couldn’t load."}</p></div><button type="button" onClick={retry}>Try again</button></div> : null}
+      {isLoading ? <div className="dashboard-loading" role="status"><span className="sr-only">Loading your practice dashboard</span><div className="dashboard-stats-grid">{[0, 1, 2].map(item => <div key={item} className="dashboard-skeleton dashboard-stat-skeleton" />)}</div><div className="dashboard-detail-grid"><div className="dashboard-skeleton dashboard-panel-skeleton" /><div className="dashboard-skeleton dashboard-panel-skeleton" /></div></div> : <>
+        <section className="dashboard-stats-grid" aria-label="Practice overview">
+          {[{ label: "Interviews completed", value: statsError ? "—" : stats?.interview_count ?? "—", note: stats?.interview_count ? "Every conversation is a step forward" : "Your first session is the starting line", icon: "sessions" as const }, { label: "Average score", value: average ?? "—", note: average !== null ? "Across your scored, completed interviews" : "Available after your first scored interview", icon: "score" as const }, { label: "Roles explored", value: statsError ? "—" : stats?.role_count ?? "—", note: "Across your completed interviews", icon: "roles" as const }].map(item => <article className="dashboard-stat" key={item.label}><div><p>{item.label}</p><PracticeIcon kind={item.icon} /></div><strong>{item.value}{item.label === "Average score" && average !== null ? <small>/100</small> : null}</strong><span>{statsError ? "Temporarily unavailable" : item.note}</span></article>)}
         </section>
-
-        {error ? <div role="alert" className="mb-8 border-l-2 border-[var(--error)] pl-4 text-sm text-[var(--error)]">{error}</div> : null}
-
-        {isLoading ? (
-          <div className="space-y-8" aria-label="Loading dashboard"><div className="grid gap-6 md:grid-cols-3"><LoadingCard className="h-32" /><LoadingCard className="h-32" /><LoadingCard className="h-32" /></div><div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]"><LoadingCard className="h-72" /><LoadingCard className="h-72" /></div></div>
-        ) : (
-          <>
-            <section className="grid gap-6 md:grid-cols-3">
-              <Card className="p-5"><p className="text-sm text-[var(--muted)]">Average score</p><p className="mt-4 text-4xl font-semibold text-[var(--foreground)]">{stats?.average_score ?? "—"}</p><p className="mt-2 text-sm text-[var(--muted)]">{hasCompletedInterviews ? "Across completed interviews" : "Complete your first interview"}</p></Card>
-              <Card className="p-5"><p className="text-sm text-[var(--muted)]">Interviews</p><p className="mt-4 text-4xl font-semibold text-[var(--foreground)]">{stats?.interview_count ?? 0}</p><p className="mt-2 text-sm text-[var(--muted)]">Across {stats?.role_count ?? 0} {stats?.role_count === 1 ? "role" : "roles"}</p></Card>
-              <Card className="p-5"><p className="text-sm text-[var(--muted)]">Improvement</p><p className="mt-4 text-4xl font-semibold text-[var(--foreground)]">—</p><p className="mt-2 text-sm text-[var(--muted)]">Available after retry tracking</p></Card>
-            </section>
-
-            <section className="mt-8 grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-              <Card className="p-6"><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-semibold text-[var(--foreground)]">Recent interviews</h2><Link href="/history" className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]">See all</Link></div>{interviews.length ? <div className="space-y-4">{interviews.map((interview) => <RecentInterview key={interview.id} interview={interview} />)}</div> : <p className="rounded-2xl border border-dashed border-[var(--border)] px-4 py-8 text-center text-sm text-[var(--muted)]">Complete your first interview to see it here.</p>}</Card>
-              <Card className="p-6"><h2 className="text-xl font-semibold text-[var(--foreground)]">Performance</h2>{hasCompletedInterviews ? <div className="mt-5 space-y-4">{dimensionLabels.map(([key, label]) => { const value = stats?.dimensions[key] ?? null; return <div key={key}><div className="mb-2 flex items-center justify-between text-sm text-[var(--muted)]"><span>{label}</span><span>{value ?? "—"}</span></div><div className="h-2.5 overflow-hidden rounded-full border border-[var(--border)] bg-[var(--surface)]"><div className="h-full rounded-full bg-[var(--foreground)]" style={{ width: `${value ?? 0}%` }} /></div></div>; })}</div> : <p className="mt-5 rounded-2xl border border-dashed border-[var(--border)] px-4 py-8 text-center text-sm text-[var(--muted)]">Complete your first interview to see performance data.</p>}</Card>
-            </section>
-          </>
-        )}
-      </div>
-    </main>
-  );
+        <div className="dashboard-detail-grid">
+          <section className="dashboard-panel" aria-labelledby="recent-title"><div className="dashboard-panel-heading"><div><p className="dashboard-overline">KEEP THE MOMENTUM</p><h2 id="recent-title">Recent sessions</h2></div><Link href="/history" className="dashboard-text-link">View all <ArrowIcon /></Link></div>
+            {recentError ? <div className="dashboard-empty"><span className="dashboard-icon-tile"><PracticeIcon kind="sessions" /></span><h3>Your sessions are temporarily unavailable.</h3><p>Try again to reconnect with your interview history.</p><button onClick={retry} type="button">Reload sessions</button></div> : interviews.length ? <ul className="dashboard-session-list">{interviews.map(interview => <SessionRow key={interview.id} interview={interview} />)}</ul> : <div className="dashboard-empty"><span className="dashboard-icon-tile"><PracticeIcon /></span><h3>Your first conversation starts here.</h3><p>Choose a role and answer out loud. Your sessions and feedback will have a home here.</p><Link href="/interview/setup" className="dashboard-text-link">Set up your first interview <ArrowIcon /></Link></div>}
+          </section>
+          <section className="dashboard-panel dashboard-profile" aria-labelledby="profile-title"><div className="dashboard-panel-heading"><div><p className="dashboard-overline">LEARN FROM EVERY ANSWER</p><h2 id="profile-title">Your skill snapshot</h2></div><span className="dashboard-out-of">/100</span></div><p className="dashboard-panel-caption">Average scores from completed interviews.</p>
+            {measured.length ? <div className="dashboard-skills">{dimensions.map(dimension => {
+              const value = score(stats?.dimensions[dimension.key]);
+              return <div key={dimension.key}><div className="dashboard-skill-label">{value !== null ? <label htmlFor={`skill-${dimension.key}`}>{dimension.label}</label> : <span>{dimension.label}</span>}<strong>{value ?? "Not scored"}</strong></div>{value !== null ? <meter id={`skill-${dimension.key}`} min={0} max={100} value={value} className="dashboard-meter" /> : <div className="dashboard-meter-empty" aria-hidden="true" />}</div>;
+            })}<p className="dashboard-profile-note">A snapshot of your practice, with room to grow.</p></div> : <div className="dashboard-empty dashboard-profile-empty"><span className="dashboard-unscored" aria-hidden="true">—</span><h3>{statsError ? "Your scores couldn’t load." : "Your strengths will take shape."}</h3><p>{statsError ? "Try again to see your skill snapshot." : "Finish a scored interview to discover what’s working and where to focus next."}</p></div>}
+          </section>
+        </div>
+        <footer className="dashboard-footer"><span>Progress comes from showing up.</span><span>Practice. Reflect. Grow.</span></footer>
+      </>}
+    </div>
+  </main>;
 }
 ````
 
@@ -2509,6 +2521,143 @@ main .dropdown-option:focus-visible {
 }
 main .dropdown-option:focus-visible { outline: none; }
 @media (prefers-reduced-motion: reduce) { main .dropdown-option { transition: none; } }
+
+/* Practice dashboard: quieter surfaces, real scores, one clear next step. */
+.dashboard-page { min-height: 100vh; background: radial-gradient(ellipse at 45% 0,rgba(255,255,255,.025),transparent 55%),var(--background); }
+.dashboard-container { max-width: 1248px; margin: 0 auto; padding: 48px 32px 28px; }
+.dashboard-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
+.dashboard-heading .eyebrow { margin: 0 0 14px; font-size: .625rem; }
+.dashboard-heading h1 { margin: 0; font-size: clamp(1.8rem,1.2rem + 1.8vw,2.5rem); font-weight: 450; letter-spacing: -.045em; line-height: 1.2; overflow-wrap: anywhere; }
+.dashboard-heading > div > p:last-child { color: var(--muted); margin: 12px 0 0; font-size: .875rem; line-height: 1.7; }
+.dashboard-text-link { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: #c1c1c8; font-size: .75rem; text-decoration: none; }
+.dashboard-text-link:hover { color: white; }
+.dashboard-text-link svg { width: 15px; height: 15px; }
+.dashboard-feature-grid,.dashboard-detail-grid { display: grid; grid-template-columns: minmax(0,1.8fr) minmax(0,1fr); gap: 20px; }
+.dashboard-practice-card { display: flex; align-items: center; position: relative; isolation: isolate; min-width: 0; min-height: 320px; padding: 32px; border: 1px solid rgba(255,255,255,.11); border-radius: 24px; background: radial-gradient(ellipse at 96% 10%,rgba(255,255,255,.065),transparent 65%),linear-gradient(125deg,#1c1c20,#101012); overflow: hidden; }
+.dashboard-practice-card:after { position: absolute; content: ''; inset: 0; z-index: -1; background: repeating-linear-gradient(120deg,transparent 0,transparent 85px,rgba(255,255,255,.014) 86px,transparent 87px); pointer-events: none; }
+.dashboard-practice-copy { position: relative; z-index: 1; flex: 1; }
+.dashboard-kicker { display: flex; align-items: center; gap: 8px; font-size: .5625rem; letter-spacing: .16em; color: #b5b5bf; font-weight: 500; }
+.dashboard-kicker > span { height: 5px; width: 5px; background: #c8c8d0; border-radius: 50%; box-shadow: 0 0 12px #ffffff30; }
+.dashboard-practice-copy h2 { font-size: clamp(1.85rem,1.2rem + 1.4vw,2.55rem); font-weight: 450; line-height: 1.13; letter-spacing: -.045em; margin: 22px 0 14px; }
+.dashboard-practice-copy h2 > span { color: #a7a7b1; }
+.dashboard-practice-copy > p { max-width: 340px; color: #a6a6af; font-size: .8125rem; line-height: 1.8; margin: 0 0 24px; }
+.dashboard-practice-copy .glass-button { border-radius: 999px; font-size: .75rem; padding-inline: 20px; }
+.dashboard-practice-note { display: block; margin-top: 12px; color: #92929d; font-size: .625rem; }
+.dashboard-voice-art { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; align-self: stretch; flex: 0 0 180px; min-height: 250px; margin-right: -12px; }
+.dashboard-orbit { position: absolute; border: 1px solid #ffffff09; border-radius: 50%; width: 218px; height: 218px; top: 17px; }
+.dashboard-orbit--inner { width: 165px; height: 165px; top: 44px; border-style: dashed; transform: rotate(20deg); }
+.dashboard-voice-core { display: grid; place-items: center; width: 80px; height: 80px; border: 1px solid #ffffff25; border-radius: 24px; background: linear-gradient(145deg,#ffffff15,#ffffff03); box-shadow: inset 0 1px 0 #ffffff20,0 15px 50px #0006; transform: rotate(-7deg); }
+.dashboard-voice-core svg { width: 31px; height: 31px; color: #c6c6d0; transform: rotate(7deg); }
+.dashboard-voice-bars { height: 64px; display: flex; align-items: center; gap: 4px; margin-top: 23px; }
+.dashboard-voice-bars span { width: 3px; border-radius: 3px; background: linear-gradient(#c5c5cf,#5b5b66); opacity: .65; }
+.dashboard-voice-art > span { margin-top: 8px; font-size: .4rem; letter-spacing: .18em; color: #92929e; }
+.dashboard-focus-card { padding: 28px; background: #111113; border: 1px solid var(--border); border-radius: 24px; display: flex; flex-direction: column; align-items: flex-start; }
+.dashboard-icon-tile { display: grid; place-items: center; flex-shrink: 0; width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 12px; background: #ffffff04; color: #b4b4bf; }
+.dashboard-icon-tile svg { width: 19px; height: 19px; }
+.dashboard-overline { color: #93939f; font-size: .5625rem; font-weight: 500; letter-spacing: .15em; line-height: 1.5; margin: 0 0 8px; }
+.dashboard-focus-card > .dashboard-overline { margin-top: 22px; }
+.dashboard-focus-card h2 { font-size: 1.375rem; font-weight: 450; letter-spacing: -.035em; margin: 0 0 12px; line-height: 1.3; }
+.dashboard-focus-card > p:not(.dashboard-overline) { font-size: .8125rem; line-height: 1.8; color: var(--muted); margin: 0 0 22px; }
+.dashboard-focus-footer { border-top: 1px solid var(--border); padding-top: 15px; margin-top: auto; width: 100%; }
+.dashboard-focus-footer span,.dashboard-focus-footer strong { display: block; font-size: .625rem; font-weight: 400; line-height: 1.7; }
+.dashboard-focus-footer span { color: #90909b; margin-bottom: 3px; }
+.dashboard-focus-footer strong { color: #c2c2ca; }
+.dashboard-stats-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; margin-top: 24px; margin-bottom: 28px; }
+.dashboard-stat { padding: 22px 24px; border: 1px solid var(--border); background: #111113; border-radius: 20px; }
+.dashboard-stat > div { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.dashboard-stat p { font-size: .75rem; color: #b1b1bb; margin: 0; }
+.dashboard-stat svg { width: 17px; height: 17px; color: #8c8c98; }
+.dashboard-stat > strong { display: block; font-weight: 450; font-size: 2.25rem; letter-spacing: -.06em; line-height: 1.1; margin: 20px 0 10px; font-variant-numeric: tabular-nums; }
+.dashboard-stat small { font-size: .8125rem; letter-spacing: 0; color: #8f8f9b; margin-left: 5px; }
+.dashboard-stat > span { font-size: .625rem; color: #93939f; line-height: 1.7; display: block; }
+.dashboard-panel { min-width: 0; border: 1px solid var(--border); border-radius: 24px; background: #111113; padding: 26px; }
+.dashboard-panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.dashboard-panel-heading h2 { font-size: 1.125rem; font-weight: 450; letter-spacing: -.025em; margin: 0; }
+.dashboard-panel-heading .dashboard-text-link { font-size: .6875rem; white-space: nowrap; }
+.dashboard-session-list { list-style: none; margin: 20px 0 0; padding: 0; }
+.dashboard-session-list li + li { border-top: 1px solid var(--border); }
+.dashboard-session-row { display: flex; align-items: center; gap: 14px; padding: 19px 0; text-decoration: none; border-radius: 8px; transition: background 200ms ease-out; }
+.dashboard-session-row:hover { background: #ffffff03; }
+.dashboard-session-icon { height: 37px; width: 37px; border-radius: 12px; background: #ffffff04; border: 1px solid var(--border); display: grid; place-items: center; color: #92929e; flex-shrink: 0; }
+.dashboard-session-icon svg { width: 17px; height: 17px; }
+.dashboard-session-description { flex: 1; min-width: 0; }
+.dashboard-session-description strong { display: block; font-size: .8125rem; font-weight: 500; overflow-wrap: anywhere; line-height: 1.5; }
+.dashboard-session-description > span { display: block; color: #9797a3; font-size: .625rem; margin-top: 4px; text-transform: capitalize; }
+.dashboard-session-status { font-size: .5625rem; color: #b2b2bd; border: 1px solid var(--border); border-radius: 999px; padding: 4px 8px; white-space: nowrap; }
+.dashboard-session-status--completed { color: var(--success); background: #a2c6b007; }
+.dashboard-session-status--active,.dashboard-session-status--created { color: var(--warning); background: #d4bc9308; }
+.dashboard-session-score { min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+.dashboard-session-score strong { font-size: 1rem; font-weight: 500; }
+.dashboard-session-score small { color: #90909b; font-size: .5625rem; margin-left: 2px; }
+.dashboard-session-action { color: #b8b8c3; font-size: .625rem; }
+.dashboard-session-row > svg { width: 13px; height: 13px; color: #878793; flex-shrink: 0; }
+.dashboard-out-of { color: #9797a3; font-size: .6875rem; }
+.dashboard-panel-caption { color: #9797a3; font-size: .6875rem; line-height: 1.7; margin: 12px 0 0; }
+.dashboard-skills { margin-top: 28px; }
+.dashboard-skills > div + div { margin-top: 23px; }
+.dashboard-skill-label { display: flex; justify-content: space-between; gap: 12px; font-size: .6875rem; margin-bottom: 10px; color: #b6b6c1; }
+.dashboard-skill-label strong { font-size: .6875rem; font-weight: 450; font-variant-numeric: tabular-nums; color: #ededf2; }
+.dashboard-meter,.dashboard-meter-empty { display: block; width: 100%; height: 5px; appearance: none; border: 0; border-radius: 99px; background: #ffffff0c; overflow: hidden; }
+.dashboard-meter::-webkit-meter-bar { border: 0; border-radius: 99px; background: #ffffff0c; height: 5px; }
+.dashboard-meter::-webkit-meter-optimum-value { background: linear-gradient(90deg,#7e7e8d,#dedee5); border-radius: 99px; }
+.dashboard-meter::-moz-meter-bar { background: #c8c8d2; border-radius: 99px; }
+.dashboard-profile-note { margin: 27px 0 0; padding-top: 16px; border-top: 1px solid var(--border); font-size: .625rem; color: #92929e; line-height: 1.7; }
+.dashboard-empty { min-height: 245px; padding: 36px 16px 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.dashboard-empty h3 { font-size: .9375rem; font-weight: 450; letter-spacing: -.025em; margin: 18px 0 10px; }
+.dashboard-empty > p { color: #a0a0ac; font-size: .75rem; line-height: 1.8; max-width: 290px; margin: 0 0 14px; }
+.dashboard-profile-empty { min-height: 240px; padding-inline: 0; }
+.dashboard-unscored { font-size: 3rem; color: #6c6c78; font-weight: 300; }
+.dashboard-error { display: flex; align-items: center; justify-content: space-between; gap: 20px; border: 1px solid #d4bc9325; background: #d4bc9308; padding: 18px 22px; margin-top: 24px; border-radius: 16px; }
+.dashboard-error strong { font-size: .8125rem; font-weight: 500; color: var(--warning); }
+.dashboard-error p { font-size: .75rem; color: #b4b0a9; line-height: 1.7; margin: 5px 0 0; }
+.dashboard-error button { flex-shrink: 0; }
+.dashboard-skeleton { border: 1px solid var(--border); border-radius: 22px; background: linear-gradient(110deg,#131315,#19191d,#131315); }
+.dashboard-stat-skeleton { height: 159px; }
+.dashboard-panel-skeleton { height: 330px; }
+.dashboard-footer { display: flex; justify-content: space-between; gap: 20px; margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border); font-size: .625rem; color: #93939f; }
+.dashboard-container a:focus-visible { outline: 2px solid #ffffff80; outline-offset: 5px; border-radius: 8px; }
+@media (min-width: 769px) and (max-width: 1080px) {
+  .dashboard-feature-grid,.dashboard-detail-grid { grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); }
+  .dashboard-voice-art { display: none; }
+  .dashboard-practice-card { padding: 28px; }
+  .dashboard-session-icon { display: none; }
+  .dashboard-session-row { gap: 8px; }
+}
+@media (max-width: 768px) {
+  .dashboard-container { padding: 32px 20px 24px; }
+  .dashboard-heading { display: block; margin-bottom: 24px; }
+  .dashboard-heading > .dashboard-text-link { margin-top: 12px; }
+  .dashboard-feature-grid,.dashboard-detail-grid { grid-template-columns: minmax(0,1fr); gap: 16px; }
+  .dashboard-practice-card { min-height: 310px; padding: 26px; }
+  .dashboard-voice-art { flex-basis: 145px; margin-right: -20px; }
+  .dashboard-orbit--outer { width: 180px; height: 180px; top: 36px; }
+  .dashboard-orbit--inner { width: 140px; height: 140px; top: 56px; }
+  .dashboard-focus-card { padding: 24px; }
+  .dashboard-focus-card > .dashboard-icon-tile { display: none; }
+  .dashboard-focus-card > .dashboard-overline { margin-top: 0; }
+  .dashboard-stats-grid { gap: 10px; margin-top: 16px; margin-bottom: 24px; }
+  .dashboard-stat { padding: 17px 14px; border-radius: 16px; }
+  .dashboard-stat > div { align-items: flex-start; }
+  .dashboard-stat p { font-size: .6875rem; line-height: 1.5; }
+  .dashboard-stat svg { display: none; }
+  .dashboard-stat > strong { font-size: 1.8rem; margin-top: 17px; }
+  .dashboard-stat > span { font-size: .5625rem; }
+  .dashboard-panel { padding: 22px; }
+  .dashboard-error { flex-direction: column; align-items: flex-start; }
+  .dashboard-footer { font-size: .5625rem; }
+}
+@media (max-width: 460px) {
+  .dashboard-container { padding-inline: 16px; }
+  .dashboard-voice-art { display: none; }
+  .dashboard-practice-card { min-height: 305px; }
+  .dashboard-practice-copy h2 { font-size: 2rem; }
+  .dashboard-session-row { flex-wrap: wrap; gap: 10px; }
+  .dashboard-session-description { flex-basis: calc(100% - 50px); }
+  .dashboard-session-status { margin-left: 47px; }
+  .dashboard-session-score { margin-left: auto; }
+  .dashboard-stat > strong { font-size: 1.6rem; }
+  .dashboard-stat small { font-size: .5625rem; margin-left: 2px; }
+}
 ````
 
 ## frontend/app/error.tsx
@@ -2622,33 +2771,14 @@ Changed file — complete source.
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth-client";
 import { ArrowIcon } from "@/components/landing/ArrowIcon";
 
 export function HomeCTA() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
 
-  useEffect(() => {
-    let active = true;
-    fetch("/api/auth/session", { cache: "no-store" })
-      .then((response) => response.json() as Promise<{ authenticated?: boolean }>)
-      .then((data) => {
-        if (!active) return;
-        setIsAuthenticated(Boolean(data.authenticated));
-        setHasLoaded(true);
-      })
-      .catch(() => {
-        if (active) setHasLoaded(true);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  if (!hasLoaded) {
-    return <div className="landing-cta-placeholder" aria-hidden="true" />;
+  if (isLoading) {
+    return <div className="landing-cta-row"><Link href="/dashboard" className="landing-button landing-button-primary">Open your practice space <ArrowIcon /></Link></div>;
   }
 
   if (isAuthenticated) {
@@ -5206,7 +5336,7 @@ type NavItem = {
 export function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, signOut } = useAuth();
+  const { user, isAuthenticated, isLoading, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navItems: NavItem[] = pathname === "/"
@@ -5308,7 +5438,7 @@ export function TopNav() {
             >
               Log out
             </button>
-          ) : (
+          ) : !isLoading ? (
             <>
               <Link
                 href="/login"
@@ -5323,7 +5453,7 @@ export function TopNav() {
                 Get started <span className="grillr-nav-cta-arrow" aria-hidden="true">→</span>
               </Link>
             </>
-          )}
+          ) : null}
         </div>
 
         <div ref={menuRef} className="relative flex items-center gap-2 md:hidden">
@@ -5386,7 +5516,7 @@ export function TopNav() {
                   >
                     Sign out
                   </button>
-                ) : (
+                ) : !isLoading ? (
                   <>
                     <Link href="/login" onClick={closeMenu} className="grillr-mobile-auth">
                       Sign in
@@ -5395,7 +5525,7 @@ export function TopNav() {
                       Get started <span aria-hidden="true">→</span>
                     </Link>
                   </>
-                )}
+                ) : null}
               </div>
             </nav>
           ) : null}

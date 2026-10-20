@@ -1,33 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth-client";
 import { ArrowIcon } from "@/components/landing/ArrowIcon";
 
 export function HomeCTA() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
 
-  useEffect(() => {
-    let active = true;
-    fetch("/api/auth/session", { cache: "no-store" })
-      .then((response) => response.json() as Promise<{ authenticated?: boolean }>)
-      .then((data) => {
-        if (!active) return;
-        setIsAuthenticated(Boolean(data.authenticated));
-        setHasLoaded(true);
-      })
-      .catch(() => {
-        if (active) setHasLoaded(true);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  if (!hasLoaded) {
-    return <div className="landing-cta-placeholder" aria-hidden="true" />;
+  if (isLoading) {
+    return <div className="landing-cta-row"><Link href="/dashboard" className="landing-button landing-button-primary">Open your practice space <ArrowIcon /></Link></div>;
   }
 
   if (isAuthenticated) {

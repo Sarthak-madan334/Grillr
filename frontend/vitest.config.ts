@@ -6,6 +6,8 @@ export default defineConfig({
     alias: {
       "@/components": path.resolve(__dirname, "./components"),
       "@/lib/interview-api": path.resolve(__dirname, "./lib/interview-api"),
+      "@/lib/auth-client": path.resolve(__dirname, "./lib/auth-client"),
+      "@/lib/dashboard-api": path.resolve(__dirname, "./lib/dashboard-api"),
       "@": path.resolve(__dirname, "./src"),
     },
   },

@@ -16,7 +16,7 @@ type NavItem = {
 export function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, signOut } = useAuth();
+  const { user, isAuthenticated, isLoading, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navItems: NavItem[] = pathname === "/"
@@ -118,7 +118,7 @@ export function TopNav() {
             >
               Log out
             </button>
-          ) : (
+          ) : !isLoading ? (
             <>
               <Link
                 href="/login"
@@ -133,7 +133,7 @@ export function TopNav() {
                 Get started <span className="grillr-nav-cta-arrow" aria-hidden="true">→</span>
               </Link>
             </>
-          )}
+          ) : null}
         </div>
 
         <div ref={menuRef} className="relative flex items-center gap-2 md:hidden">
@@ -196,7 +196,7 @@ export function TopNav() {
                   >
                     Sign out
                   </button>
-                ) : (
+                ) : !isLoading ? (
                   <>
                     <Link href="/login" onClick={closeMenu} className="grillr-mobile-auth">
                       Sign in
@@ -205,7 +205,7 @@ export function TopNav() {
                       Get started <span aria-hidden="true">→</span>
                     </Link>
                   </>
-                )}
+                ) : null}
               </div>
             </nav>
           ) : null}
