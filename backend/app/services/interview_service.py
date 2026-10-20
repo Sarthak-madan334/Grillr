@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.errors import InvalidStateError, NotFoundError
 from app.core.config import Settings, get_settings
-from app.models import Answer, AnswerEvaluation, InterviewSession, InterviewSummary, Question, SessionStatus, SpeechMetrics
+from app.models import Answer, AnswerEvaluation, InterviewSession, InterviewSummary, Question, SessionStatus, SpeechMetrics, evaluation_is_unavailable
 from app.repositories.interview_repository import InterviewRepository
 from app.schemas.answer import AnswerCreate
 from app.schemas.interview import InterviewCreate
@@ -68,7 +68,7 @@ class InterviewService:
             for question in session.questions
             for answer in question.answers
             if answer.evaluation
-            and not any("evaluation unavailable" in str(item).lower() for item in (answer.evaluation.weaknesses or []))
+            and not evaluation_is_unavailable(answer.evaluation.weaknesses)
         ]
         if not evaluations:
             return ("easy", "medium", "hard")[base]
@@ -467,16 +467,17 @@ class InterviewService:
         for answer in answers:
             if answer.evaluation is None:
                 evaluation = self.evaluator.evaluate(answer.transcript, answer.question.question_text)
-                self.db.add(AnswerEvaluation(answer_id=answer.id, **evaluation))
-                evaluations.append(evaluation)
+                answer.evaluation = AnswerEvaluation(answer_id=answer.id, **evaluation)
+                self.db.add(answer.evaluation)
+                evaluations.append(answer.evaluation)
             else:
                 evaluations.append(answer.evaluation)
         self.db.flush()
-        valid_evaluations = [evaluation for evaluation in evaluations if not any("evaluation unavailable" in str(item).lower() for item in (evaluation["weaknesses"] if isinstance(evaluation, dict) else evaluation.weaknesses))]
+        valid_evaluations = [evaluation for evaluation in evaluations if not evaluation_is_unavailable(evaluation["weaknesses"] if isinstance(evaluation, dict) else evaluation.weaknesses)]
         scores = [evaluation["overall_score"] if isinstance(evaluation, dict) else evaluation.overall_score for evaluation in valid_evaluations]
         metrics = [answer.speech_metrics for answer in answers if answer.speech_metrics]
         strengths = [item for evaluation in evaluations for item in (evaluation["strengths"] if isinstance(evaluation, dict) else evaluation.strengths)][:5]
-        weaknesses = [item for evaluation in evaluations for item in (evaluation["weaknesses"] if isinstance(evaluation, dict) else evaluation.weaknesses) if "evaluation unavailable" not in str(item).lower()][:5]
+        weaknesses = [item for evaluation in evaluations for item in (evaluation["weaknesses"] if isinstance(evaluation, dict) else evaluation.weaknesses) if not evaluation_is_unavailable([item])][:5]
         recommendations = [item for evaluation in evaluations for item in (evaluation["suggestions"] if isinstance(evaluation, dict) else evaluation.suggestions)][:5]
         if not scores:
             weaknesses = [*weaknesses, "Evaluation unavailable for this session; your answers were saved, but an overall score could not be calculated."]

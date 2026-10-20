@@ -9,6 +9,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.session import Base
 
 
+def evaluation_is_unavailable(weaknesses: list | None) -> bool:
+    unavailable_markers = ("evaluation unavailable", "too brief to evaluate meaningfully")
+    return any(any(marker in str(item).lower() for marker in unavailable_markers) for item in (weaknesses or []))
+
+
 def uuid_column() -> Mapped[uuid.UUID]:
     return mapped_column(primary_key=True, default=uuid.uuid4)
 
@@ -179,4 +184,4 @@ class InterviewSummary(Base):
 
     @property
     def score_available(self) -> bool:
-        return not any("evaluation unavailable" in str(item).lower() for item in (self.weaknesses or []))
+        return not evaluation_is_unavailable(self.weaknesses)

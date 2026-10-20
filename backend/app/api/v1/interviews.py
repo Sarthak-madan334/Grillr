@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.auth import CurrentUser, get_current_user
 from app.core.rate_limit import answer_rate_limit, interview_creation_rate_limit
 from app.db.session import get_db
-from app.models import Answer, AnswerEvaluation, InterviewSession, Question, SessionStatus
+from app.models import Answer, AnswerEvaluation, InterviewSession, Question, SessionStatus, evaluation_is_unavailable
 from app.schemas.answer import AnswerCreate, AnswerResponse, AttemptsResponse
 from app.schemas.common import RetryRequest
 from app.schemas.interview import DashboardStatsResponse, InterviewCreate, InterviewListResponse, InterviewResponse, QuestionsResponse, QuestionFeedbackResponse, RetryResponse, SummaryResponse
@@ -75,7 +75,7 @@ def dashboard_stats(identity: CurrentUser = Depends(get_current_user), db: Sessi
                 InterviewSession.status == SessionStatus.COMPLETED,
             )
         ).all()
-        scored = [getattr(item, column.key) for item in values if not any("evaluation unavailable" in str(note).lower() for note in (item.weaknesses or []))]
+        scored = [getattr(item, column.key) for item in values if not evaluation_is_unavailable(item.weaknesses)]
         dimensions[name] = round(sum(scored) / len(scored), 1) if scored else None
 
     return {
@@ -128,7 +128,7 @@ def get_feedback(session_id: UUID, identity: CurrentUser = Depends(get_current_u
             is_follow_up=question.is_follow_up,
             transcript=answer.transcript if answer else None,
             duration=answer.duration if answer else None,
-            overall_score=evaluation.overall_score if evaluation else None,
+            overall_score=evaluation.overall_score if evaluation and not evaluation_is_unavailable(evaluation.weaknesses) else None,
             strengths=evaluation.strengths if evaluation else [],
             weaknesses=evaluation.weaknesses if evaluation else [],
             suggestions=evaluation.suggestions if evaluation else [],
