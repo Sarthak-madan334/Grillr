@@ -1,0 +1,10 @@
+{
+  "name": "grillr",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace frontend"
+  }
+}
