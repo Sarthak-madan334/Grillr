@@ -11,6 +11,7 @@ type VoiceAnswerPanelProps = {
   sessionId?: string;
   disabled?: boolean;
   hidden?: boolean;
+  turnState?: TurnState;
   onRecordingChange?: (recording: boolean) => void;
   onTranscript?: (transcript: string) => void;
   onTurnStateChange?: (state: TurnState) => void;
@@ -18,6 +19,10 @@ type VoiceAnswerPanelProps = {
   onQuestionReady?: (question: { id: string; text: string; questionNumber: number; isFollowUp: boolean }) => void;
   onCompleted?: () => void;
 };
+
+const waveformPattern = Array.from({ length: 31 }, (_, index) =>
+  0.25 + Math.abs(Math.sin(index * 0.61)) * 0.75,
+);
 
 function MicrophoneIcon() {
   return <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" /></svg>;
@@ -34,19 +39,19 @@ function getErrorName(error: unknown) {
 function statusCopy(status: VoiceStatus) {
   switch (status) {
     case "denied":
-      return { title: "Microphone access denied", body: "Voice is required for this interview. Please allow microphone access and retry." };
+      return { title: "Microphone access denied", body: "Allow microphone access in your browser settings, then retry." };
     case "no-device":
-      return { title: "No microphone detected", body: "Connect a microphone and retry. Voice responses are required for this interview." };
+      return { title: "No microphone detected", body: "Connect a microphone, then retry your answer." };
     case "unsupported":
-      return { title: "Voice is unavailable here", body: "This browser does not support microphone input. Please switch to a browser with microphone access to continue." };
+      return { title: "Voice is unavailable here", body: "Open this interview in a browser with microphone support." };
     case "revoked":
-      return { title: "Microphone access ended", body: "Your microphone became unavailable during recording. Please retry voice recording to continue." };
+      return { title: "Microphone access ended", body: "Reconnect your microphone, then retry your answer." };
     default:
       return null;
   }
 }
 
-export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, onRecordingChange, onTranscript, onTurnStateChange, onAnswerEvaluated, onQuestionReady, onCompleted }: VoiceAnswerPanelProps) {
+export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, turnState = "listening", onRecordingChange, onTranscript, onTurnStateChange, onAnswerEvaluated, onQuestionReady, onCompleted }: VoiceAnswerPanelProps) {
   const [status, setStatus] = useState<VoiceStatus>(() =>
     typeof navigator !== "undefined" &&
     typeof navigator.mediaDevices?.getUserMedia === "function"
@@ -60,6 +65,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSocketReady, setIsSocketReady] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const streamRef = useRef<MediaStream | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const socketAuthenticatedRef = useRef(false);
@@ -68,6 +74,17 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
   const aiAudioUrlRef = useRef<string | null>(null);
   const pendingChunksRef = useRef<Blob[]>([]);
   const { isSpeaking, level } = useVoiceActivityDetection(activeStream);
+  const isActivelyRecording = status === "recording" && !isStopping && !isProcessing;
+  const voiceLevel = activeStream ? Math.min(1, level * 8) : 0;
+
+  useEffect(() => {
+    if (!isActivelyRecording) return;
+    const startedAt = Date.now();
+    const interval = window.setInterval(() => {
+      setRecordingSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [isActivelyRecording]);
 
   const stopStream = useCallback((closeSocket = true) => {
     microphoneService.releaseMicrophone();
@@ -222,6 +239,7 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
     setSocketError("");
     setIsProcessing(false);
     setIsStopping(false);
+    setRecordingSeconds(0);
     try {
       const devices = navigator.mediaDevices.enumerateDevices
         ? await navigator.mediaDevices.enumerateDevices()
@@ -295,26 +313,77 @@ export function VoiceAnswerPanel({ sessionId, disabled = false, hidden = false, 
   }
 
   const message = statusCopy(status);
+  const statusLabel = isProcessing || isStopping
+    ? "Processing your answer..."
+    : isActivelyRecording
+      ? isSpeaking ? "Speaking detected" : "Recording · listening"
+      : turnState === "asking"
+        ? "Listen to the next question"
+        : status === "checking"
+          ? "Checking microphone"
+          : "Your turn · start when ready";
+  const actionLabel = isRetrying
+    ? "Checking microphone..."
+    : isStopping || isProcessing
+      ? "Processing answer..."
+      : isActivelyRecording
+        ? "Stop recording"
+        : message && status !== "unsupported"
+          ? "Retry voice"
+          : "Start answer";
+  const elapsedLabel = `${String(Math.floor(recordingSeconds / 60)).padStart(2, "0")}:${String(recordingSeconds % 60).padStart(2, "0")}`;
 
   return (
-    <section className={`${hidden ? "hidden" : ""} mb-5 rounded-[22px] border border-[#e7d8c5] bg-[rgba(255,255,255,0.5)] p-4`} aria-labelledby="voice-answer-heading">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f1e6da] text-[#6b503d]"><MicrophoneIcon /></span>
-            <h3 id="voice-answer-heading" className="text-sm font-semibold text-[#201a17]">Answer by voice <span className="ml-1 text-xs font-normal text-[#7a5f48]">Required</span></h3>
-          </div>
-          <p className="mt-2 text-xs leading-5 text-[#6e5a49]">Speak naturally and answer out loud. This interview is designed for voice responses only.</p>
-        </div>
-        {status !== "unsupported" ? <button type="button" onClick={status === "recording" ? stopRecording : () => void startRecording()} disabled={disabled || isRetrying || isStopping || isProcessing || status === "checking"} aria-label={status === "recording" ? "Stop recording" : "Start recording"} aria-pressed={status === "recording"} className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-[#2d241d] bg-[#2d241d] px-5 text-sm font-medium text-white shadow-[0_8px_18px_rgba(45,36,29,0.16)] transition hover:bg-[#1f1915] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8916d] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 motion-reduce:transition-none">{status === "recording" ? <StopIcon /> : <MicrophoneIcon />}{isRetrying ? "Checking microphone..." : isStopping || isProcessing ? "Finishing answer..." : status === "recording" ? "Stop recording" : "Start recording"}</button> : null}
+    <section className={`${hidden ? "hidden" : ""} mx-auto mt-10 w-full max-w-3xl sm:mt-14`} aria-labelledby="voice-answer-heading">
+      <h3 id="voice-answer-heading" className="sr-only">Voice answer</h3>
+      <div className="flex h-24 items-center justify-center gap-1 sm:h-28" role="img" aria-label={activeStream ? "Live microphone input waveform" : "Microphone ready"}>
+        {waveformPattern.map((height, index) => (
+          <span
+            key={index}
+            aria-hidden="true"
+            className={`w-1 rounded-full transition-transform duration-100 motion-reduce:transition-none ${activeStream ? "bg-[#4f8ff7]" : "bg-[#cbd3df]"}`}
+            style={{
+              height: `${18 + height * 44}px`,
+              opacity: activeStream ? 0.45 + voiceLevel * 0.55 : 0.42,
+              transform: `scaleY(${activeStream ? 0.12 + voiceLevel * height * 0.88 : 0.08})`,
+            }}
+          />
+        ))}
       </div>
-      {status === "checking" ? <p className="mt-4 animate-pulse text-xs text-[#7a5f48] motion-reduce:animate-none" aria-live="polite">Checking microphone support...</p> : null}
-      {status === "recording" ? <p className="mt-4 flex items-center gap-2 text-xs font-medium text-[#26724d]" aria-live="polite"><span className="h-2 w-2 animate-pulse rounded-full bg-[#26724d] motion-reduce:animate-none" /> Recording in progress. Stop when you finish.</p> : null}
-      {isProcessing ? <p className="mt-4 flex items-center gap-2 text-xs font-medium text-[#7a5f48]" aria-live="polite"><span className="h-3 w-3 animate-pulse rounded-full bg-[#b8916d] motion-reduce:animate-none" /> Processing your answer...</p> : null}
-      {activeStream ? <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#e7d8c5] bg-white/50 px-3 py-2" aria-live="polite"><span className={`h-2.5 w-2.5 rounded-full transition-colors motion-reduce:transition-none ${isSpeaking ? "bg-[#26724d] shadow-[0_0_0_4px_rgba(38,114,77,0.14)]" : "bg-[#b8916d]"}`} /><span className="text-xs font-medium text-[#5e4d40]">{isSpeaking ? "Speaking detected" : "Listening for your voice"}</span><span className="ml-auto text-[10px] tabular-nums text-[#7a5f48]">{Math.round(level * 100)}%</span></div> : null}
-      {recordingUrl ? <div className="mt-4 rounded-xl border border-[#e7d8c5] bg-white/60 p-3"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7a5f48]">Captured locally</p><audio className="mt-2 h-9 w-full" controls src={recordingUrl} aria-label="Recorded answer preview" /></div> : null}
-      {socketError ? <div role="alert" className="mt-3 rounded-xl border border-[#d8b9a7] bg-[#fff7f1] px-3 py-2 text-xs leading-5 text-[#805542]">{socketError}</div> : null}
-      {message ? <div role="alert" className="mt-4 flex flex-col gap-3 rounded-xl border border-[#d8b9a7] bg-[#fff7f1] p-3 text-sm text-[#713f2c] sm:flex-row sm:items-center sm:justify-between"><div><strong className="block font-semibold">{message.title}</strong><span className="mt-1 block text-xs leading-5 text-[#805542]">{message.body}</span></div>{status !== "unsupported" ? <button type="button" onClick={() => void startRecording()} disabled={isRetrying} className="shrink-0 self-start rounded-full border border-[#b8916d] px-3 py-2 text-xs font-semibold text-[#5e402e] transition hover:bg-[#f3e3d5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8916d] focus-visible:ring-offset-2 sm:self-center">Retry voice</button> : null}</div> : null}
+      <div className="mt-5 flex flex-col items-center justify-between gap-5 border-t border-[#e7eaf0] pt-5 sm:flex-row">
+        <div className="flex min-h-11 items-center gap-3" role="status" aria-live="polite">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${isProcessing || isStopping ? "animate-pulse bg-[#4f8ff7] motion-reduce:animate-none" : isActivelyRecording ? "bg-[#24a875]" : message || socketError ? "bg-[#d94b55]" : "bg-[#8993a3]"}`} />
+          <span className="text-sm text-[#4c5665]">{message?.title ?? (socketError || statusLabel)}</span>
+          {isActivelyRecording ? <time className="font-mono text-xs tabular-nums text-[#737b89]" dateTime={`PT${recordingSeconds}S`}>{elapsedLabel}</time> : null}
+        </div>
+        {status !== "unsupported" ? (
+          <button
+            type="button"
+            onClick={isActivelyRecording ? stopRecording : () => void startRecording()}
+            disabled={disabled || isRetrying || isStopping || isProcessing || status === "checking"}
+            aria-label={isActivelyRecording ? "Stop recording" : message ? "Retry voice" : "Start recording"}
+            aria-pressed={isActivelyRecording}
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#171a21] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#303744] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f8ff7] focus-visible:ring-offset-2 active:bg-[#101217] disabled:cursor-not-allowed disabled:opacity-55 motion-reduce:transition-none sm:w-auto"
+          >
+            {isActivelyRecording ? <StopIcon /> : <MicrophoneIcon />}
+            {actionLabel}
+          </button>
+        ) : null}
+      </div>
+      {message || socketError ? (
+        <div role="alert" className="mt-4 flex flex-col gap-3 border-l-2 border-[#d94b55] pl-4 text-sm text-[#5d3337] sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            {message ? <><strong className="block font-semibold">{message.title}</strong><span className="mt-1 block text-sm text-[#737b89]">{message.body}</span></> : null}
+            {socketError ? <span className="block text-sm">{socketError}</span> : null}
+          </div>
+        </div>
+      ) : null}
+      {recordingUrl ? (
+        <details className="mt-5 text-sm text-[#737b89]">
+          <summary className="w-fit cursor-pointer rounded-sm underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4f8ff7]">Review captured audio</summary>
+          <audio className="mt-3 h-10 w-full" controls src={recordingUrl} aria-label="Recorded answer preview" />
+        </details>
+      ) : null}
     </section>
   );
 }
